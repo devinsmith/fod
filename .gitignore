@@ -1,0 +1,3 @@
+*.o
+*.d
+install/fod_install

@@ -1,0 +1,737 @@
+The Fountain of Dreams installer consists of 4 files:
+
+F1.PAK
+F1.RAW
+F2.PAK
+F2.RAW
+INSTALL.EXE
+
+The PAK files seem to use some kind of compression with a
+history buffer (LZ77 perhaps?).
+
+The F1.PAK file contains in this order:
+0: fod.exe
+1: keh.exe
+2: globals
+3: hdspct
+4: weapons
+5: packets
+6: archtype
+7: services
+8: font
+9: borders
+A: disk2
+B: kmap
+
+F1.RAW
+0: tiles
+1: gani
+2: tpict
+3: kscr
+4: kani
+5: kpict
+6: disk3
+7: fpict
+8: epict
+9: disk4
+A: dpict
+
+F2.PAK
+0: fmap
+1: dmap
+
+F2.RAW
+0: fscr
+1: fani
+2: dani
+3: dscr
+
+0336:0012  8CC0                mov  ax,es
+0336:0014  051000              add  ax,0010
+0336:0017  0E                  push cs
+0336:0018  1F                  pop  ds
+0336:0019  A30400              mov  [0004],ax              ds:[0004]=EA00
+0336:001C  03060C00            add  ax,[000C]              ds:[000C]=F100
+0336:0020  8EC0                mov  es,ax
+0336:0022  8B0E0600            mov  cx,[0006]              ds:[0006]=FFFF
+0336:0026  8BF9                mov  di,cx
+0336:0028  4F                  dec  di
+
+
+01A7:0179  BA0627              mov  dx,2706                                    
+01A7:017C  E81607              call 00000895 ($+716)
+01A7:017F  E8A506              call 00000827 ($+6a5)
+
+/* The following code opens and closes f2.pak.
+ * It doesn't seem to be an error if f2.pak can't be opened.
+ * If it can be opened the variable at [007E] is set with an FF.
+ * The f2.pak file is then closed */
+01A7:0201  BADD2B              mov  dx,2BDD
+01A7:0204  B8003D              mov  ax,3D00
+01A7:0207  CD21                int  21                     Open file "f2.pak"
+01A7:0209  720B                jc   00000216 ($+b)         (no jmp)
+01A7:020B  C6067E00FF          mov  byte [007E],FF         ds:[007E]=00FF
+01A7:0210  8BD8                mov  bx,ax                  bx = 5
+01A7:0212  B43E                mov  ah,3E                  ax now = 0x3E05
+01A7:0214  CD21                int  21                     Close file "f2.pak"
+
+
+
+01A7:0216  BAEC2A              mov  dx,2AEC
+01A7:0219  E89207              call 000009AE ($+792) (what does it do) - it opened f1.pak
+
+01A7:021C  803E1D0000          cmp  byte [001D],00         ds:[001D]=0200
+01A7:0221  7513                jne  00000236 ($+13)        (no jmp)            
+
+/* Set default drive to 2 (C:) */
+01A7:0223  8A167D00            mov  dl,[007D]              ds:[007D]=FF02
+01A7:0227  E86106              call 0000088B ($+661)
+
+/* Main install section. */
+01A7:022A  BA8200              mov  dx,0082
+01A7:022D  E84306              call 00000873 ($+643)
+01A7:0230  BA8200              mov  dx,0082
+01A7:0233  E85A06              call 00000890 ($+65a)
+01A7:0236  803E1D0000          cmp  byte [001D],00         ds:[001D]=0200
+01A7:023B  740A                je   00000247 ($+a)         (down)
+01A7:023D  E85709              call 00000B97 ($+957)
+01A7:0240  8A167D00            mov  dl,[007D]              ds:[007D]=FF02
+01A7:0244  E84406              call 0000088B ($+644)
+01A7:0247  E86A09              call 00000BB4 ($+96a)                           
+01A7:024A  C7060A000100        mov  word [000A],0001       ds:[000A]=0000
+01A7:0250  BA522B              mov  dx,2B52
+01A7:0253  E85E03              call 000005B4 ($+35e)
+01A7:0256  C7060A000000        mov  word [000A],0000       ds:[000A]=0000
+01A7:025C  1E                  push ds
+
+01A7:0290  BA672B              mov  dx,2B67                                    
+01A7:0293  E85902              call 000004EF ($+259)
+01A7:0296  BAEC2A              mov  dx,2AEC
+
+/* 5B4 installs most of the files */
+01A7:0299  E81803              call 000005B4 ($+318)
+01A7:029C  803E1D0002          cmp  byte [001D],02         ds:[001D]=0200
+01A7:02A1  7D1A                jge  000002BD ($+1a)        (down)
+01A7:02A3  803E1D0001          cmp  byte [001D],01         ds:[001D]=0200
+01A7:02A8  7509                jne  000002B3 ($+9)         (no jmp)
+01A7:02AA  FE068000            inc  byte [0080]            ds:[0080]=0000
+01A7:02AE  E8E608              call 00000B97 ($+8e6)
+01A7:02B1  EB0A                jmp  short 000002BD ($+a)   (down)
+01A7:02B3  803E790000          cmp  byte [0079],00         ds:[0079]=0000
+01A7:02B8  7403                je   000002BD ($+3)         (down)
+01A7:02BA  E8DA08              call 00000B97 ($+8da)
+01A7:02BD  8A167D00            mov  dl,[007D]              ds:[007D]=FF02
+01A7:02C1  E8C705              call 0000088B ($+5c7)
+01A7:02C4  E8ED08              call 00000BB4 ($+8ed)
+01A7:02C7  BA6D2B              mov  dx,2B6D
+/* Does a bunch of other files */
+01A7:02CA  E82202              call 000004EF ($+222)
+01A7:02CD  BAA12B              mov  dx,2BA1
+01A7:02D0  E8E102              call 000005B4 ($+2e1)
+
+
+01A7:02F1  C606800000          mov  byte [0080],00         ds:[0080]=0000
+01A7:02F6  E89E08              call 00000B97 ($+89e)
+01A7:02F9  8A167D00            mov  dl,[007D]              ds:[007D]=FF02
+01A7:02FD  E88B05              call 0000088B ($+58b)
+01A7:0300  E8B108              call 00000BB4 ($+8b1)
+01A7:0303  BA7F2B              mov  dx,2B7F
+01A7:0306  E8D202              call 000005DB ($+2d2)
+01A7:0309  803E1D0002          cmp  byte [001D],02         ds:[001D]=0200
+01A7:030E  7D1A                jge  0000032A ($+1a)        (down)
+01A7:0310  803E1D0001          cmp  byte [001D],01         ds:[001D]=0200
+
+
+/* Function 000004EF */
+01A7:04EF  FF362300            push word [0023]            ds:[0023]=2058
+01A7:04F3  FF361400            push word [0014]            ds:[0014]=0EC0
+01A7:04F7  FF361600            push word [0016]            ds:[0016]=0000
+01A7:04FB  C7060800AC10        mov  word [0008],10AC       ds:[0008]=0000
+01A7:0501  8C1E2300            mov  [0023],ds              ds:[0023]=2058
+01A7:0505  33C0                xor  ax,ax
+01A7:0507  A31600              mov  [0016],ax              ds:[0016]=0000
+01A7:050A  C7061400C00E        mov  word [0014],0EC0       ds:[0014]=0EC0
+01A7:0510  E81804              call 0000092B ($+418)
+01A7:0513  8F061600            pop  word [0016]            ds:[0016]=0000
+01A7:0517  8F061400            pop  word [0014]            ds:[0014]=0EC0
+01A7:051B  8F062300            pop  word [0023]            ds:[0023]=0271
+01A7:051F  C3                  ret
+
+
+
+
+
+/* Function 000005B4
+ * DX contains: Unknown, possibly DS:DX (location of file name string) */
+01A7:05B4  83C20D              add  dx,000D                                    
+01A7:05B7  8BF2                mov  si,dx
+01A7:05B9  AC                  lodsb
+01A7:05BA  8AC8                mov  cl,al                       ; cl = 1
+01A7:05BC  32ED                xor  ch,ch
+01A7:05BE  AC                  lodsb                             ; al = 0a
+
+/* Do one file */
+01A7:05BF  E82101              call 000006E3 ($+121)
+01A7:05C2  833E0A0000          cmp  word [000A],0000       ds:[000A]=0001
+01A7:05C7  7511                jne  000005DA ($+11)        (no jmp)
+01A7:05C9  8BD6                mov  dx,si
+
+/* Create and write the file */
+01A7:05CB  E8C604              call 00000A94 ($+4c6)
+01A7:05CE  83F901              cmp  cx,0001
+01A7:05D1  7407                je   000005DA ($+7)         (down)
+01A7:05D3  AC                  lodsb
+01A7:05D4  0AC0                or   al,al
+01A7:05D6  75FB                jne  000005D3 ($-5)         (no jmp)
+
+/* Function 000005DB */
+01A7:05DB  83C20D              add  dx,000D
+01A7:05DE  8BF2                mov  si,dx
+01A7:05E0  AC                  lodsb
+01A7:05E1  8AC8                mov  cl,al
+01A7:05E3  32ED                xor  ch,ch
+01A7:05E5  AC                  lodsb
+01A7:05E6  E81200              call 000005FB ($+12)
+01A7:05E9  8BD6                mov  dx,si
+01A7:05EB  E83D03              call 0000092B ($+33d)
+01A7:05EE  83F901              cmp  cx,0001
+01A7:05F1  7407                je   000005FA ($+7)         (no jmp)
+01A7:05F3  AC                  lodsb
+01A7:05F4  0AC0                or   al,al
+01A7:05F6  75FB                jne  000005F3 ($-5)         (up)
+01A7:05F8  E2EB                loop 000005E5 ($-15)
+01A7:05FA  C3                  ret
+
+
+
+/* Function 000005FB */
+01A7:05FB  50                  push ax
+01A7:05FC  53                  push bx
+01A7:05FD  51                  push cx
+01A7:05FE  52                  push dx
+01A7:05FF  56                  push si
+01A7:0600  57                  push di
+01A7:0601  FF362100            push word [0021]            ds:[0021]=0575
+01A7:0605  32E4                xor  ah,ah
+01A7:0607  8BC8                mov  cx,ax
+01A7:0609  33D2                xor  dx,dx
+
+
+/* Function 000006E3 */
+01A7:06E3  50                  push ax
+01A7:06E4  53                  push bx
+01A7:06E5  51                  push cx
+01A7:06E6  52                  push dx
+01A7:06E7  56                  push si
+01A7:06E8  57                  push di
+01A7:06E9  FF362100            push word [0021]            ds:[0021]=0575
+01A7:06ED  FF362300            push word [0023]            ds:[0023]=2058
+01A7:06F1  32E4                xor  ah,ah
+01A7:06F3  8BC8                mov  cx,ax
+01A7:06F5  33D2                xor  dx,dx
+01A7:06F7  33C0                xor  ax,ax
+01A7:06F9  1E                  push ds
+01A7:06FA  07                  pop  es
+01A7:06FB  1E                  push ds
+01A7:06FC  8E1E2100            mov  ds,[0021]              ds:[0021]=1E04
+01A7:0700  33F6                xor  si,si
+01A7:0702  0BC9                or   cx,cx
+01A7:0704  742B                je   00000731 ($+2b)        (no jmp)            
+/* Get the magic offsets ? */
+01A7:0706  AD                  lodsw
+01A7:0707  8BD0                mov  dx,ax
+01A7:0709  AD                  lodsw
+01A7:070A  92                  xchg dx,ax
+01A7:070B  03C6                add  ax,si
+01A7:070D  83D200              adc  dx,0000
+01A7:0710  8BF0                mov  si,ax
+01A7:0712  83E60F              and  si,000F
+01A7:0715  D1EA                shr  dx,1
+01A7:0717  D1D8                rcr  ax,1
+01A7:0719  D1EA                shr  dx,1
+01A7:071B  D1D8                rcr  ax,1
+01A7:071D  D1EA                shr  dx,1
+01A7:071F  D1D8                rcr  ax,1
+01A7:0721  D1EA                shr  dx,1
+01A7:0723  D1D8                rcr  ax,1
+01A7:0725  2601062100          add  es:[0021],ax           es:[0021]=0575
+01A7:072A  268E1E2100          mov  ds,es:[0021]           es:[0021]=0575
+01A7:072F  E2D5                loop 00000706 ($-2b)
+/* End of get the magic offsets ? */
+01A7:0731  8B5C04              mov  bx,[si+04]             ds:[000C]=0EC0
+01A7:0734  8B5406              mov  dx,[si+06]             ds:[000E]=0000
+01A7:0737  1F                  pop  ds
+/* Create a history buffer */
+01A7:0738  891E1800            mov  [0018],bx              ds:[0018]=090F
+01A7:073C  89161A00            mov  [001A],dx              ds:[001A]=002F
+01A7:0740  891E1400            mov  [0014],bx              ds:[0014]=0203
+01A7:0744  89161600            mov  [0016],dx              ds:[0016]=0900
+01A7:0748  BF9200              mov  di,0092
+01A7:074B  B90808              mov  cx,0808
+01A7:074E  B82020              mov  ax,2020
+01A7:0751  F3AB                repe stosw
+01A7:0753  83C608              add  si,0008
+01A7:0756  33FF                xor  di,di
+01A7:0758  8E062300            mov  es,[0023]              ds:[0023]=2058
+01A7:075C  8B0E1800            mov  cx,[0018]              ds:[0018]=0EC0
+01A7:0760  8B161A00            mov  dx,[001A]              ds:[001A]=0000
+01A7:0764  BBEE0F              mov  bx,0FEE
+01A7:0767  C606910001          mov  byte [0091],01         ds:[0091]=2001
+
+01A7:076C  83FE40              cmp  si,0040                                    
+01A7:076F  7208                jc   00000779 ($+8)         (no jmp)
+01A7:0771  83EE40              sub  si,0040
+01A7:0774  8306210004          add  word [0021],0004       ds:[0021]=1849
+01A7:0779  83FF40              cmp  di,0040
+01A7:077C  720C                jc   0000078A ($+c)         (no jmp)
+
+
+
+
+01A7:0795  AC                  lodsb
+01A7:0796  8AE0                mov  ah,al
+01A7:0798  1F                  pop  ds
+01A7:0799  C606910008          mov  byte [0091],08         ds:[0091]=4B18
+01A7:079E  D0EC                shr  ah,1
+01A7:07A0  7321                jnc  000007C3 ($+21)        (no jmp)
+01A7:07A2  1E                  push ds
+01A7:07A3  8E1E2100            mov  ds,[0021]              ds:[0021]=EE1C
+01A7:07A7  AC                  lodsb
+01A7:07A8  AA                  stosb
+01A7:07A9  1F                  pop  ds
+01A7:07AA  83E901              sub  cx,0001
+01A7:07AD  83DA00              sbb  dx,0000
+01A7:07B0  0BD2                or   dx,dx
+01A7:07B2  7504                jne  000007B8 ($+4)         (no jmp)            
+01A7:07B4  0BC9                or   cx,cx
+01A7:07B6  7459                je   00000811 ($+59)        (no jmp)
+01A7:07B8  88879200            mov  [bx+0092],al           ds:[1081]=2020
+01A7:07BC  43                  inc  bx
+01A7:07BD  81E3FF0F            and  bx,0FFF
+01A7:07C1  EBA9                jmp  short 0000076C ($-57)  (up)                
+
+
+
+
+al = 0xff
+ah = 0xff
+ax = 0xffff
+
+after "shr ah, 1"
+0x7fff
+after lodsb
+0x7f4d
+
+
+/* Magic here */
+01A7:07C3  8BE9                mov  bp,cx                                      
+01A7:07C5  1E                  push ds
+01A7:07C6  8E1E2100            mov  ds,[0021]              ds:[0021]=1849
+01A7:07CA  AC                  lodsb
+01A7:07CB  8AC8                mov  cl,al
+01A7:07CD  AC                  lodsb
+01A7:07CE  1F                  pop  ds
+01A7:07CF  56                  push si
+01A7:07D0  8AE8                mov  ch,al
+01A7:07D2  240F                and  al,0F
+01A7:07D4  0403                add  al,03
+01A7:07D6  D0ED                shr  ch,1
+01A7:07D8  D0ED                shr  ch,1
+01A7:07DA  D0ED                shr  ch,1
+01A7:07DC  D0ED                shr  ch,1
+01A7:07DE  8BF1                mov  si,cx
+01A7:07E0  8AC8                mov  cl,al
+01A7:07E2  32ED                xor  ch,ch
+01A7:07E4  8A849200            mov  al,[si+0092]           ds:[00A6]=2020
+01A7:07E8  AA                  stosb
+01A7:07E9  46                  inc  si
+01A7:07EA  81E6FF0F            and  si,0FFF
+01A7:07EE  83ED01              sub  bp,0001
+01A7:07F1  83DA00              sbb  dx,0000
+01A7:07F4  0BD2                or   dx,dx
+01A7:07F6  7508                jne  00000800 ($+8)         (down)
+01A7:07F8  0BED                or   bp,bp
+01A7:07FA  7504                jne  00000800 ($+4)         (down)
+01A7:07FC  5E                  pop  si
+01A7:07FD  EB12                jmp  short 00000811 ($+12)  (down)
+01A7:07FF  90                  nop
+01A7:0800  88879200            mov  [bx+0092],al           ds:[1081]=2020
+01A7:0804  43                  inc  bx
+01A7:0805  81E3FF0F            and  bx,0FFF
+01A7:0809  E2D9                loop 000007E4 ($-27)
+01A7:080B  8BCD                mov  cx,bp
+01A7:080D  5E                  pop  si
+
+
+
+/* Function 00000873 */
+/* Makes directory */
+01A7:0873  B439                mov  ah,39
+01A7:0875  CD21                int  21
+01A7:0877  7311                jnc  0000088A ($+11)        (down) /* This exits the func */
+/* Handle errors */
+01A7:0879  3D0500              cmp  ax,0005
+01A7:087C  740C                je   0000088A ($+c)         (down)
+01A7:087E  E8A100              call 00000922 ($+a1)
+01A7:0881  BA4324              mov  dx,2443
+01A7:0884  E80E00              call 00000895 ($+e)
+01A7:0887  E86A03              call 00000BF4 ($+36a)
+01A7:088A  C3                  ret
+/* End function 00000873 */
+
+
+/* Function 0000088B */
+01A7:088B  B40E                mov  ah,0E   (Set default drive)
+01A7:088D  CD21                int  21
+01A7:088F  C3                  ret
+/* End of 0000088B */
+
+/* Function 00000890 */
+01A7:0890  B43B                mov  ah,3B   (Change directory)
+01A7:0892  CD21                int  21
+01A7:0894  C3                  ret
+
+/* Function 00000917 */
+01A7:0917  50                  push ax
+01A7:0918  53                  push bx
+01A7:0919  B402                mov  ah,02
+01A7:091B  B700                mov  bh,00     /* Set cursor position */
+01A7:091D  CD10                int  10
+01A7:091F  5B                  pop  bx
+01A7:0920  58                  pop  ax
+01A7:0921  C3                  ret
+/* End function 00000917 */
+
+/* Function 00000922 */
+01A7:0922  B40F                mov  ah,0F
+01A7:0924  CD10                int  10                 BIOS Get Video Mode
+01A7:0926  B400                mov  ah,00
+01A7:0928  CD10                int  10                 BIOS Set Video Mode
+01A7:092A  C3                  ret
+
+/* Function 00000895 */
+/* Writes next string to screen */
+01A7:0895  50                  push ax
+01A7:0896  52                  push dx
+01A7:0897  56                  push si
+01A7:0898  06                  push es
+01A7:0899  1E                  push ds
+01A7:089A  07                  pop  es
+01A7:089B  8BF2                mov  si,dx
+01A7:089D  AC                  lodsb
+01A7:089E  0AC0                or   al,al
+01A7:08A0  7439                je   000008DB ($+39)        (no jmp)
+01A7:08A2  3C07                cmp  al,07
+01A7:08A4  7505                jne  000008AB ($+5)         (down)
+01A7:08A6  E86300              call 0000090C ($+63)
+01A7:08A9  EBF2                jmp  short 0000089D ($-e)   (up)
+01A7:08AB  3CFF                cmp  al,FF
+01A7:08AD  750D                jne  000008BC ($+d)         (down)
+01A7:08AF  AD                  lodsw
+01A7:08B0  8BD0                mov  dx,ax
+01A7:08B2  56                  push si
+01A7:08B3  A3A610              mov  [10A6],ax              ds:[10A6]=0A16
+01A7:08B6  E85E00              call 00000917 ($+5e)
+01A7:08B9  5E                  pop  si
+01A7:08BA  EBE1                jmp  short 0000089D ($-1f)  (up)
+01A7:08BC  8A3EA310            mov  bh,[10A3]              ds:[10A3]=0100
+01A7:08C0  8A1EA510            mov  bl,[10A5]              ds:[10A5]=1607
+01A7:08C4  8BEE                mov  bp,si
+01A7:08C6  4D                  dec  bp
+01A7:08C7  B90100              mov  cx,0001
+01A7:08CA  B409                mov  ah,09
+01A7:08CC  CD10                int  10
+01A7:08CE  FE06A610            inc  byte [10A6]            ds:[10A6]=0A16
+01A7:08D2  8B16A610            mov  dx,[10A6]              ds:[10A6]=0A16
+01A7:08D6  E83E00              call 00000917 ($+3e)
+
+/* Function 0000092B */
+01A7:092B  50                  push ax
+01A7:092C  53                  push bx
+01A7:092D  51                  push cx
+01A7:092E  52                  push dx
+01A7:092F  56                  push si
+01A7:0930  57                  push di
+01A7:0931  06                  push es
+01A7:0932  1E                  push ds
+01A7:0933  B43C                mov  ah,3C       ; create a file 
+01A7:0935  B90000              mov  cx,0000
+01A7:0938  CD21                int  21
+01A7:093A  7303                jnc  0000093F ($+3)         (down)
+01A7:093C  E90AFF              jmp  00000849 ($-f6)        (up)     ; Error HANDLING!
+01A7:093F  A30600              mov  [0006],ax              ds:[0006]=0000
+01A7:0942  1E                  push ds
+01A7:0943  07                  pop  es
+01A7:0944  8BD8                mov  bx,ax
+01A7:0946  26A12300            mov  ax,es:[0023]           es:[0023]=0271
+01A7:094A  8ED8                mov  ds,ax
+01A7:094C  268B160800          mov  dx,es:[0008]           es:[0008]=10AC
+01A7:0951  268B0E1400          mov  cx,es:[0014]           es:[0014]=0EC0
+01A7:0956  26833E160000        cmp  word es:[0016],0000    es:[0016]=0000
+01A7:095C  7403                je   00000961 ($+3)         (down)
+01A7:095E  B9F0FF              mov  cx,FFF0
+01A7:0961  B440                mov  ah,40
+01A7:0963  CD21                int  21                 ; write a file
+01A7:0965  7244                jc   000009AB ($+44)        (no jmp)   ; error handling
+01A7:0967  3BC8                cmp  cx,ax
+01A7:0969  7403                je   0000096E ($+3)         (down)
+01A7:096B  E9C301              jmp  00000B31 ($+1c3)       (down) ; file written but not complete not done
+01A7:096E  F8                  clc
+01A7:096F  26290E1400          sub  es:[0014],cx           es:[0014]=0EC0
+01A7:0974  26831E160000        sbb  word es:[0016],0000    es:[0016]=0000
+01A7:097A  F8                  clc
+01A7:097B  03D1                add  dx,cx
+01A7:097D  7307                jnc  00000986 ($+7)         (down)              
+01A7:097F  8CD8                mov  ax,ds
+01A7:0981  050010              add  ax,1000
+
+
+01A7:0986  26833E160000        cmp  word es:[0016],0000    es:[0016]=0000
+01A7:098C  75C3                jne  00000951 ($-3d)        (no jmp)
+01A7:098E  26833E140000        cmp  word es:[0014],0000    es:[0014]=0000
+01A7:0994  75BB                jne  00000951 ($-45)        (no jmp)            
+01A7:0996  B80100              mov  ax,0001
+01A7:0999  268B1E0600          mov  bx,es:[0006]           es:[0006]=0005
+01A7:099E  B43E                mov  ah,3E                  ; Close file
+01A7:09A0  CD21                int  21
+01A7:09A2  1F                  pop  ds
+01A7:09A3  07                  pop  es
+
+
+
+
+
+/* Function 00000BD4 */
+01A7:0BD4  50                  push ax                                         
+01A7:0BD5  53                  push bx
+01A7:0BD6  51                  push cx
+01A7:0BD7  52                  push dx
+01A7:0BD8  56                  push si
+01A7:0BD9  57                  push di
+01A7:0BDA  06                  push es
+01A7:0BDB  E844FD              call 00000922 ($-2bc)   (Set to video mode 3)
+01A7:0BDE  A08100              mov  al,[0081]              ds:[0081]=6600
+01A7:0BE1  0431                add  al,31
+01A7:0BE3  A26D26              mov  [266D],al              ds:[266D]=3A31
+01A7:0BE6  BA4B26              mov  dx,264B                                    
+01A7:0BE9  E8A9FC              call 00000895 ($-357)
+
+
+
+/* Function 000009AE (reads files) */
+01A7:09AE  50                  push ax                                         
+01A7:09AF  53                  push bx
+01A7:09B0  51                  push cx
+01A7:09B1  52                  push dx
+01A7:09B2  56                  push si
+01A7:09B3  57                  push di
+01A7:09B4  E81D02              call 00000BD4 ($+21d) (Prints a message)
+01A7:09B7  A11F00              mov  ax,[001F]              ds:[001F]=0575
+01A7:09BA  A32100              mov  [0021],ax              ds:[0021]=0575
+01A7:09BD  B8003D              mov  ax,3D00
+01A7:09C0  CD21                int  21                     (opens f1.pak)
+01A7:09C2  732B                jnc  000009EF ($+2b)        (down)
+
+
+/* Not traced */
+01A7:09C4  3D0200              cmp  ax,0002
+01A7:09C7  7403                je   000009CC ($+3)         (down)
+01A7:09C9  E99EFE              jmp  0000086A ($-162)       (up)
+01A7:09CC  52                  push dx
+01A7:09CD  E852FF              call 00000922 ($-ae)
+
+01A7:09EF  A30400              mov  [0004],ax              ds:[0004]=0000      (Becomes 5) it's the File descriptor
+01A7:09F2  8B1E0400            mov  bx,[0004]              ds:[0004]=0000
+01A7:09F6  B002                mov  al,02                 Seek END
+01A7:09F8  B442                mov  ah,42
+01A7:09FA  33C9                xor  cx,cx
+01A7:09FC  33D2                xor  dx,dx
+01A7:09FE  CD21                int  21                    Seek to position 0 inside f1.pak (SEEK_END) flag 2
+
+/* I still have no idea what the shr, rcr combo stuff does */
+01A7:0A00  A31000              mov  [0010],ax              ds:[0010]=AE22
+01A7:0A03  89161200            mov  [0012],dx              ds:[0012]=0001
+01A7:0A07  50                  push ax
+01A7:0A08  D1EA                shr  dx,1
+01A7:0A0A  D1D8                rcr  ax,1
+01A7:0A0C  D1EA                shr  dx,1
+01A7:0A0E  D1D8                rcr  ax,1
+01A7:0A10  D1EA                shr  dx,1
+01A7:0A12  D1D8                rcr  ax,1
+01A7:0A14  D1EA                shr  dx,1
+01A7:0A16  D1D8                rcr  ax,1
+01A7:0A18  40                  inc  ax
+01A7:0A19  03062100            add  ax,[0021]              ds:[0021]=0575      
+01A7:0A1D  A32300              mov  [0023],ax              ds:[0023]=0000 becomes 2058
+01A7:0A20  8B1E0400            mov  bx,[0004]              ds:[0004]=0005
+01A7:0A24  B80042              mov  ax,4200
+01A7:0A27  33C9                xor  cx,cx
+01A7:0A29  33D2                xor  dx,dx
+01A7:0A2B  CD21                int  21
+01A7:0A2D  59                  pop  cx
+01A7:0A2E  51                  push cx
+01A7:0A2F  A12100              mov  ax,[0021]              ds:[0021]=0575      
+01A7:0A32  A32500              mov  [0025],ax              ds:[0025]=0000
+01A7:0A35  8B161200            mov  dx,[0012]              ds:[0012]=0001
+01A7:0A39  0BD2                or   dx,dx
+01A7:0A3B  7437                je   00000A74 ($+37)        (no jmp)
+01A7:0A3D  52                  push dx                                         
+
+
+/* Read 0x8000 bytes from f1.pak, store at 0575:0000 */
+01A7:0A3E  8B1E0400            mov  bx,[0004]              ds:[0004]=0005
+01A7:0A42  B43F                mov  ah,3F
+01A7:0A44  33D2                xor  dx,dx
+01A7:0A46  1E                  push ds
+01A7:0A47  8E1E2500            mov  ds,[0025]              ds:[0025]=0575    file buffer
+01A7:0A4B  B90080              mov  cx,8000
+01A7:0A4E  CD21                int  21
+
+
+/* Read another 0x8000 bytes from f1.pak, store at 0D75:0000 */
+01A7:0A50  1F                  pop  ds
+01A7:0A51  1E                  push ds                       Start here:
+01A7:0A52  8B1E0400            mov  bx,[0004]              ds:[0004]=0005
+01A7:0A56  A12500              mov  ax,[0025]              ds:[0025]=0575
+01A7:0A59  050008              add  ax,0800                (Move to another segment)
+01A7:0A5C  8ED8                mov  ds,ax
+01A7:0A5E  33D2                xor  dx,dx
+01A7:0A60  B43F                mov  ah,3F
+01A7:0A62  B90080              mov  cx,8000
+01A7:0A65  CD21                int  21
+
+/* Read final 0xAE22 bytes from f1.pak, store at 1575:0000 */
+01A7:0A67  1F                  pop  ds
+01A7:0A68  810625000010        add  word [0025],1000       ds:[0025]=1575
+01A7:0A6E  5A                  pop  dx
+01A7:0A6F  4A                  dec  dx
+01A7:0A70  75CB                jne  00000A3D ($-35)        (no jmp)
+01A7:0A72  59                  pop  cx
+01A7:0A73  51                  push cx
+01A7:0A74  8B1E0400            mov  bx,[0004]              ds:[0004]=0005      
+01A7:0A78  B43F                mov  ah,3F
+01A7:0A7A  33D2                xor  dx,dx
+01A7:0A7C  1E                  push ds
+01A7:0A7D  8E1E2500            mov  ds,[0025]              ds:[0025]=1575
+01A7:0A81  CD21                int  21
+01A7:0A83  1F                  pop  ds
+01A7:0A84  59                  pop  cx
+; Close file f1.pak
+01A7:0A85  8B1E0400            mov  bx,[0004]              ds:[0004]=0005      
+01A7:0A89  B43E                mov  ah,3E
+01A7:0A8B  CD21                int  21
+01A7:0A8D  5F                  pop  di
+01A7:0A8E  5E                  pop  si
+01A7:0A8F  5A                  pop  dx
+
+
+01A7:0A94  50                  push ax
+01A7:0A95  53                  push bx
+01A7:0A96  51                  push cx
+01A7:0A97  52                  push dx
+01A7:0A98  56                  push si
+01A7:0A99  57                  push di
+01A7:0A9A  B43C                mov  ah,3C                 ; create file
+01A7:0A9C  B90000              mov  cx,0000
+01A7:0A9F  CD21                int  21
+01A7:0AA1  7303                jnc  00000AA6 ($+3)         (down)
+01A7:0AA3  E9A3FD              jmp  00000849 ($-25d)       (up)
+01A7:0AA6  A30600              mov  [0006],ax              ds:[0006]=0005
+01A7:0AA9  8B0E1400            mov  cx,[0014]              ds:[0014]=4C3B
+01A7:0AAD  51                  push cx
+01A7:0AAE  8B161600            mov  dx,[0016]              ds:[0016]=0000
+
+
+01A7:0B05  8B1E0600            mov  bx,[0006]              ds:[0006]=0005      
+01A7:0B09  B440                mov  ah,40                  ; write file
+01A7:0B0B  33D2                xor  dx,dx
+01A7:0B0D  1E                  push ds
+01A7:0B0E  8E1E2300            mov  ds,[0023]              ds:[0023]=2058
+01A7:0B12  CD21                int  21
+01A7:0B14  7303                jnc  00000B19 ($+3)         (down)
+01A7:0B16  E930FD              jmp  00000849 ($-2d0)       (up)
+01A7:0B19  1F                  pop  ds
+01A7:0B1A  3BC1                cmp  ax,cx
+
+
+
+/* Function 00000BB4 */
+01A7:0BB4  50                  push ax
+01A7:0BB5  53                  push bx
+01A7:0BB6  51                  push cx
+01A7:0BB7  52                  push dx
+01A7:0BB8  56                  push si
+01A7:0BB9  57                  push di
+01A7:0BBA  06                  push es
+01A7:0BBB  E864FD              call 00000922 ($-29c)
+01A7:0BBE  A08000              mov  al,[0080]              ds:[0080]=0000
+01A7:0BC1  0431                add  al,31
+01A7:0BC3  A2A326              mov  [26A3],al              ds:[26A3]=3A31
+01A7:0BC6  BA7E26              mov  dx,267E
+01A7:0BC9  E8C9FC              call 00000895 ($-337)                           
+01A7:0BCC  07                  pop  es
+01A7:0BCD  5F                  pop  di
+01A7:0BCE  5E                  pop  si
+01A7:0BCF  5A                  pop  dx
+01A7:0BD0  59                  pop  cx
+
+
+
+
+
+
+01A7:0293  E85902              call 000004EF ($+259)
+01A7:0296  BAEC2A              mov  dx,2AEC
+01A7:0299  E81803              call 000005B4 ($+318) (writes most of the files out)
+
+
+
+/* Creates a shitload of files */
+01A7:0299  E81803              call 000005B4 ($+318)
+
+
+
+
+== Starting up ==
+DOS: Int 21 ah=75 (0x4b) - EXEC Load and/or execute program
+DOS: Int 21 ah=53 (0x35) - Get interrupt vector
+DOS: Int 21 ah=37 (0x25) - Set interrupt vector
+DOS: Int 21 ah=48 (0x30) - Get DOS Version
+DOS: Int 21 ah=72 (0x48) - Allocate memory
+DOS: Int 21 ah=72 (0x48) - Allocate memory
+DOS: Int 21 ah=25 (0x19) - Get current default drive
+DOS: Int 21 ah=14 (0x0E) - Select default drive
+DOS: Int 21 ah=02 (0x02) - Write character to stdout
+
+
+DOS: Int 21 ah=14 (0x0E) - Select default drive
+DOS: Int 21 ah=61 (0x3D) - Open existing file
+DOS_OpenFile f2.pak      , flags 0
+DOS: Int 21 ah=62 (0x3E) - Close file
+DOS: Int 21 ah=61 (0x3D) - Open existing file
+DOS_OpenFile f1.pak      , flags 0
+DOS: Int 21 ah=66 (0x42) - LSEEK (set current file position)
+DOS: Int 21 ah=66 (0x42) - LSEEK
+DOS: Int 21 ah=63 (0x3F) - Read from file.
+DOS: Int 21 ah=63 (0x3F) - Read from file.
+DOS: Int 21 ah=63 (0x3F) - Read from file.
+DOS: Int 21 ah=62 (0x3E) - Close file
+DOS: Int 21 ah=14 (0x0E) - Select default drive
+DOS: Int 21 ah=57 (0x39) - Make dir (MKDIR)
+DOS: Int 21 ah=59 (0x3B) - Change dir (CHDIR)
+DOS: Int 21 ah=60 (0x3C) - Create file (truncate it)
+DOS: Int 21 ah=64 (0x40) - Write to file.
+DOS: Int 21 ah=62 (0x32) - Close file.
+DOS: Int 21 ah=60 (0x3C) - Create file.
+DOS: Int 21 ah=64 (0x40) - Write to file.
+DOS: Int 21 ah=62
+DOS: Int 21 ah=60
+DOS: Int 21 ah=64
+
+
+
+
+== Exiting ==
+DOS: Int 21 ah=37 (0x25) - Set Interrupt Vector
+DOS: Int 21 ah=76 (0x4c) - Terminate with return code
+
