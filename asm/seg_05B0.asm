@@ -30,8 +30,14 @@ sub_0014:
   pop ds
   pop di
   pop si
+  pop dx
+  pop cx
+  pop bx
+  pop ax
+  retf
 
 
+; Seems to be setting up the video hardware, as well as setting up some video support tables
 ; sub_02A9
   mov word cs:[0x0353], 0x0136
   ; Switch to mode 13
@@ -46,8 +52,73 @@ sub_0014:
   or   al,0x20
   mov  es:[0x0010],ax
   sti
-05B0:02C8  B8B206              mov  ax,06B2
+  mov  ax,0x06B2
+  mov es, ax
+  mov si, 0x0CD2
+  mov cx, 0x0010
+  xor bx, bx
+.loc_2D5:
+  mov di, 0x0D02
+  lodsb ; load byte at ds:si into al (inc si by 1)
+  mov dh, al
+  lodsw ; load word at ds:si into ax (inc si by 2)
+  push cx
+  mov cx, 0x0010
+.loc_2e0:
+  mov es:[di], dh
+  inc di
+  stosw ; put ax into ds:di, advance di by 2.
+  loop .loc_2e0
 
+  mov ax, 0x1012 ; AL = 12  set block of DAC color registers
+                 ; BX = first color register to set
+  mov cx, 0x0010 ; CX = number of color registers to set
+  mov dx, 0x0D02 ; ES:DX = pointer to table of color values to set
 
+  ; Set palette
+  push bx
+  push si
+  push di
+  int 0x10
+  pop di
+  pop si
+  pop bx
+  add bx, 0x0010
+  pop cx
+  loop .loc_2D5
 
+  ; Putting line offsets into DS:0x042F
+  mov di, 0x042F
+  mov cx, 0x00C8 ; 200
+  xor ax, ax
+.loc_306:
+  stosw ; put ax into ds:di, advance di by 2.
+  add ax, 0x140 ; 320 pixels?
+  loop .loc_306
+
+  ; setting up another lookup table?
+  mov di, 0x037A
+  mov cx, 0x0051
+  mov ax, 0x0B74 ; 
+.loc_315:
+  stosw
+  sub ax, 0x0015
+  loop .loc_315
+
+  mov ax, cs
+  mov ds, ax
+  mov es, ax
+
+  mov si, 0x0338
+  mov di, 0x04E4
+  mov cx, 0x0015
+  repe movsb ; copy 0x15 byte string from DS:SI to ES:DI
+
+  mov cx, 0x067B
+  mov si, 0x04E4
+  repe movsb ; copy 0x67B byte string from ds:si to es:di
+
+  mov al, 0xC3
+  stosb ; put al into ds:di
+  ret
 

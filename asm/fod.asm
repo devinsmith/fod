@@ -98,10 +98,9 @@ main:
   push ax
   call sub_02E5 ; Reads BORDERS
   add sp, 2
-  call sub_1439
+  call sub_1439 ; Switches to mode 13, opens FONT
 
-call 0x1439 ; Switches to Mode 13, opens FONT
-call 0x18B8 ; Opens TPICT
+  call 0x18B8 ; Opens TPICT
 call 0x19BE ;  ?
 call 0x1902 ; ?
 
@@ -112,10 +111,15 @@ jmp 0x13D7
 call 0x1AC7 ; Sets up VGA?
 
 call 0x14D5 ; Show title screen? TPICT?
+
+call sub_1548
+
 call 0x141A ; ?
 
 call 0x39FE ; inner loop?
 
+; sub_090 at 01EF:0090
+sub_090:
 
 ; sub_0105 at 01EF:0105
 sub_0105:
@@ -420,7 +424,12 @@ sub_1439:
   mov [0x0292], ax
   add ax, 0x01CA
   mov [0x0296], ax
-  call 0x05B0:0014
+  call 0x05B0:0014 ; Video hardware?
+
+  call sub_0090
+
+
+
 
 
 ; 18B8 - Opens a file and returns the file handle (int) into AX
