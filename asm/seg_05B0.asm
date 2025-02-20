@@ -36,6 +36,47 @@ sub_0014:
   pop ax
   retf
 
+sub_B0:
+  mov  bx,[0CCE]              ds:[0CCE]=074F
+  add  word [0CCE],000E       ds:[0CCE]=074F
+  inc  word [0CCC]            ds:[0CCC]=0000
+  xor  ah,ah
+  test ax,0001
+  je   .loc_C5
+  inc  di
+.loc_C5:
+  test di,0001
+  je   .loc_CC         (no jmp)
+  inc  di
+.loc_CC:
+  mov  dx,00A0
+  sub  dx,di
+  mov  [bx+0C],dx             ds:[075B]=0000
+  and  ax,00FE
+
+  sar  ax,1
+  sar  di,1
+  mov  [bx+08],cx             ds:[0757]=0000
+  mov  [bx+0A],di             ds:[0759]=0000
+
+05B0:00E1  894702              mov  [bx+02],ax             ds:[0751]=0000      
+05B0:00E4  D1E6                shl  si,1
+05B0:00E6  BF2F04              mov  di,042F
+05B0:00E9  03FE                add  di,si
+05B0:00EB  893F                mov  [bx],di                ds:[074F]=0000      
+05B0:00ED  BFBF05              mov  di,05BF
+05B0:00F0  03FE                add  di,si
+05B0:00F2  8B35                mov  si,[di]                ds:[042F]=0000
+05B0:00F4  D1E0                shl  ax,1
+05B0:00F6  03F0                add  si,ax
+05B0:00F8  897704              mov  [bx+04],si             ds:[0753]=0000
+05B0:00FB  8B7F0A              mov  di,[bx+0A]             ds:[0759]=0050
+05B0:00FE  D1E7                shl  di,1
+05B0:0100  8B857A03            mov  ax,[di+037A]           ds:[03CA]=082C
+05B0:0104  894706              mov  [bx+06],ax             ds:[0755]=0000
+05B0:0107  CB                  retf
+
+
 
 ; Seems to be setting up the video hardware, as well as setting up some video support tables
 ; sub_02A9
@@ -122,3 +163,507 @@ sub_0014:
   stosb ; put al into ds:di
   ret
 
+
+sub_34D:
+  push si
+  push di
+  push es
+  push ds
+  push bp
+  call 0000048B ($+136)
+05B0:0355  5D                  pop  bp
+05B0:0356  1F                  pop  ds
+05B0:0357  07                  pop  es
+05B0:0358  5F                  pop  di
+
+sub_48B:
+  mov  word [0x0CD0], 0x074F
+
+  ; Prepare for VGA
+  mov  ax,A000
+  mov  es,ax
+  cmp  word [0x0CCC],0000      ; ds:[0CCC]=0001
+  jne  .loc_49E
+  ret
+.loc_49E:
+  dec  word [0x0CCC]
+  mov  bx,[0x0CD0]              ds:[0CD0]=074F
+  mov  si,[bx+0x04]             ds:[0753]=0000
+  mov  dx,[bx+0x0C]             ds:[075B]=0000
+  mov  cx,[bx+0x08]             ds:[0757]=00C8   ; line count?
+
+05B0:04AF  8B4706              mov  ax,[bx+06]             ds:[0755]=04E4
+05B0:04B2  A3C70C              mov  [0CC7],ax              ds:[0CC7]=0000
+05B0:04B5  8B4702              mov  ax,[bx+02]             ds:[0751]=0000
+05B0:04B8  D1E0                shl  ax,1
+
+05B0:04BA  D1E0                shl  ax,1
+05B0:04BC  8B1F                mov  bx,[bx]                ds:[074F]=042F
+05B0:04BE  8B2F                mov  bp,[bx]                ds:[074F]=042F
+05B0:04C0  03E8                add  bp,ax
+.loc_4C2:
+05B0:04C2  8BFD                mov  di,bp
+05B0:04C4  81C54001            add  bp,0140
+05B0:04C8  A1C70C              mov  ax,[0CC7]              ds:[0CC7]=04E4
+05B0:04CB  8E1E2D04            mov  ds,[042D]              ds:[042D]=16B3
+
+  call near ax      ; 0x4E4 (line pointer)
+
+  mov  ax,0x06B2
+  mov  ds,ax
+  add  si,dx   ; Skip pixel count (probably 0)
+  dec  cl      ; line count ?
+  jne 0x4C2
+
+; Line function pointer
+; Input is stored in DS
+; DS = 16B3
+; Massive unrolled loop?
+sub_4E4:
+; Repeats 80x times (to 0xB5F)
+  lodsw                 ; AX = DS:SI  SI += 2
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x4F9
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x538
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+ ; 0x54D
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x562
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x577
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x58C
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x5A1
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x5B6
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x5CB
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x5E0
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x5F5
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x60A
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x61F
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x634
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x649
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x65E
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x673
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x688
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x69D
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x6B2
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x6C7
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x6DC
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x6F1
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x706
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x71B
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x730
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x745
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x75A
+  lodsw
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+
+  ; 0x9E6
+  ; ...
+
+  ; 0xA8D
+  ; 0xAA2
+  ; 0xAF6
+  ; 0xB5F
+
+
+  ; 0xB2BA -> (rotate left 4 times) 0x2BAB
+
+  ; 0xB74
+  ret
