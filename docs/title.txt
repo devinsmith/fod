@@ -1,0 +1,5 @@
+Title screen is stored in tpict
+
+This is compressed: 0x7d00 bytes
+
+32000 bytes is equal to 200 lines by 160 (length). Each line is further compressed.
