@@ -1,2 +1,1 @@
-find fod palette
 additional decompression code for pictures
