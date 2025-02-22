@@ -17,7 +17,7 @@ sub_0014:
   xor  ax,ax
   mov  cx,0x00C8
 .loc_35
-  stosw
+  stosw ; put ax into ds:di, advance di by 2.
   add  ax,0x00A0
   loop .loc_35
 
@@ -78,7 +78,8 @@ sub_B0:
 
 
 
-; Seems to be setting up the video hardware, as well as setting up some video support tables
+; Seems to be setting up the video hardware, as well as setting up some video
+; support tables
 ; sub_02A9
   mov word cs:[0x0353], 0x0136
   ; Switch to mode 13
@@ -95,9 +96,9 @@ sub_B0:
   sti
   mov  ax,0x06B2
   mov es, ax
-  mov si, 0x0CD2
-  mov cx, 0x0010
-  xor bx, bx
+  mov si, 0x0CD2 ; color palette source
+  mov cx, 0x0010 ; 16 colors
+  xor bx, bx     ; Start at index 0
 .loc_2D5:
   mov di, 0x0D02
   lodsb ; load byte at ds:si into al (inc si by 1)
@@ -105,10 +106,12 @@ sub_B0:
   lodsw ; load word at ds:si into ax (inc si by 2)
   push cx
   mov cx, 0x0010
+
+  ; Copy over to ES:DI (16 times)
 .loc_2e0:
   mov es:[di], dh
   inc di
-  stosw ; put ax into ds:di, advance di by 2.
+  stosw ; put ax into es:di, advance di by 2.
   loop .loc_2e0
 
   mov ax, 0x1012 ; AL = 12  set block of DAC color registers
