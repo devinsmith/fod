@@ -74,7 +74,13 @@ int decompress_file(struct stream *s, const char *name)
   printf("Decompressing %s\n", name);
 
   uint16_t u_bytes = stream_get16_le(s);
+  uint16_t dx = stream_get16_le(s);
   printf("Total bytes: %d\n", u_bytes);
+  printf("DX: 0x%04x (should be 0)\n", dx);
+  if (dx != 0) {
+    printf("DX values other than 0 are unhandled\n");
+    return -1;
+  }
 
   unsigned char *data = malloc(u_bytes);
   if (data == NULL) {
