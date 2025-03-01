@@ -1,14 +1,16 @@
 # Makefile
 # Fountain of Dreams game
 
-SRCS = common/compress.c common/stream.c common/hexdump.c decode.c
+COMMON_SRCS = common/compress.c common/stream.c common/hexdump.c
+GAME_SRCS = decode.c
+INSTALL_SRCS = install.c
 
-OBJS = $(SRCS:.c=.o)
-DEPS = $(SRCS:.c=.d)
+COMMON_OBJS = $(COMMON_SRCS:.c=.o)
+GAME_OBJS = $(GAME_SRCS:.c=.o)
+INSTALL_OBJS = $(INSTALL_SRCS:.c=.o)
 
-ALL_OBJS = $(OBJS)
-
-EXE = fod
+ALL_OBJS = $(COMMON_OBJS) $(GAME_OBJS) $(INSTALL_OBJS)
+DEPS = $(ALL_OBJS:.o=.d)
 
 CC = gcc
 INTERNAL_CFLAGS = -Wall -Wextra -I.
@@ -17,16 +19,16 @@ DEBUG_CFLAGS = -ggdb3
 LFLAGS =
 LIBS =
 
-default: $(EXE)
+default: fod install
 
-debug:
-	@$(MAKE) CFLAGS=$(DEBUG_CFLAGS) $(EXE)
+fod: $(COMMON_OBJS) $(GAME_OBJS)
+	$(CC) $(INTERNAL_CFLAGS) $(CFLAGS) -o fod $(COMMON_OBJS) $(GAME_OBJS) $(LFLAGS) $(LIBS)
 
-$(EXE): $(OBJS)
-	$(CC) $(INTERNAL_CFLAGS) $(CFLAGS) -o $(EXE) $(OBJS) $(LFLAGS) $(LIBS)
+install: $(COMMON_OBJS) $(INSTALL_OBJS)
+	$(CC) $(INTERNAL_CFLAGS) $(CFLAGS) -o install $(COMMON_OBJS) $(INSTALL_OBJS) $(LFLAGS) $(LIBS)
 
 clean:
-	rm -f $(ALL_OBJS) $(EXE) $(DEPS)
+	rm -f $(ALL_OBJS) fod install $(DEPS)
 
 .c.o:
 	$(CC) $(INTERNAL_CFLAGS) $(CFLAGS) -MMD -MP -MT $@ -o $@ -c $<

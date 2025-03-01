@@ -1,4 +1,5 @@
 *.o
 *.d
 *.swp
-install/fod_install
+src/fod
+src/install
