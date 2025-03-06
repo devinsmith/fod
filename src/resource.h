@@ -1,7 +1,7 @@
 //
 // Fountain of Dreams - Reverse Engineering Project
 //
-// Copyright (c) 2025 Devin Smith <devin@devinsmith.net>
+// Copyright (c) 2018-2020,2025 Devin Smith <devin@devinsmith.net>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,36 +16,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstdio>
+#ifndef RESOURCE_H
+#define RESOURCE_H
 
-#include "resource.h"
-#include "vga.h"
+enum class resource_type {
+  title
+};
 
-static const int GAME_WIDTH = 320;
-static const int GAME_HEIGHT = 200;
+struct resource {
+  unsigned char *bytes;
+  size_t len;
+};
 
-static void do_title()
-{
-  vga_waitkey();
-}
+bool rm_init();
 
-int main(int argc, char *argv[])
-{
-  if (!rm_init()) {
-    fprintf(stderr, "Failed to initialize resource manager, exiting!\n");
-    return 1;
-  }
+resource* resource_load(resource_type rt);
 
-  // Register VGA driver.
-  video_setup();
-
-  if (vga_initialize(GAME_WIDTH, GAME_HEIGHT) != 0) {
-    return 1;
-  }
-
-  do_title();
-
-  vga_end();
-
-  return 0;
-}
+#endif // RESOURCE_H

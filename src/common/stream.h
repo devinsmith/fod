@@ -22,18 +22,21 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-struct stream
-{
-	unsigned char *data;
-	size_t len;
-	int offset;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-	uint32_t holding;
-	int holding_count;
+struct stream {
+  unsigned char *data;
+  size_t len;
+  int offset;
+
+  uint32_t holding;
+  int holding_count;
 };
 
 /* stream functions */
-struct stream * stream_init(unsigned char *data, size_t len);
+struct stream *stream_init(unsigned char *data, size_t len);
 void stream_advance(struct stream *s, int adv);
 uint8_t stream_get8(struct stream *s);
 uint16_t stream_get16_le(struct stream *s);
@@ -44,8 +47,12 @@ uint16_t stream_peek16_le(struct stream *);
 int stream_getstring(struct stream *s, int len, char *str);
 int stream_getdata(struct stream *s, int len, unsigned char *data);
 void stream_free(struct stream *s);
-
 void stream_add8(struct stream *s, uint8_t val);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif /* __STREAM_H__ */
 

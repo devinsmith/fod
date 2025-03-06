@@ -21,7 +21,15 @@
 
 #include "common/stream.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void decompress(struct stream *s, struct stream *out_s, uint32_t u_bytes);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMMON_COMPRESS_H */
 
