@@ -19,7 +19,11 @@
 #include <cstdio>
 #include <cstring>
 
+#include "vga.h"
 #include "utils/sha1.h"
+
+static const int GAME_WIDTH = 320;
+static const int GAME_HEIGHT = 200;
 
 bool check_file(const char *filename, const char *hash)
 {
@@ -80,8 +84,33 @@ bool check_file(const char *filename, const char *hash)
   return true;
 }
 
+static bool check_files()
+{
+  return check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040");
+}
+
+static void do_title()
+{
+  vga_waitkey();
+}
+
 int main(int argc, char *argv[])
 {
-  check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040");
+  if (!check_files()) {
+    fprintf(stderr, "Failed file check, exiting!\n");
+    return 1;
+  }
+
+  // Register VGA driver.
+  video_setup();
+
+  if (vga_initialize(GAME_WIDTH, GAME_HEIGHT) != 0) {
+    return 1;
+  }
+
+  do_title();
+
+  vga_end();
+
   return 0;
 }

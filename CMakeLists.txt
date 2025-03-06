@@ -17,6 +17,7 @@ set(INSTALL_SRCS src/install.c
   src/common/hexdump.c)
 
 set(GAME_SRCS src/main.cpp
+  src/vga.c src/vga.h src/vga_sdl.c
   src/utils/sha1.c src/utils/sha1.h)
 
 add_executable(installer ${INSTALL_SRCS})
@@ -28,7 +29,8 @@ else()
 endif()
 
 add_executable(fod ${GAME_SRCS})
-target_include_directories(fod PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(fod PRIVATE ${CMAKE_SOURCE_DIR}/src ${SDL2_INCLUDE_DIRS})
+target_link_libraries(fod PRIVATE ${SDL2_LIBRARIES})
 if(MSVC)
   target_compile_options(fod PRIVATE /W4 /WX)
 else()
