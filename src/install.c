@@ -24,6 +24,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "common/compress.h"
 #include "common/stream.h"
 
 void hexdump(void *vp, int length);
