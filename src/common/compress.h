@@ -1,7 +1,5 @@
-/* $Id: stream.h 2002 2008-12-24 18:54:01Z devin $ */
-
 /*
- * Copyright (c) 2008 Devin Smith <devin@devinsmith.net>
+ * Copyright (c) 2008-2025 Devin Smith <devin@devinsmith.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,13 +17,13 @@
 #ifndef COMMON_COMPRESS_H
 #define COMMON_COMPRESS_H
 
-#include "common/stream.h"
+#include "common/bufio.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void decompress(struct stream *s, struct stream *out_s, uint32_t u_bytes);
+void decompress(struct buf_rdr *rdr, struct buf_wri *writer, uint32_t u_bytes);
 
 #ifdef __cplusplus
 }

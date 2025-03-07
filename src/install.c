@@ -1,5 +1,3 @@
-/* $Id: fod_install.c 2021 2008-12-30 06:44:36Z devin $ */
-
 /*
  * Copyright (c) 2008 Devin Smith <devin@devinsmith.net>
  *
@@ -25,14 +23,14 @@
 #include <unistd.h>
 
 #include "common/compress.h"
-#include "common/stream.h"
+#include "common/bufio.h"
 
 void hexdump(void *vp, int length);
-static void extract_disk1(struct stream *s);
+static void extract_disk1(struct buf_rdr *rdr);
 static void do_install(void);
-static void extract_raw_file(struct stream *s, char *filename);
-static void extract_file(struct stream *s, char *filename);
-static struct stream *open_install_file(char *filename);
+static void extract_raw_file(struct buf_rdr *rdr, char *filename);
+static void extract_file(struct buf_rdr *rdr, char *filename);
+static struct buf_rdr *open_install_file(char *filename);
 
 int
 main(void)
@@ -43,14 +41,14 @@ main(void)
 	return 0;
 }
 
-static struct stream *
+static struct buf_rdr *
 open_install_file(char *filename)
 {
 	FILE *fp;
 	int size;
 	int tb;
 	unsigned char *data;
-	struct stream *s;
+	struct buf_rdr *rdr;
 
 	fp = fopen(filename, "rb");
 	if (fp == NULL) {
@@ -72,106 +70,104 @@ open_install_file(char *filename)
 	}
 
 	fclose(fp);
-	s = stream_init(data, size);
+	rdr = buf_rdr_init(data, size);
 
-	return s;
+	return rdr;
 }
 
 static void
 do_install(void)
 {
-	struct stream *s;
+	struct buf_rdr *rdr;
 
 	/* Open F1.PAK */
-	s = open_install_file("F1.PAK");
-	if (s == NULL) {
+	rdr = open_install_file("F1.PAK");
+	if (rdr == NULL) {
 		errx(1, "no memory for stream");
 	}
 
 	mkdir("output", 0777);
 	chdir("output");
 
-	extract_disk1(s);
-	s->offset = 0;
-	extract_file(s, "fod.exe");
-	extract_file(s, "keh.exe");
-	extract_file(s, "globals");
-	extract_file(s, "hdspct");
-	extract_file(s, "weapons");
-	extract_file(s, "packets");
-	extract_file(s, "archtype");
-	extract_file(s, "services");
-	extract_file(s, "font");
-	extract_file(s, "borders");
-	extract_file(s, "disk2");
-	extract_file(s, "kmap");
+	extract_disk1(rdr);
+	rdr->offset = 0;
+	extract_file(rdr, "fod.exe");
+	extract_file(rdr, "keh.exe");
+	extract_file(rdr, "globals");
+	extract_file(rdr, "hdspct");
+	extract_file(rdr, "weapons");
+	extract_file(rdr, "packets");
+	extract_file(rdr, "archtype");
+	extract_file(rdr, "services");
+	extract_file(rdr, "font");
+	extract_file(rdr, "borders");
+	extract_file(rdr, "disk2");
+	extract_file(rdr, "kmap");
 
 	/* Close data allocated for F1.PAK */
-	free(s->data);
-	stream_free(s);
+	free(rdr->data);
+  buf_rdr_free(rdr);
 
 	chdir("..");
 
 	/* Open F1.RAW */
-	s = open_install_file("F1.RAW");
-	if (s == NULL) {
+	rdr = open_install_file("F1.RAW");
+	if (rdr == NULL) {
 		errx(1, "no memory for stream");
 	}
 
 	chdir("output");
-	extract_raw_file(s, "tiles");
-	extract_raw_file(s, "gani");
-	extract_raw_file(s, "tpict");
-	extract_raw_file(s, "kscr");
-	extract_raw_file(s, "kani");
-	extract_raw_file(s, "kpict");
-	extract_raw_file(s, "fpict");
-	extract_raw_file(s, "epict");
-	extract_raw_file(s, "dpict");
+	extract_raw_file(rdr, "tiles");
+	extract_raw_file(rdr, "gani");
+	extract_raw_file(rdr, "tpict");
+	extract_raw_file(rdr, "kscr");
+	extract_raw_file(rdr, "kani");
+	extract_raw_file(rdr, "kpict");
+	extract_raw_file(rdr, "fpict");
+	extract_raw_file(rdr, "epict");
+	extract_raw_file(rdr, "dpict");
 
 	/* Close data allocated for F1.RAW */
-	free(s->data);
-	stream_free(s);
+	free(rdr->data);
+  buf_rdr_free(rdr);
 
 	chdir("..");
 
 	/* Open F2.PAK */
-	s = open_install_file("F2.PAK");
-	if (s == NULL) {
+	rdr = open_install_file("F2.PAK");
+	if (rdr == NULL) {
 		errx(1, "no memory for stream");
 	}
 
 	chdir("output");
-	extract_file(s, "fmap");
-	extract_file(s, "dmap");
+	extract_file(rdr, "fmap");
+	extract_file(rdr, "dmap");
 
 	/* Close data allocated for F2.PAK */
-	free(s->data);
-	stream_free(s);
+	free(rdr->data);
+  buf_rdr_free(rdr);
 
 	chdir("..");
 
 	/* Open F2.RAW */
-	s = open_install_file("F2.RAW");
-	if (s == NULL) {
+	rdr = open_install_file("F2.RAW");
+	if (rdr == NULL) {
 		errx(1, "no memory for stream");
 	}
 
 	chdir("output");
-	extract_raw_file(s, "fscr");
-	extract_raw_file(s, "fani");
-	extract_raw_file(s, "dani");
-	extract_raw_file(s, "dscr");
+	extract_raw_file(rdr, "fscr");
+	extract_raw_file(rdr, "fani");
+	extract_raw_file(rdr, "dani");
+	extract_raw_file(rdr, "dscr");
 
 	/* Close data allocated for F2.RAW */
-	free(s->data);
-	stream_free(s);
-
-
+	free(rdr->data);
+  buf_rdr_free(rdr);
 }
 
 static void
-extract_raw_file(struct stream *s, char *filename)
+extract_raw_file(struct buf_rdr *rdr, char *filename)
 {
 	uint32_t u_bytes;
 	FILE *fp;
@@ -180,23 +176,21 @@ extract_raw_file(struct stream *s, char *filename)
 	 * Uncompressed length (4 bytes): Length of uncompressed data.
 	 * Data */
 
-	u_bytes = stream_get32_le(s);
+	u_bytes = buf_get32le(rdr);
 	printf("Extracting %s (%d bytes)\n", filename, u_bytes);
 
 	fp = fopen(filename, "wb");
-	fwrite(s->data + s->offset, 1, u_bytes, fp);
+	fwrite(rdr->data + rdr->offset, 1, u_bytes, fp);
 	fclose(fp);
 
-	s->offset += u_bytes;
+	rdr->offset += u_bytes;
 }
 
 static void
-extract_file(struct stream *s, char *filename)
+extract_file(struct buf_rdr *rdr, char *filename)
 {
 	uint32_t c_bytes;
 	uint32_t u_bytes;
-	unsigned char *data;
-	struct stream *out_s;
 	FILE *fp;
 
 	/* F1.PAK file format
@@ -204,37 +198,29 @@ extract_file(struct stream *s, char *filename)
 	 * Uncompressed length (4 bytes): Length of uncompressed data.
 	 * Compression codes (variable) */
 
-	c_bytes = stream_get32_le(s);
-	u_bytes = stream_get32_le(s);
+	c_bytes = buf_get32le(rdr);
+	u_bytes = buf_get32le(rdr);
 	printf("Extracting %s (inflating %d to %d bytes)\n", filename, c_bytes, u_bytes);
 
-	data = malloc(u_bytes);
-	if (data == NULL) {
-		errx(1, "no memory");
-	}
-	out_s = stream_init(data, 0);
+  struct buf_wri *writer = buf_wri_init(u_bytes);
 
-	decompress(s, out_s, u_bytes);
+	decompress(rdr, writer, u_bytes);
 
 	fp = fopen(filename, "wb");
-	fwrite(out_s->data, 1, u_bytes, fp);
+	fwrite(writer->base, 1, u_bytes, fp);
 	fclose(fp);
 
-	stream_free(out_s);
-	free(data);
-
+  buf_wri_free(writer);
 }
 
 static void
-extract_disk1(struct stream *s)
+extract_disk1(struct buf_rdr *rdr)
 {
 	uint32_t c_bytes;
 	uint32_t u_bytes;
 	int bytes_read;
 	int next_offset;
 	int i;
-	unsigned char *data;
-	struct stream *out_s;
 	FILE *fp;
 	unsigned char *junk;
 
@@ -243,10 +229,10 @@ extract_disk1(struct stream *s)
 
 	/* The disk1 data is based off of disk2 */
 	for (i = 0; i < 10; i++) {
-		s->offset = next_offset;
+		rdr->offset = next_offset;
 
 		/* Read in the next offset (stored in the first 4 bytes) */
-		c_bytes = stream_get32_le(s);
+		c_bytes = buf_get32le(rdr);
 		bytes_read += 4; /* 4 bytes read */
 		next_offset += c_bytes + 4;
 
@@ -255,44 +241,39 @@ extract_disk1(struct stream *s)
 		bytes_read = bytes_read & 0x000f;
 	}
 
-	s->offset = next_offset;
-	c_bytes = stream_get32_le(s);
-	u_bytes = stream_get32_le(s);
+	rdr->offset = next_offset;
+	c_bytes = buf_get32le(rdr);
+	u_bytes = buf_get32le(rdr);
 
-	data = malloc(u_bytes);
-	if (data == NULL) {
-		errx(1, "no memory");
-	}
-	out_s = stream_init(data, 0);
+  struct buf_wri *writer = buf_wri_init(u_bytes);
 
-	decompress(s, out_s, u_bytes);
+	decompress(rdr, writer, u_bytes);
 
 	/* No idea why the installer does this */
 	junk = malloc(0xec0 - (0x729 * 2));
 	memset(junk, 0, 0xec0 - (0x729 * 2));
-	out_s->data[6] = 3;
+	writer->base[6] = 3;
 
 	printf("Extracting disk1 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
 	fp = fopen("disk1", "wb");
-	fwrite(out_s->data, 1, 0x729 * 2, fp);
+	fwrite(writer->base, 1, 0x729 * 2, fp);
 	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
 	fclose(fp);
 
 	printf("Extracting disk3 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
 	fp = fopen("disk3", "wb");
-	fwrite(out_s->data, 1, 0x729 * 2, fp);
+	fwrite(writer->base, 1, 0x729 * 2, fp);
 	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
 	fclose(fp);
 
 	printf("Extracting disk4 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
 	fp = fopen("disk4", "wb");
-	fwrite(out_s->data, 1, 0x729 * 2, fp);
+	fwrite(writer->base, 1, 0x729 * 2, fp);
 	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
 	fclose(fp);
 
 
 	free(junk);
-	stream_free(out_s);
-	free(data);
+  buf_wri_free(writer);
 }
 

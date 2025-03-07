@@ -13,12 +13,12 @@ find_package(SDL2 REQUIRED)
 
 set(INSTALL_SRCS src/install.c
   src/common/compress.c src/common/compress.h
-  src/common/stream.c src/common/stream.h
+  src/common/bufio.c src/common/bufio.h
   src/common/hexdump.c)
 
 set(GAME_SRCS src/main.cpp
   src/common/compress.c src/common/compress.h
-  src/common/stream.c src/common/stream.h
+  src/common/bufio.c src/common/bufio.h
   src/common/hexdump.c
   src/resource.cpp src/resource.h
   src/vga.c src/vga.h src/vga_sdl.c

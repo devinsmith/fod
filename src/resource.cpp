@@ -21,8 +21,8 @@
 
 #include <err.h>
 
+#include "common/bufio.h"
 #include "common/compress.h"
-#include "common/stream.h"
 #include "resource.h"
 #include "utils/sha1.h"
 
@@ -90,7 +90,7 @@ static bool check_files()
   return check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040");
 }
 
-static struct stream *open_file(const char *filename)
+static struct buf_rdr *open_file(const char *filename)
 {
   FILE *fp = fopen(filename, "rb");
   if (fp == nullptr) {
@@ -112,13 +112,13 @@ static struct stream *open_file(const char *filename)
   }
 
   fclose(fp);
-  return stream_init(data, size);
+  return buf_rdr_init(data, size);
 }
 
-int decompress_file(struct stream *s, resource* output)
+int decompress_file(struct buf_rdr *rdr, resource* output)
 {
-  uint16_t u_bytes = stream_get16_le(s);
-  uint16_t dx = stream_get16_le(s);
+  uint16_t u_bytes = buf_get16le(rdr);
+  uint16_t dx = buf_get16le(rdr);
   printf("Total bytes: %d\n", u_bytes);
   printf("DX: 0x%04x (should be 0)\n", dx);
   if (dx != 0) {
@@ -126,13 +126,9 @@ int decompress_file(struct stream *s, resource* output)
     return -1;
   }
 
-  output->bytes = new unsigned char[u_bytes];
-  if (output->bytes == nullptr) {
-    errx(1, "no memory");
-  }
-  auto out_s = stream_init(output->bytes, 0);
+  struct buf_wri *outb = buf_wri_init(u_bytes);
 
-  decompress(s, out_s, u_bytes);
+  decompress(rdr, outb, u_bytes);
 
   return 0;
 }
@@ -152,9 +148,9 @@ resource* resource_load(resource_type rt)
   }
 
   resource* res = new resource;
-  stream *res_stream = open_file(fname);
+  struct buf_rdr *rdr = open_file(fname);
   if (compressed) {
-    decompress_file(res_stream, res);
+    decompress_file(rdr, res);
   }
 
   return res;
