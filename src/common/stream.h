@@ -30,9 +30,6 @@ struct stream {
   unsigned char *data;
   size_t len;
   int offset;
-
-  uint32_t holding;
-  int holding_count;
 };
 
 /* stream functions */
