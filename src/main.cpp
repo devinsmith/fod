@@ -27,28 +27,29 @@ static const int GAME_HEIGHT = 200;
 
 static void title_draw(const struct resource *title)
 {
-  unsigned char *src = title->bytes;
-  uint8_t *framebuffer = vga_memory();
+  const uint16_t *src = (const uint16_t *)title->bytes;
+  uint16_t *dest = (uint16_t *)vga_memory();
 
+  // Processes 1600 compressed pixel groups
+  // (16000 * 2 bytes for source -> 16000 * 4 bytes to destination)
+  // Every short (2 bytes) defines 4 bytes of the output.
   for (int i = 0; i < 16000; i++) {
-
-    // Every short (2 byte) defines 4 bytes of the output.
     uint16_t src_pixel = *src++;
-    src_pixel += *(src++) << 8;
 
-    uint8_t ch = src_pixel >> 8;
+    // Extract components
+    uint8_t low_byte = src_pixel & 0xFF;
+    uint8_t high_byte = src_pixel >> 8;
 
-    uint16_t bx = src_pixel;
-    bx = (bx << 4) | (bx >> 12); // Rotate left by 4 bits
+    // Rotate left by 4, right by 12
+    uint16_t rotated_pixel = (src_pixel << 4) | (src_pixel >> 12);
+    uint8_t rotated_low = rotated_pixel & 0xFF;
 
     // Rotated low byte goes to high.
-    uint16_t trans1 = ((bx & 0x00FF) << 8) | (src_pixel & 0x00FF);
-    uint16_t trans2 = (bx & 0xFF00) | ch;
+    uint16_t trans1 = (rotated_low << 8) | low_byte;
+    uint16_t trans2 = (rotated_pixel & 0xFF00) | high_byte;
 
-    *(framebuffer++) = (trans1 & 0xff);
-    *(framebuffer++) = (trans1 & 0xff00) >> 8;
-    *(framebuffer++) = (trans2 & 0xff);
-    *(framebuffer++) = (trans2 & 0xff00) >> 8;
+    *dest++ = trans1;
+    *dest++ = trans2;
   }
 }
 
