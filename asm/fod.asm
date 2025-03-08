@@ -158,7 +158,8 @@ main:
   call 0x14D5 ; Show title screen? TPICT?
   add sp, 0x0002
 
-call sub_1548
+  call sub_56B ; Wait for key press (and does some other things) ?
+  call sub_1548
 
 call 0x141A ; ?
 
@@ -424,6 +425,45 @@ sub_02E5:
   pop bp
   ret
 
+; 0x56B - Wait for key
+sub_56B:
+  push bp
+  mov bp, sp
+  sub sb, 0x0006
+  mov byte [bp-06], 0x00
+
+  jmp short .loc_57A
+.loc_577:
+  call sub_1729
+.loc_57A:
+  call sub_330C   ; Check keyboard input buffer
+  or ax, ax
+  je .loc_577
+  call sub_3320  ; Read key
+  mov [bp-0x04], al  ; key read.
+  cbw
+  or ax, ax
+  je .loc_59B
+  cmp ax, 0x000D ; Enter key?
+  je .loc_603
+  cmp ax, 0x001B ; Backspace?
+  je .loc_5FD
+  mov [bp-0x06], al
+  jmp short .loc_607
+.loc_59B:   ; Enter key was pressed
+  ; XXX Document
+
+.loc_607:
+  cmp byte [bp-0x06] 0x00 ; No key?
+  jne .loc_610
+  jmp .loc_67A
+  mov al, [bp-0x06] ; al contains key
+  cbw
+  mov sp, bp
+  pop bp
+  ret
+
+
 sub_1439:
   push si
   push di
@@ -517,6 +557,100 @@ sub_14D5:
   pop  si
   pop  bp
   ret
+
+; sub_14FF
+; something 40x25   (0x28 by 0x19)
+sub_14F:
+  push di
+  push si
+  push es
+  mov si. [0x3E66]
+  add si, ax
+  mov ax. [0x35E0]
+  push ax
+  mov ax [0x35E2]
+  push ax
+  mov word [0x35E2], 0x0000
+  mov word [0x35E0], 0x0000
+.loc_151C:
+  lodsb
+  or al, al
+  je .loc_1526
+  push si
+  call sub_1778 ; todo
+  pop si
+.loc_1526:
+  inc word [0x35E0]
+  cmp word [0x35E0], 0x0028 ; 40
+  jne .loc_151C
+
+
+; sub_1548
+sub_1548:
+  push si
+  push di
+  push bx
+  push cx
+  push dx
+  push ds
+  push es
+  push bp
+  xor ax, ax
+  call sub_14FF
+  pop bp
+  pop es
+  pop ds
+  pop dx
+  pop cx
+  
+
+; sub_11729
+sub_1729:
+  push si
+  push di
+  push bx
+  push cx
+  push dx
+  push ds
+  push es
+  push bp
+  call sub_173D
+  pop bp
+  pop es
+  pop ds
+  pop dx
+  pop cx
+  pop bx
+  pop di
+  pop si
+  ret
+
+
+; sub_173D
+; Shuffles bytes around?
+sub_173D:
+  lea si, [0x27E]
+  mov cx, 0x000F
+  mov dl, [si+0x0F]
+  mov bx, 0x000E
+  clc
+.loc_174B:
+  mov al, [bx+si]
+  adc dl, al
+  mov [bx+si], dl
+  dec bx
+  loop .loc_174B
+
+  mov cx, 0x0010
+  mov bx, 0x0010
+.loc_175A:
+  dec bx
+  inc byte [bx+si]
+  loopne .loc_175A
+
+  mov al, [si]
+  ret
+
 
 ; 18B8 - Opens a file and returns the file handle (int) into AX
 dos_open_file:
@@ -848,3 +982,37 @@ sub_2FE4:
   call sub_316C
 
 .loc_301A:
+
+; 0x3320 - Checks input key buffer.
+; Also checks memory at 0x2128 ?
+sub_330C:
+  mov ax, [0x2128]
+  or ah, ah
+  mov al, 0xFF
+  je .loc_331B
+
+  ; Check input key buffer
+  ; After return AL register will contain 0x00 (empty) or 0xFF (not-empty)
+  mov ah, 0x0B
+  int 0x21
+  mov ah, 0x00
+
+.loc_331B:
+  ret
+
+; Read a key
+sub_3320:
+  mov dh, 0x08
+  mov ax, [0x2128] ; ?
+  or ah, ah
+  jne .loc_3331
+  mov word [0x2128], 0xFFFF ; ?
+  jmp short .loc_3336
+
+  ; Read a key with no echo, if no input, waits for a key.
+  ; AL contains key code.
+  xchg dx, ax
+  int 0x21
+  mov ah, 0x00
+  ret
+
