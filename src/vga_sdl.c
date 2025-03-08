@@ -31,24 +31,28 @@ static SDL_Window *main_window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Surface *surface = NULL;
 
-// https://github.com/canidlogic/vgapal
-static const SDL_Color sdl_palette[] = {
-  { 0x00, 0x00, 0x00, 0xFF }, /* BLACK */
-  { 0x00, 0x00, 0xAA, 0xFF }, /* BLUE */
-  { 0x00, 0xAA, 0x00, 0xFF }, /* GREEN */
-  { 0x00, 0xAA, 0xAA, 0xFF }, /* CYAN */
-  { 0xAA, 0x00, 0x00, 0xFF }, /* RED */
-  { 0xAA, 0x00, 0xAA, 0xFF }, /* MAGENTA */
-  { 0xAA, 0x55, 0x00, 0xFF }, /* BROWN */
-  { 0xAA, 0xAA, 0xAA, 0xFF }, /* LIGHT GRAY */
-  { 0x55, 0x55, 0x55, 0xFF }, /* DARK GRAY */
-  { 0x55, 0x55, 0xFF, 0xFF }, /* LIGHT BLUE */
-  { 0x55, 0xFF, 0x55, 0xFF }, /* LIGHT GREEN */
-  { 0x55, 0xFF, 0xFF, 0xFF }, /* LIGHT CYAN */
-  { 0xFF, 0x55, 0x55, 0xFF }, /* LIGHT RED */
-  { 0xFF, 0x55, 0xFF, 0xFF }, /* LIGHT MAGENTA */
-  { 0xFF, 0xFF, 0x55, 0xFF }, /* YELLOW */
-  { 0xFF, 0xFF, 0xFF, 0xFF } /* WHITE */
+// Fountain of Dreams uses 16 colors in total, but the palette is arranged
+// so that the colors are duplicated every 16 entries. It's probably done this
+// way for compression.
+
+// 0x6B2:0x0CD2 - 0x6B2:0xCF2
+static const unsigned char fod_vga_palette[16][3] = {
+  { 0x00, 0x00, 0x00 },    // 0x00 - 0x00 (BLACK)
+  { 0x00, 0x00, 0x27 },
+  { 0x03, 0x25, 0x03 },
+  { 0x00, 0x1B, 0x1B },
+  { 0x20, 0x00, 0x00 },
+  { 0x1B, 0x00, 0x1B },
+  { 0x20, 0x1B, 0x05 },
+  { 0x26, 0x26, 0x26 },
+  { 0x10, 0x10, 0x10 },
+  { 0x00, 0x00, 0x38 },
+  { 0x00, 0x3F, 0x00 },
+  { 0x00, 0x3F, 0x3F },
+  { 0x3A, 0x20, 0x10 },
+  { 0x3F, 0x00, 0x3F },
+  { 0x3F, 0x3F, 0x00 },
+  { 0x3F, 0x3F, 0x3F }     // 0xF0 - 0xFF  (WHITE)
 };
 
 // These are indexed by SDL_Keycode
@@ -152,9 +156,18 @@ display_start(int game_width, int game_height)
     return -1;
   }
 
-  if (SDL_SetPaletteColors(surface->format->palette, sdl_palette, 0, 16) != 0) {
-    fprintf(stderr, "Failed to set palette. SDL Error: %s\n",
-      SDL_GetError());
+  // Populate full 256-color palette
+  SDL_Color colors[256];
+  for (int i = 0; i < 256; i++) {
+    int base_color = (i & 0xF0) >> 4;  // Extract upper nibble
+    colors[i].r = (Uint8)(fod_vga_palette[base_color][0] * 255 / 63);
+    colors[i].g = (Uint8)(fod_vga_palette[base_color][1] * 255 / 63);
+    colors[i].b = (Uint8)(fod_vga_palette[base_color][2] * 255 / 63);
+    colors[i].a = 255;
+  }
+
+  if (SDL_SetPaletteColors(surface->format->palette, colors, 0, 256) != 0) {
+    fprintf(stderr, "Failed to set palette. SDL Error: %s\n", SDL_GetError());
     return -1;
   }
 
