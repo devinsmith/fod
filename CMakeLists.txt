@@ -16,7 +16,7 @@ set(INSTALL_SRCS src/install.c
   src/common/bufio.c src/common/bufio.h
   src/common/hexdump.c)
 
-set(GAME_SRCS src/main.cpp
+set(GAME_SRCS src/main.c
   src/common/compress.c src/common/compress.h
   src/common/bufio.c src/common/bufio.h
   src/common/hexdump.c
