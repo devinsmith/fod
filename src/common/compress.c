@@ -52,7 +52,7 @@ void decompress(struct buf_rdr *rdr, struct buf_wri *writer, uint32_t u_bytes)
 
 			for (j = 0; j < t_byte; j++) {
 				al_byte = g_hist[g_hist_roff];
-        buf_add8(writer, t_byte);
+        buf_add8(writer, al_byte);
 				g_hist_roff++;
 				g_hist_roff = g_hist_roff & 0xfff;
 				u_bytes--;
