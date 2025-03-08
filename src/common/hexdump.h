@@ -1,7 +1,5 @@
 /*
- * Fountain of Dreams - Reverse Engineering Project
- *
- * Copyright (c) 2018-2020,2025 Devin Smith <devin@devinsmith.net>
+ * Copyright (c) 2016 Devin Smith <devin@devinsmith.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,32 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef RESOURCE_H
-#define RESOURCE_H
+#ifndef HEXDUMP_H_INCLUDED
+#define HEXDUMP_H_INCLUDED
 
-#include <stddef.h>
+#include <stddef.h> /* size_t */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-enum resource_type {
-  RESOURCE_TITLE,
-  RESOURCE_LAST
-};
-
-struct resource {
-  unsigned char *bytes;
-  size_t len;
-};
-
-int rm_init();
-
-struct resource *resource_load(enum resource_type rt);
-void resource_release(struct resource *res);
+//void dump_hex(const void *vp, size_t len);
+void hexdump(void *ptr, int buflen);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* RESOURCE_H */
+#endif /* HEXDUMP_H_INCLUDED */

@@ -1,7 +1,8 @@
 #include <ctype.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+
+#include "hexdump.h"
 
 void
 hexdump(void *vp, int length)
