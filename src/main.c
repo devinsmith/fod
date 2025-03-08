@@ -30,7 +30,7 @@ static void title_draw(const struct resource *title)
   const uint16_t *src = (const uint16_t *)title->bytes;
   uint16_t *dest = (uint16_t *)vga_memory();
 
-  // Processes 1600 compressed pixel groups
+  // Processes 16000 compressed pixel groups
   // (16000 * 2 bytes for source -> 16000 * 4 bytes to destination)
   // Every short (2 bytes) defines 4 bytes of the output.
   for (int i = 0; i < 16000; i++) {
