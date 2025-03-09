@@ -155,15 +155,30 @@ main:
 
   mov ax, 0x029E
   push ax
-  call 0x14D5 ; Show title screen? TPICT?
+  call sub_14D5 ; Show title screen? TPICT?
   add sp, 0x0002
 
   call sub_56B ; Wait for key press (and does some other things) ?
   call sub_1548
 
+  mov ax, 0x029E
+  push ax
+  call sub_14D5  ; Shows a screen (border screen)?
+  add sp, 0x0002
+
+  sub ax, ax
+  push ax
+  mov ax 0x0302 ; ?
+  push ax
+  call sub_155E
+  add sp, 0x0004
+
+  jmp .loc_13D7
+
 call 0x141A ; ?
 
 call 0x39FE ; inner loop?
+
 
 ; sub_090 at 01EF:0090
 sub_090:
@@ -425,6 +440,84 @@ sub_02E5:
   pop bp
   ret
 
+sub_44E:
+  push bp
+  mov bp, sp
+  sub sb, 0x0006
+  mov word [0x2310], 0x031E
+  mov ax, [0x35E4]
+  cmp [bp+0x04], ax
+  je .loc_4E0
+
+  mov ax, [bp+0x04]
+  mov [0x35E4], ax
+  mov ax, 0x8000
+  push ax
+  mov ax, 0x00C3  ; 'GANI'
+  push ax
+  call dos_open_file
+  add sp, 0x0004
+  mov [bp-0x06], ax ; file handle for GANI
+  push ax
+  call sub_19BE  ; get GANI file size
+  add sp, 0x0002
+  mov [bp-0x04], ax
+  mov [bp-0x02], dx
+
+  ; Read into buffer
+  push word [0x0292]
+  push word [0x0290]
+  push dx
+  push ax
+  push word [bp-0x06]
+  call sub_1902
+  add sp, 0x000A
+
+  push word [bp-0x06]
+  call sub_18F1
+  add sp, 0x0002
+
+; 0x01ED:04A2
+
+  push word [029A]            ds:[029A]=1E81
+  push word [0298]            ds:[0298]=0000
+  push word [0x0292]  ; Segment
+  push word [0x0290]  ; offset of Gani
+  call sub_1AC7       ; Decompress !
+  add  sp, 0x0008
+
+01ED:04B8  A19802              mov  ax,[0298]              ds:[0298]=0000
+01ED:04BB  8B169A02            mov  dx,[029A]              ds:[029A]=1E81
+01ED:04BF  A31423              mov  [2314],ax              ds:[2314]=0000
+01ED:04C2  89161623            mov  [2316],dx              ds:[2316]=0000
+01ED:04C6  C41E9802            les  bx,[0298]              ds:[0298]=0000
+01ED:04CA  268A6702            mov  ah,es:[bx+02]          es:[0007]=4D00
+01ED:04CE  2AC0                sub  al,al
+01ED:04D0  268A4F01            mov  cl,es:[bx+01]          es:[0001]=1089
+01ED:04D4  2AED                sub  ch,ch
+01ED:04D6  03C1                add  ax,cx                                      
+01ED:04D8  A31223              mov  [2312],ax              ds:[2312]=0000
+01ED:04DB  C6061A2301          mov  byte [231A],01         ds:[231A]=0000
+01ED:04E0  C7061C230100        mov  word [231C],0001       ds:[231C]=0000
+01ED:04E6  8BE5                mov  sp,bp
+01ED:04E8  5D                  pop  bp
+  ret
+
+; 0x4EA (takes 1 argument)
+sub_4EA:
+01ED:04EA  55                  push bp
+01ED:04EB  8BEC                mov  bp,sp
+01ED:04ED  83EC0E              sub  sp,000E
+01ED:04F0  A11423              mov  ax,[2314]              ds:[2314]=0000
+01ED:04F3  8B161623            mov  dx,[2316]              ds:[2316]=1E81
+01ED:04F7  8946FA              mov  [bp-06],ax             ss:[4830]=4836
+01ED:04FA  8956FC              mov  [bp-04],dx             ss:[4832]=073C
+01ED:04FD  03061223            add  ax,[2312]              ds:[2312]=1089
+01ED:0501  8946F4              mov  [bp-0C],ax             ss:[482A]=0005
+01ED:0504  8956F6              mov  [bp-0A],dx             ss:[482C]=046A
+
+
+
 ; 0x56B - Wait for key
 sub_56B:
   push bp
@@ -462,6 +555,84 @@ sub_56B:
   mov sp, bp
   pop bp
   ret
+
+sub_71B:
+  push bp
+  mov bp, sp
+  mov ax, 0x0001
+  push ax
+  mov ax, 0x031E
+  push ax
+  call sub_155E
+  add sp, 0x0004
+
+  push word [bp+0x04]
+  call sub_44E
+  add sp, 0x0002
+
+  mov ax, 0x0001
+  push ax
+  call sub_4EA
+  add sp, 0x0002
+
+sub_1262:
+  mov ax, 0x01CC
+  push ax
+  mov ax, 0x0033
+  push ax
+  call sub_71B
+  add sp, 0x0004
+
+01ED:12CA  E89EF2              call 0000056B ($-d62)
+01ED:12CD  8846F8              mov  [bp-08],al       ; key pressed
+01ED:12D0  98                  cbw                                             
+01ED:12D1  8BD8                mov  bx,ax
+01ED:12D3  F687272002          test byte [bx+2027],02      ds:[2027]=2020
+01ED:12D8  7404                je   000012DE ($+4)         (no jmp)
+01ED:12DA  2C20                sub  al,20     ; convert to upper case
+01ED:12DC  EB03                jmp  short 000012E1 ($+3)   (down)
+
+; 134C - 'R'emove a member
+01ED:134C  803E4F2300          cmp  byte [234F],00         ds:[234F]=0000
+01ED:1351  7408                je   0000135B ($+8)         (down)
+01ED:1353  FF76F0              push word [bp-10]           ss:[4840]=0000
+01ED:1356  E82AFD              call 00001083 ($-2d6)
+01ED:1359  EBE3                jmp  short 0000133E ($-1d)  (up)
+01ED:135B  B82702              mov  ax,0227
+01ED:135E  50                  push ax
+01ED:135F  E802FE              call 00001164 ($-1fe)
+01ED:1362  83C402              add  sp,0002
+01ED:1365  EB70                jmp  short 000013D7 ($+70)  (down)
+
+
+; 1391 - 'P'lay the game
+.loc_1391:
+  cmp  byte [234F],00         ds:[234F]=0000      
+  je   0000139E ($+6)         (down)
+01ED:1398  E845F0              call 000003E0 ($-fbb)
+01ED:139B  E97DFE              jmp  0000121B ($-183)       (up)
+.loc_139E:
+  call 00001593 
+  mov  ax,0001
+  push ax
+  mov  ax,0233   ; 'It's tough out there!'
+  push ax
+  call 00000010 ($-139c)
+  add sp, 0x0004
+  mov ax, 0x0003
+  push ax
+  mov ax, 0x0249   ; 'You should take somebody with you'
+  add sp, 0x0004
+  call sub_1631
+  call sub_56B   ; Wait key?
+  jmp short .loc_13D7
+
+
+loc_13D7:
+  cmp byte [bp-0x0A], 0x00
+  jne .loc_13E0
+  jmp sub_1262
+.loc_13E0:
 
 
 sub_1439:
@@ -537,6 +708,8 @@ sub_14B3:
   pop  bp
   ret
 
+; 0x14D5
+; Takes 1 argument
 sub_14D5:
   push bp
   mov  bp,sp
@@ -602,9 +775,53 @@ sub_1548:
   pop ds
   pop dx
   pop cx
-  
 
-; sub_11729
+; 0x155E
+; 2 arguments
+sub_155E:
+  push bp
+  mov bp, sp
+  push si
+  push di
+  push bx
+  push cx
+  push dx
+  push ds
+  push es
+  push bp
+  mov si, [bp+0x04] ; First argument
+  mov [0x029C], si
+  cmp word [bp+0x06], 0x0000 ; second argument
+  je .loc_1589
+
+  push si
+  mov word [si+0x18], 0x0000
+  call sub_1593
+  pop si
+  cmp word [si+0x16], 0x0000
+  je .loc_1589
+  call near word [si+0x16] ; function pointer
+
+.loc_1589:
+  pop bp
+  pop es
+  pop ds
+  pop dx
+  pop cx
+  pop bx
+  pop di
+  pop si
+  pop bp
+  ret
+
+; 0x1593
+sub_1593:
+  mov si, [0x029C] ; first argument from earlier?
+  add si, 0x000C
+  call sub_17C4
+  ret
+
+; sub_1729
 sub_1729:
   push si
   push di
@@ -651,6 +868,34 @@ sub_173D:
   mov al, [si]
   ret
 
+sub_17C4:
+  push si
+  push di
+  push es
+  push bp
+  mov es, [0x042D]
+  mov di, [si+0x02]
+  shl di, 1
+  mov di, [di+0x05BF]
+  add di, [si]
+  xor ax, ax
+  mov cx, [si+0x06]
+.loc_17DC:
+  push cx
+  push di
+  mov cx, [si+0x04]
+  sar cx, 1
+
+  repe stosw  ; CX times store AX at address ES:DI
+  pop di
+  add di, 0x00A0 ; 160
+  pop cx
+  loop .loc_17DC
+  pop bp
+  pop es
+  pop di
+  pop si
+  ret
 
 ; 18B8 - Opens a file and returns the file handle (int) into AX
 dos_open_file:
