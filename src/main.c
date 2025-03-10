@@ -82,6 +82,10 @@ int main(int argc, char *argv[])
 
   do_title();
 
+  struct resource *borders = resource_load_sz(RESOURCE_BORDERS, 0x1388, 0x3E8);
+
+  hexdump(borders->bytes, 64);
+
   vga_end();
 
   return 0;

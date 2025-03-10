@@ -93,7 +93,8 @@ done:
 
 static int check_files()
 {
-  return check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040");
+  return check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040") &&
+    check_file("borders", "ace004a244b9f55039e55092ec802869c544008f");
 }
 
 static struct buf_rdr *open_file(const char *filename)
@@ -139,7 +140,7 @@ int decompress_file(struct buf_rdr *rdr, struct resource* output)
   return 0;
 }
 
-struct resource* resource_load(enum resource_type rt)
+struct resource* resource_load(enum resource_file rt)
 {
   const char *fname = NULL;
   bool compressed = false;
@@ -181,6 +182,47 @@ struct resource* resource_load(enum resource_type rt)
   }
 
   buf_rdr_free(rdr);
+
+  return res;
+}
+
+struct resource *resource_load_sz(enum resource_file rfile, long offset,
+    size_t sz)
+{
+  const char *fname = NULL;
+
+  if (rfile == RESOURCE_BORDERS) {
+    fname = "borders";
+  }
+
+  if (fname == NULL) {
+    return NULL;
+  }
+
+  printf("Reading %zu bytes of %s at offset %ld\n", sz, fname, offset);
+
+  struct resource* res = malloc(sizeof(struct resource));
+
+  FILE *fp = fopen(fname, "rb");
+  if (fp == NULL) {
+    errx(1, "couldn't open %s", fname);
+  }
+  fseek(fp, offset, SEEK_SET);
+
+  res->bytes = malloc(sz);
+  if (res->bytes == NULL) {
+    errx(1, "no memory");
+  }
+
+  size_t tb = 0;
+  while (tb < sz) {
+    size_t bytes = sz > 1024 ? 1024 : sz;
+    tb += fread(res->bytes + tb, 1, bytes, fp);
+  }
+
+  fclose(fp);
+
+  res->len = sz;
 
   return res;
 }

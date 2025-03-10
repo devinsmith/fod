@@ -94,7 +94,7 @@ main:
   ; ?
   mov ax, 0x03E8
   push ax
-  call sub_2FE4
+  call sub_2FE4 ; possibly memory allocation
   add sp, 0x0002
 
   mov [0x3E66], ax
@@ -182,6 +182,41 @@ call 0x39FE ; inner loop?
 
 ; sub_090 at 01EF:0090
 sub_090:
+  push bp
+  mov  bp,sp
+  sub  sp,0008
+  sub  ax,ax
+  push ax
+  mov  ax,009A    ; DS:[0x9A] = "FONT"
+  push ax
+  call dos_open_file
+  add  sp,0004
+  mov  [bp-08],ax
+  or   ax,ax
+  jne  000000AD ($+3)         (down)
+  call 00000081 ($-2c)
+  lea  ax,[bp-02]             ss:[4826]=2485
+  push ss
+  push ax
+  mov ax, 0002    ; reads 2 bytes of FONT
+  cwd
+  push dx
+  push ax
+  push word [bp-08] ; file handle
+  call sub_1902
+  add sp, 0x000A
+  mov ax, [bp-02]  ; read first 2 bytes.
+  mov cl, 0x05
+  shl ax, cl
+  push ax
+  call sub_2FE4 ; memory allocate
+
+
+  ; 3bfa
+
+
+
+
 
 ; sub_0105 at 01EF:0105
 sub_0105:
@@ -342,7 +377,7 @@ sub_02E5:
   push dx
   push ax
   push word [bp-0x06] ; handle
-  call sub_19A2 ; seek
+  call sub_19A2 ; seek to position
   add sp, 0x0008
 
   push ds
@@ -384,7 +419,7 @@ sub_02E5:
   mov [bp-0x04], ax
   mov [bp-0x02], dx
   push ax
-  call sub_2FE4
+  call sub_2FE4    ; memory allocation
   add sp, 0x0002
 
   mov [0x37E6], ax  ; ds:[0x37E6] = return from sub_2FE4
@@ -398,17 +433,17 @@ sub_02E5:
   push word [bp-04] ; File size (low)
   push word [bp-06] ; File Handle
   call read_file_to_buffer
-  add  sp,000A
+  add  sp, 0x000A
 
   push word [bp-06]
   call dos_close_file
   add  sp,0002
 
   ; Check buffer of file read 
-  mov  bx,[37E6]              ; ds:[37E6]=4CB0
+  mov  bx,[0x37E6]              ; data of ARCHTYPE
   mov  ax,[bx+04]   ; 4th byte in ARCHTYPE
   add  ax,bx
-  mov  [3C84],ax    ; Put it in another buffer
+  mov  [0x3C84],ax    ; First ARCHTYPE record ?
 
   sub  ax,ax
   push ax
@@ -421,12 +456,12 @@ sub_02E5:
   call sub_081 ; ? error handler?
 .loc_03B5:
 
-  mov  word [bp-04],049C      ss:[4826]=049C
-  mov  word [bp-02],0000      ss:[4828]=0000
-  mov  ax,37E8
+  mov  word [bp-04],0x049C  ; file size of HDSPCT
+  mov  word [bp-02],0000    ; high value
+  mov  ax, 0x37E8
   push ds
   push ax
-  mov  ax,049C
+  mov  ax, 0x049C
   cwd
   push dx
   push ax
@@ -675,11 +710,11 @@ sub_1439:
   jc .loc_1424
 
   mov [0x042D], ax ; allocated memory pointer
-  add ax, 0x07D0
+  add ax, 0x07D0   ; 2000
   mov [0x029A], ax
-  add ax, 0x043A
+  add ax, 0x043A   ; 1082
   mov [0x0292], ax
-  add ax, 0x01CA
+  add ax, 0x01CA   ; 458
   mov [0x0296], ax
   call 0x05B0:0014 ; Video hardware?
 
@@ -1211,12 +1246,16 @@ sub_1B9E:
 
 
 
-
+; Takes 1 argument, this might be a malloc or memory allocation
+; function
+; 0x2FE4
 sub_2FE4:
   push bp
   mov bp, sp
   push si
   push di
+
+  ; What's at data segment 0x2000
   mov bx, 0x2000
   cmp word [bx], 0x0000
   jne .loc_301A
@@ -1225,8 +1264,50 @@ sub_2FE4:
   pop es
   mov ax, 0x0005
   call sub_316C
+  jne .loc_3000
+  xor ax, ax
+  cwd
+  jmp short .loc_3024
 
 .loc_301A:
+  mov cx, [bp+04] ; first argument
+  mov ax, ds
+  mov es, ax
+  call sub_302D
+  pop di
+  pop si
+  mov sb, bp
+  pop bp
+  ret
+
+sub_302D:
+  inc cx
+  je .loc_302A
+  and cl, 0xFE
+  cmp cx, 0xFFEE
+  jnc .loc_302A
+  mov si, [bx+2] ; 
+
+sub_316C:
+  push bx
+  push ax
+  xor  dx,dx
+  push ds
+  push dx
+  push dx
+  push ax
+  mov  ax,0001
+  push ax
+  push es
+  pop ds
+  call sub_318C
+  add sp, 0x0008
+  cmp dx, 0xFFFF
+  pop ds
+  pop dx
+
+
+sub_318C:
 
 ; 0x3320 - Checks input key buffer.
 ; Also checks memory at 0x2128 ?

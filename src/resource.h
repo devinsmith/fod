@@ -25,8 +25,9 @@
 extern "C" {
 #endif
 
-enum resource_type {
+enum resource_file {
   RESOURCE_TITLE,
+  RESOURCE_BORDERS,
   RESOURCE_LAST
 };
 
@@ -37,7 +38,28 @@ struct resource {
 
 int rm_init();
 
-struct resource *resource_load(enum resource_type rt);
+/**
+ * @brief Loads the named resource
+ *
+ * @param rfile   The resource file to load.
+ */
+struct resource *resource_load(enum resource_file rfile);
+
+/**
+ * @brief Loads a resource with a given offset and size from a resource type
+ *
+ * @param rfile   The type of resource to load.
+ * @param offset  The offset to read from.
+ * @param sz      The number of bytes to read.
+ */
+struct resource *resource_load_sz(enum resource_file rfile, long offset,
+    size_t sz);
+
+/**
+ * @brief Releases a resource (frees memory)
+ *
+ * @param res   Pointer to the resource to release
+ */
 void resource_release(struct resource *res);
 
 #ifdef __cplusplus
