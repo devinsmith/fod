@@ -36,20 +36,23 @@ static int check_file(const char *filename, const char *hash)
 
   fp = fopen(filename, "rb");
   if (fp == NULL) {
-    fprintf(stderr, "Failed to open %s for reading. Can't proceed.\n", filename);
+    fprintf(stderr, "Failed to open file '%s' for reading. Can't proceed.\n",
+        filename);
     goto done;
   }
 
   fseek(fp, 0, SEEK_END);
   long filesize = ftell(fp);
   if (filesize == -1) {
-    fprintf(stderr, "Failed to find file size for file %s. Can't proceed.\n", filename);
+    fprintf(stderr, "Failed to find file size for file %s. Can't proceed.\n",
+        filename);
     goto done;
   }
   rewind(fp);
 
   if (filesize > 0xFFFF) {
-    fprintf(stderr, "File %s is likely too large (%zu bytes). Can't proceed.\n", filename, filesize);
+    fprintf(stderr, "File %s is likely too large (%zu bytes). Can't proceed.\n",
+        filename, filesize);
     goto done;
   }
 
@@ -61,8 +64,8 @@ static int check_file(const char *filename, const char *hash)
   }
 
   if (tb != (size_t)filesize) {
-    fprintf(stderr, "Failed to read all of file %s. Read %zu out of %zu bytes. Can't proceed.\n",
-        filename, tb, filesize);
+    fprintf(stderr, "Failed to read all of file '%s'. "
+        "Read %zu out of %zu bytes. Can't proceed.\n", filename, tb, filesize);
     goto done;
   }
 
