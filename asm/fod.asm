@@ -92,12 +92,12 @@ main:
   mov [0x0424], al   ; Overwrite memory in ds:[0x424] ?
 
   ; ?
-  mov ax, 0x03E8
+  mov ax, 0x03E8   ; 1000 bytes
   push ax
   call sub_2FE4 ; possibly memory allocation
   add sp, 0x0002
 
-  mov [0x3E66], ax
+  mov [0x3E66], ax  ; memory allocation pointer
   mov al, [bp-0x0E] ; saved game
   sub ah, ah
   push ax
@@ -1268,9 +1268,18 @@ sub_2FE4:
   xor ax, ax
   cwd
   jmp short .loc_3024
-
+.loc_3000:
+  inc  ax
+  and  al,FE
+  mov  [0x2000],ax
+  mov  [0x2002],ax
+  xchg si,ax
+  mov  word [si],0001     ; Mark allocated?
+  add si, 4
+  mov [si-02], 0xFFFE
+  mov [0x2006], si
 .loc_301A:
-  mov cx, [bp+04] ; first argument
+  mov cx, [bp+04] ; first argument (amount allocated?)
   mov ax, ds
   mov es, ax
   call sub_302D
@@ -1286,7 +1295,102 @@ sub_302D:
   and cl, 0xFE
   cmp cx, 0xFFEE
   jnc .loc_302A
-  mov si, [bx+2] ; 
+  mov si, [bx+2] ;
+  cld
+  lodsw   ; ax = ds:[si]  si += 2;
+  mov di, si
+  test al, 0x01
+  je .loc_3085
+  dec ax
+  cmp ax, cx    ; memory desired
+  jnc .loc_305D
+  mov dx, ax
+  add si, ax
+  lodsw   ;
+  test al, 0x01
+  je .loc_3085
+
+.loc_3085:
+  mov byte es:[0x2014], 2
+.loc_308B:
+  cmp ax, 0xFFFE
+  je .loc_30B5
+
+.loc_30B5:
+  mov  ax,[bx+08]             ds:[2008]=0000
+  or   ax,ax
+  je   .loc_30C0
+  mov  ds,ax
+  jmp  short 000030D4 ($+14)  (down)
+.loc_30C0:
+  dec  byte es:[2014]         es:[2014]=0002
+  je   .loc_30D8
+  mov  ax,ds
+  mov  di,ss
+  cmp  ax,di
+  je .loc_30D4
+  mov ds, es:[0x200A]
+.loc_30D4:
+  mov si, [bx]
+  jmp short .loc_3094
+.loc_30D8:
+  mov si, [bx+06]
+  xor ax, ax
+  call sub_314A
+  cmp ax, si
+  je .loc_30F1
+  and al, 0x01
+  inc ax
+  inc ax
+  cbw
+  call sub_314A
+  je .loc_30FB
+  dec byte [di-02]
+  call sub_3110
+
+  01EF:30F4  7405                je   000030FB ($+5)         (no jmp)
+01EF:30F6  96                  xchg si,ax
+01EF:30F7  4E                  dec  si
+01EF:30F8  4E                  dec  si
+01EF:30F9  EB99                jmp  short 00003094 ($-67)  (up)
+01EF:30FB  8CD8                mov  ax,ds
+01EF:30FD  8CD1                mov  cx,ss
+
+
+01EF:3110  51                  push cx
+01EF:3111  8B45FE              mov  ax,[di-02]             ds:[48C0]=0002
+01EF:3114  A801                test al,01
+01EF:3116  7403                je   0000311B ($+3)         (no jmp)
+01EF:3118  2BC8                sub  cx,ax
+01EF:311A  49                  dec  cx
+01EF:311B  41                  inc  cx
+01EF:311C  41                  inc  cx
+01EF:311D  BAFF7F              mov  dx,7FFF
+01EF:3120  263B161020          cmp  dx,es:[2010]           es:[2010]=2000
+
+
+sub_314A:
+  push dx
+  push cx
+  call sub_316C
+  je   .loc_3169
+  push di
+  mov  di,si
+  mov  si,ax
+  add  si,dx
+  mov  word [si-02],FFFE      ds:[48C0]=FFFE
+  mov  [bx+06],si             ds:[2006]=48C2
+  mov  dx,si
+  sub  dx,di
+  dec  dx
+  mov  [di-02],dx             ds:[48C0]=FFFE
+  pop  ax
+
+.loc_3169:
+  pop cx
+  pop dx
+  ret
+
 
 sub_316C:
   push bx
@@ -1305,9 +1409,69 @@ sub_316C:
   cmp dx, 0xFFFF
   pop ds
   pop dx
+  pop bx
+  je .loc_318A
+  or dx, dx
+.loc_318A:
+  ret
 
 
 sub_318C:
+  push bp
+  mov  bp,sp
+  push si
+  push di
+  push es
+  cmp  word [bp+08],0000   ; 3rd argument
+  jne  .loc_31D0
+  mov  di,1E12
+  mov  dx,[bp+06]          ; 2nd argument
+  mov  ax,[bp+04]          ; 1st argument
+  dec  ax
+  jne  .loc_31AB
+  call sub_31FA
+  jc   .loc_31D0
+  jmp  short .loc_31F3
+.loc_31AB:
+
+.loc_31F3:
+  pop es
+  pop di
+  pop si
+  mov sb, bp
+  pop bp
+  ret
+
+sub_31FA:
+  mov  cx,[bp+0C]
+  mov  si,di
+  cmp  [si+02],cx             ds:[0084]=0515
+  je   00003210 ($+c)         (down)
+01EF:3204  83C604              add  si,0004
+01EF:3207  81FE621E            cmp  si,1E62
+01EF:320B  75F2                jne  000031FF ($-e)         (no jmp)
+01EF:320D  F9                  stc
+01EF:320E  EB3F                jmp  short 0000324F ($+3f)  (down)
+.loc_3210:
+  mov  bx,dx
+  add bx, [si]
+  jc .loc_324F
+  mov dx, bx
+  mov es, cx
+  cmp si, di
+  jne .loc_3224
+  cmp [0x1E0C], bx
+  jnc .loc_324A
+.loc_3224:
+  add bx, 0x000F
+
+.loc_324A:
+  xchg dx, ax
+  xchg [si], ax
+  mov dx, cx
+  ret
+
+
 
 ; 0x3320 - Checks input key buffer.
 ; Also checks memory at 0x2128 ?
