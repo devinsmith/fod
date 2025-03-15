@@ -807,12 +807,14 @@ sub_14D5:
 
 ; sub_14FF
 ; something 40x25   (0x28 by 0x19)
+; cpu.ax is an input (usually 0?)
 sub_14FF:
   push di
   push si
   push es
-  mov si. [0x3E66]
-  add si, ax
+  mov si. [0x3E66] ; data from "Borders" file?
+  add si, ax       ; offset
+
   mov ax. [0x35E0]
   push ax
   mov ax [0x35E2]
@@ -820,8 +822,8 @@ sub_14FF:
   mov word [0x35E2], 0x0000
   mov word [0x35E0], 0x0000
 .loc_151C:
-  lodsb
-  or al, al
+  lodsb     ; al = ds:[si]  si++;
+  or al, al  ; is al = 0?
   je .loc_1526
   push si
   call sub_1778 ; todo
@@ -832,7 +834,7 @@ sub_14FF:
   jne .loc_151C
 
 
-; sub_1548
+; sub_1548 (no arguments)
 sub_1548:
   push si
   push di
@@ -940,6 +942,64 @@ sub_173D:
   loopne .loc_175A
 
   mov al, [si]
+  ret
+
+; Process bytes (another form of decompression?)
+sub_1778:
+  push si
+  push di
+  push ds
+  push es
+  push bp
+  push ax
+
+  mov ax, [0x35E2]
+
+  shl ax, 1
+  shl ax, 1
+  shl ax, 1
+  shl ax, 1
+
+  mov di, ax
+  mov di, [di+0x05BF] ; lookup table
+
+  mov ax, [0x35E0]
+
+  shl ax, 1
+  shl ax, 1
+
+  add di, ax
+
+  mov es, [0x042D] ; destination location
+
+  pop ax  ; byte
+
+  xor ah, ah
+  shl ax, 1
+  shl ax, 1
+  shl ax, 1
+  shl ax, 1
+  shl ax, 1
+
+  mov si, [0x3C86] ; ?
+  add si, ax
+
+  mov bx, 0x0008
+.loc_17B2:
+  mov cx, 0x0002
+
+  repe movsw ; copy words from ds:si to es:di (2 times) 
+  add di, 0x009C
+  dec bx
+
+  jne .loc_17B2
+
+  pop bp
+  pop es
+  pop ds
+  pop di
+  pop si
+
   ret
 
 sub_17C4:
