@@ -13,16 +13,21 @@ sub_0014:
   mov  word [0x0CCC],0x0000       ds:[0CCC]=0000
   mov  ax,0x06B2
   mov  es,ax
-  mov  di,0x05BF
+
+
+  mov  di, 0x05BF  ; Lookup table?
+
+  ; Store sequence of +160, 200 times
+  ; Lookup table?
   xor  ax,ax
-  mov  cx,0x00C8
+  mov  cx, 0x00C8 ; 200
 .loc_35
   stosw ; put ax into ds:di, advance di by 2.
-  add  ax,0x00A0
+  add  ax,0x00A0 ; 160
   loop .loc_35
 
   xor bx, bx
-  mov bl, [0x0424]   ; 0x0003
+  mov bl, [0x0424]   ; 0x0003   ; Saved game value?
   shl bl, 1
   mov bx, [bx+0x041C]     ; ds:0x02A9
   call near bx
@@ -37,8 +42,8 @@ sub_0014:
   retf
 
 sub_B0:
-  mov  bx,[0CCE]              ds:[0CCE]=074F
-  add  word [0CCE],000E       ds:[0CCE]=074F
+  mov  bx,[0x0CCE]              ds:[0CCE]=074F
+  add  word [0x0CCE],000E       ds:[0CCE]=074F
   inc  word [0CCC]            ds:[0CCC]=0000
   xor  ah,ah
   test ax,0001
@@ -80,7 +85,8 @@ sub_B0:
 
 ; Seems to be setting up the video hardware, as well as setting up some video
 ; support tables
-; sub_02A9
+; 0x2A9
+sub_02A9:
   mov word cs:[0x0353], 0x0136
   ; Switch to mode 13
   mov ax, 0x0013
@@ -143,7 +149,7 @@ sub_B0:
   ; setting up another lookup table?
   mov di, 0x037A
   mov cx, 0x0051
-  mov ax, 0x0B74 ; 
+  mov ax, 0x0B74 ; Starting value
 .loc_315:
   stosw
   sub ax, 0x0015
@@ -153,19 +159,37 @@ sub_B0:
   mov ds, ax
   mov es, ax
 
+  ; copy code from CS:338 (see below) to cs:4E4
   mov si, 0x0338
   mov di, 0x04E4
   mov cx, 0x0015
   repe movsb ; copy 0x15 byte string from DS:SI to ES:DI
 
+  ; Copy those 21 bytes (above), 1659 (0x67B) times
+  ; Basically 79 additional copies of above 21 bytes
   mov cx, 0x067B
   mov si, 0x04E4
   repe movsb ; copy 0x67B byte string from ds:si to es:di
 
-  mov al, 0xC3
-  stosb ; put al into ds:di
+  mov al, 0xC3  ; Finally add a RET instruction.
+  stosb ; put al into es:di
   ret
 
+; 0x338
+; This fragment of code (which is about 21 bytes) is copied to 0x4E4 80 times
+  lodsw                 ; AX = DS:SI  SI += 2
+  mov  ch,ah            ;
+  mov  bx,ax
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  rol  bx,1
+  mov  ah,bl
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  mov al, ch
+  mov ah, bh
+  stosw                ; store AX at address ES:(E)DI; di += 2;
+  
 
 sub_34D:
   push si

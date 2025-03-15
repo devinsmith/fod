@@ -153,6 +153,7 @@ main:
   call sub_1AC7 ; Sets up VGA?
   add sp, 0x0008
 
+  ; 0x29E is an offset to a struct in the EXE
   mov ax, 0x029E
   push ax
   call sub_14D5 ; Show title screen? TPICT?
@@ -669,6 +670,22 @@ loc_13D7:
   jmp sub_1262
 .loc_13E0:
 
+loc_1424:
+  cli
+  mov al, 3
+  mov ah, 0
+  int 0x10  ; VIDEO - Set Video Mode (text)
+
+  mov dx, 0x340 ;  "You do not have enough memory to run Fountain of Dreams.$"
+  mov ah, 9
+  int 0x21      ; DOS - Print String
+                ; DS:DX -> string terminated by "$".
+
+  mov al, 0     ; Exit code
+  mov ah, 0x4c
+  int 0x21      ; DOS - 2+ - Quit with exit code (EXIT)
+                ; AL = exit code
+  ret
 
 sub_1439:
   push si
@@ -679,9 +696,9 @@ sub_1439:
   push ds
   push es
   push bp
-  ; Allocate 64k ?
+  ; Allocate around 1 MB
   mov ah, 0x48
-  mov bx, 0xFFFF
+  mov bx, 0xFFFF ; 64k paragraphs (65535 * 16) = 1048560 bytes
   int 0x21
 
   cmp byte [0x0424], 0x01 ; ?
@@ -691,7 +708,7 @@ sub_1439:
 ; Allocate again, this time as much memory as possible.
   mov ah, 0x48
   int 0x21
-  jc .loc_1424 ; if we still couldn't allocate
+  jc loc_1424 ; if we still couldn't allocate
 
   mov [0x0296], ax ; pointer to memory allocated?
   cmp byte [0x0424], 0x01
@@ -703,22 +720,41 @@ sub_1439:
   mov es, ax
   mov ah, 0x49
   int 0x21 ;   free memory
+           ;   ES = segment address of area to be freed
+
   pop es
   mov ah, 0x48
-  mov bx, 0x45F5 ; 
+  mov bx, 0x45F5 ; 286544 bytes
   int 0x21 ; allocate again
-  jc .loc_1424
+  jc loc_1424
 
+  ; Save some offsets that are used later.
   mov [0x042D], ax ; allocated memory pointer
-  add ax, 0x07D0   ; 2000
-  mov [0x029A], ax
-  add ax, 0x043A   ; 1082
-  mov [0x0292], ax
-  add ax, 0x01CA   ; 458
-  mov [0x0296], ax
-  call 0x05B0:0014 ; Video hardware?
+  add ax, 0x07D0   ; 2000 into allocated memory
+  mov [0x029A], ax ; save this offset
+  add ax, 0x043A   ; 1082 into the allocated memory
+  mov [0x0292], ax ; save offset
+  add ax, 0x01CA   ; 458 into allocated memory
+  mov [0x0296], ax ; save offset
+  call seg001:0014 ; Video hardware?
 
   call sub_0090
+
+  ; 0 out 16000 bytes
+  mov  cx, 0x3E80 ; 16000
+  xor  di,di
+  mov  es,[0x042D]
+  xor  ax,ax
+  repe stosw
+  pop  bp
+  pop  es
+  pop  ds
+  pop  dx
+  pop cx
+  pop bx
+  pop di
+  pop si
+  ret
 
 ; Takes a pointer as an argument
 sub_14B3:
@@ -729,18 +765,21 @@ sub_14B3:
   push ds
   push es
   push bp
+
+  ; Sets up various offsets based on inputs
   mov  si,[bp+04]        ; First argument (pointer)
   mov  ax,[si]           ; First word of pointer
   mov  di,[si+04]        ; 3rd word of pointer
   mov  cx,[si+06]        ; 4th word of pointer
   mov  si,[si+02]        ; 2nd word of pointer
-  call 0x05B0:00B0
+  call seg001:00B0
+
   pop bp
   pop es
-  pop  ds
-  pop  di
-  pop  si
-  pop  bp
+  pop ds
+  pop di
+  pop si
+  pop bp
   ret
 
 ; 0x14D5
@@ -753,11 +792,11 @@ sub_14D5:
   push ds
   push es
   push bp
-  mov  si,[bp+04]  ; 29E ?
+  mov  si,[bp+04]  ; first argument (29E) ?
   push si
   call sub_14B3
   add sp, 0x0002
-  call 0x05B0:0x034D
+  call seg001:0x034D
   pop  bp
   pop  es
   pop  ds
@@ -768,7 +807,7 @@ sub_14D5:
 
 ; sub_14FF
 ; something 40x25   (0x28 by 0x19)
-sub_14F:
+sub_14FF:
   push di
   push si
   push es
@@ -1476,7 +1515,7 @@ sub_31FA:
 ; 0x3320 - Checks input key buffer.
 ; Also checks memory at 0x2128 ?
 sub_330C:
-  mov ax, [0x2128]
+  mov ax, [0x2128] ; key buffer
   or ah, ah
   mov al, 0xFF
   je .loc_331B
@@ -1490,16 +1529,21 @@ sub_330C:
 .loc_331B:
   ret
 
-; Read a key
+; Reads a key with echo.
+  mov dh, 1    ; With echo
+  jmp short loc_3322
+
+; Read a key (either without echo or with echo)
 sub_3320:
-  mov dh, 0x08
+  mov dh, 0x08  ; Without echo
+loc_3322:
   mov ax, [0x2128] ; ?
   or ah, ah
   jne .loc_3331
   mov word [0x2128], 0xFFFF ; ?
   jmp short .loc_3336
 
-  ; Read a key with no echo, if no input, waits for a key.
+  ; Read a key (echo depends on above), if no input, waits for a key.
   ; AL contains key code.
   xchg dx, ax
   int 0x21
