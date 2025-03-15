@@ -198,10 +198,11 @@ sub_34D:
   push ds
   push bp
   call 0000048B ($+136)
-05B0:0355  5D                  pop  bp
-05B0:0356  1F                  pop  ds
-05B0:0357  07                  pop  es
-05B0:0358  5F                  pop  di
+  pop  bp
+  pop  ds
+  pop  es
+  pop  di
+  pop  si
 
 sub_48B:
   mov  word [0x0CD0], 0x074F

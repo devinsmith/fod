@@ -767,11 +767,11 @@ sub_14B3:
   push bp
 
   ; Sets up various offsets based on inputs
-  mov  si,[bp+04]        ; First argument (pointer)
-  mov  ax,[si]           ; First word of pointer
-  mov  di,[si+04]        ; 3rd word of pointer
-  mov  cx,[si+06]        ; 4th word of pointer
-  mov  si,[si+02]        ; 2nd word of pointer
+  mov  si,[bp+04]        ; First argument (pointer to a strucut)
+  mov  ax,[si]           ; First word of struct
+  mov  di,[si+04]        ; 3rd word of struct (0xA0)
+  mov  cx,[si+06]        ; 4th word of struct (0xC8)
+  mov  si,[si+02]        ; 2nd word of struct
   call seg001:00B0
 
   pop bp
@@ -833,6 +833,18 @@ sub_14FF:
   cmp word [0x35E0], 0x0028 ; 40
   jne .loc_151C
 
+  inc word [0x35E2]
+  cmp word [0x35E2], 0x0019 ; 25
+  jne .loc_1516
+
+  pop ax
+  mov [0x3E52], ax
+  pop ax
+  mov [0x3E50], ax
+  pop es
+  pop si
+  pop di
+  ret
 
 ; sub_1548 (no arguments)
 sub_1548:
@@ -851,6 +863,10 @@ sub_1548:
   pop ds
   pop dx
   pop cx
+  pop bx
+  pop di
+  pop si
+  ret
 
 ; 0x155E
 ; 2 arguments
