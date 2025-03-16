@@ -97,7 +97,8 @@ done:
 static int check_files()
 {
   return check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040") &&
-    check_file("borders", "ace004a244b9f55039e55092ec802869c544008f");
+    check_file("borders", "ace004a244b9f55039e55092ec802869c544008f") &&
+    check_file("font", "acc08c29b1df9d4049d8c2b28b69e3897e5779a1");
 }
 
 static struct buf_rdr *open_file(const char *filename)

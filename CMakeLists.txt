@@ -21,6 +21,7 @@ set(GAME_SRCS src/main.c
   src/common/bufio.c src/common/bufio.h
   src/common/hexdump.c
   src/resource.c src/resource.h
+  src/tables.c src/tables.h
   src/vga.c src/vga.h src/vga_sdl.c
   src/utils/sha1.c src/utils/sha1.h)
 

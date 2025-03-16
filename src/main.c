@@ -17,13 +17,23 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 
+#include "common/bufio.h"
 #include "common/hexdump.h"
 #include "resource.h"
+#include "tables.h"
 #include "vga.h"
 
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
+
+// FOD does most of it's work in a large allocated buffer
+// DSEG:0x042D
+static unsigned char *scratch;
+static unsigned char *scratch_01; // DSEG:0x029A
+static unsigned char *scratch_02; // DSEG:0x0292
+static unsigned char *scratch_03; // DSEG:0x0296
 
 static void title_draw(const struct resource *title)
 {
@@ -66,6 +76,71 @@ static void do_title()
   resource_release(title_res);
 }
 
+static uint16_t word_35E0 = 0;
+static uint16_t word_35E2 = 0;
+
+static void sub_1778(uint8_t al, int i, int j)
+{
+  printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
+
+  uint16_t di = i << 4;
+//  uint16_t di = lookup[di];
+
+  di += (j << 2);
+//  unsigned char *es = scratch;
+
+//  int ax = al << 5;
+
+}
+
+// seg000:0090
+//
+void sub_90()
+{
+}
+
+// seg000:1439
+// This is approximately what sub_1439 would do.
+void game_mem_alloc()
+{
+  // Fountain of Dreams does most of its work within this scratch
+  // buffer. I'm not sure it really needs to be this big but that's how much
+  // is allocated in the disassembly.
+  scratch = malloc(286544); // 286,544 bytes.
+  if (scratch == NULL) {
+    fprintf(stderr, "You do not have enough memory to run Fountain of Dreams.\n");
+    exit(0);
+  }
+
+  scratch_01 = scratch + 0x07d0;
+  scratch_02 = scratch_01 + 0x043A;
+  scratch_03 = scratch_02 + 0x01CA;
+
+  setup_tables();
+
+  sub_90();
+}
+
+/* seg000:0x14FF */
+void sub_14FF(struct resource *r)
+{
+  word_35E0 = 0;
+  word_35E2 = 0;
+
+  struct buf_rdr *rdr = buf_rdr_init(r->bytes, r->len);
+
+  for (int j = 0; j < 25; j++) {
+    for (int i = 0; i < 40; i++) {
+      uint8_t al = buf_get8(rdr);
+      if (al != 0) {
+        sub_1778(al, i, j);
+      }
+    }
+  }
+
+  buf_rdr_free(rdr);
+}
+
 int main(int argc, char *argv[])
 {
   if (!rm_init()) {
@@ -80,11 +155,17 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  game_mem_alloc();
+
   do_title();
 
   struct resource *borders = resource_load_sz(RESOURCE_BORDERS, 0x1388, 0x3E8);
 
   hexdump(borders->bytes, 64);
+
+  sub_14FF(borders);
+
+  free(scratch);
 
   vga_end();
 

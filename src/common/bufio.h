@@ -57,6 +57,15 @@ void buf_rdr_free(struct buf_rdr *r);
 
 /* read data */
 void buf_reset(struct buf_rdr *r);
+
+/**
+ * @brief Reads 1 byte (8 bits) from the buffer.
+ *
+ * The index is also advanced by 1 byte.
+ *
+ * @param r   The reader to read a byte from.
+ * @return    The byte that was read.
+ */
 uint8_t buf_get8(struct buf_rdr *r);
 uint16_t buf_get16le(struct buf_rdr *r);
 uint16_t buf_get16be(struct buf_rdr *r);

@@ -1,6 +1,6 @@
 ; A rough disassembly of FOD
 ; Mostly appears to be C based using cdecl caller conventions
-; However there is some aggressive optimization that as well.
+; However there is some inline assembly that is invoked as well.
 
 bits 16
 
@@ -188,11 +188,11 @@ sub_090:
   sub  sp,0008
   sub  ax,ax
   push ax
-  mov  ax,009A    ; DS:[0x9A] = "FONT"
+  mov  ax, 0x009A    ; DS:[0x9A] = "FONT"
   push ax
   call dos_open_file
   add  sp,0004
-  mov  [bp-08],ax
+  mov  [bp-08],ax    ; file handle
   or   ax,ax
   jne  000000AD ($+3)         (down)
   call 00000081 ($-2c)
