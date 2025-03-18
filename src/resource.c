@@ -28,9 +28,9 @@
 #include "resource.h"
 #include "utils/sha1.h"
 
-static int check_file(const char *filename, const char *hash)
+static bool check_file(const char *filename, const char *hash)
 {
-  int rc = 0;
+  bool is_valid = false;
   unsigned char *bytes = NULL;
   FILE *fp;
 
@@ -53,6 +53,12 @@ static int check_file(const char *filename, const char *hash)
   if (filesize > 0xFFFF) {
     fprintf(stderr, "File %s is likely too large (%zu bytes). Can't proceed.\n",
         filename, filesize);
+    goto done;
+  }
+
+  /* Skip hash check */
+  if (hash == NULL) {
+    is_valid = true;
     goto done;
   }
 
@@ -83,7 +89,7 @@ static int check_file(const char *filename, const char *hash)
 
   }
 
-  rc = 1;
+  is_valid = true;
 done:
   if (fp != NULL) {
     fclose(fp);
@@ -91,12 +97,14 @@ done:
   if (bytes != NULL) {
     free(bytes);
   }
-  return rc;
+  return is_valid;
 }
 
-static int check_files()
+static bool check_files()
 {
-  return check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040") &&
+  return
+    check_file("disk1", NULL) &&
+    check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040") &&
     check_file("borders", "ace004a244b9f55039e55092ec802869c544008f") &&
     check_file("font", "acc08c29b1df9d4049d8c2b28b69e3897e5779a1");
 }
@@ -231,7 +239,7 @@ struct resource *resource_load_sz(enum resource_file rfile, long offset,
   return res;
 }
 
-int rm_init()
+bool rm_init()
 {
   return check_files();
 }

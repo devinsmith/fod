@@ -217,8 +217,6 @@ sub_090:
 
 
 
-
-
 ; sub_0105 at 01EF:0105
 sub_0105:
   push bp
@@ -250,6 +248,7 @@ sub_0105:
   push dx
   push word [bp-04]
   push word [bp-06]
+  call read_file_to_buffer
 
   add sp, 0x000A  ; clean up 5 arguments
 

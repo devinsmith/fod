@@ -28,6 +28,12 @@
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
 
+// DSEG:0x231E - 0x31DE
+static unsigned char disk1_bytes[3776];
+
+// DSEG:0x0424
+static unsigned char unknown1 = 2;
+
 // FOD does most of it's work in a large allocated buffer
 // DSEG:0x042D
 static unsigned char *scratch;
@@ -141,12 +147,44 @@ void sub_14FF(struct resource *r)
   buf_rdr_free(rdr);
 }
 
+// seg000:0105
+static int sub_0105()
+{
+  FILE *fp = fopen("disk1", "rb");
+  if (fp == NULL) {
+    fprintf(stderr, "Couldn't read disk1, exiting!\n");
+    exit(1);
+  }
+
+  fread(disk1_bytes, 1, sizeof(disk1_bytes), fp);
+  fclose(fp);
+
+  uint16_t word2 = (disk1_bytes[3] << 8) | disk1_bytes[2];
+  uint16_t saved_game = (disk1_bytes[1] << 8) | disk1_bytes[0];
+
+  // TODO:
+  // This does a number of other manipulations of disk1_bytes based on whether
+  // we're dealing with a saved game or not. For a new game, we have to
+  // initialize a number of data components to 0.
+
+  if (word2 != 0) {
+    fprintf(stderr, "Second word of disk1 is not 0, unhandled (CS: 0x014D)!\n");
+    exit(1);
+  }
+  return saved_game != 0;
+}
+
 int main(int argc, char *argv[])
 {
   if (!rm_init()) {
     fprintf(stderr, "Failed to initialize resource manager, exiting!\n");
     return 1;
   }
+
+  int saved_game = sub_0105();
+  printf("Saved game: %d\n", saved_game);
+  unknown1 = disk1_bytes[6];
+  printf("Unknown1: %d\n", unknown1);
 
   // Register VGA driver.
   video_setup();

@@ -20,6 +20,7 @@
 #define RESOURCE_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +37,7 @@ struct resource {
   size_t len;
 };
 
-int rm_init();
+bool rm_init();
 
 /**
  * @brief Loads the named resource
