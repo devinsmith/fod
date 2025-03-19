@@ -174,6 +174,28 @@ static int sub_0105()
   return saved_game != 0;
 }
 
+// seg000:02E5
+static void sub_02E5(unsigned char *raw_bytes)
+{
+  FILE *fp = fopen("borders", "rb");
+  if (fp == NULL) {
+    fprintf(stderr, "Couldn't read borders, exiting!\n");
+    exit(1);
+  }
+
+  fseek(fp, 0x1388, SEEK_SET);
+  fread(raw_bytes, 1, 1000, fp);
+  fclose(fp);
+
+  fp = fopen("archtype", "rb");
+  if (fp == NULL) {
+    fprintf(stderr, "Couldn't read archtype, exiting!\n");
+    exit(1);
+  }
+
+  fclose(fp);
+}
+
 int main(int argc, char *argv[])
 {
   if (!rm_init()) {
@@ -185,6 +207,11 @@ int main(int argc, char *argv[])
   printf("Saved game: %d\n", saved_game);
   unknown1 = disk1_bytes[6];
   printf("Unknown1: %d\n", unknown1);
+
+  // Store in 3E66
+  unsigned char *raw_bytes = malloc(1000);
+
+  sub_02E5(raw_bytes);
 
   // Register VGA driver.
   video_setup();
