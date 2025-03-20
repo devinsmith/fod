@@ -20,6 +20,7 @@ set(GAME_SRCS src/main.c
   src/common/compress.c src/common/compress.h
   src/common/bufio.c src/common/bufio.h
   src/common/hexdump.c
+  src/fileio.c src/fileio.h
   src/resource.c src/resource.h
   src/tables.c src/tables.h
   src/vga.c src/vga.h src/vga_sdl.c

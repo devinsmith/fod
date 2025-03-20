@@ -18,18 +18,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common/bufio.h"
 #include "common/hexdump.h"
+#include "fileio.h"
 #include "resource.h"
 #include "tables.h"
 #include "vga.h"
 
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
-
-// DSEG:0x231E - 0x31DE
-static unsigned char disk1_bytes[3776];
 
 // DSEG:0x0424
 static unsigned char unknown1 = 2;
@@ -40,6 +39,18 @@ static unsigned char *scratch;
 static unsigned char *scratch_01; // DSEG:0x029A
 static unsigned char *scratch_02; // DSEG:0x0292
 static unsigned char *scratch_03; // DSEG:0x0296
+
+// DSEG:0x231E - 0x31DE
+static unsigned char disk1_bytes[3776];
+
+// DSEG:0x37E6
+static unsigned char *arch_bytes;
+// DSEG:0x37E8
+static unsigned char hds_bytes[1180];
+// DSEG:0x3C84
+static unsigned char *arch_offset;
+// DSEG:0x3E66
+static unsigned char *border_bytes;
 
 static void title_draw(const struct resource *title)
 {
@@ -125,27 +136,10 @@ void game_mem_alloc()
   setup_tables();
 
   sub_90();
+
+  memset(scratch, 0, 32000);
 }
 
-/* seg000:0x14FF */
-void sub_14FF(struct resource *r)
-{
-  word_35E0 = 0;
-  word_35E2 = 0;
-
-  struct buf_rdr *rdr = buf_rdr_init(r->bytes, r->len);
-
-  for (int j = 0; j < 25; j++) {
-    for (int i = 0; i < 40; i++) {
-      uint8_t al = buf_get8(rdr);
-      if (al != 0) {
-        sub_1778(al, i, j);
-      }
-    }
-  }
-
-  buf_rdr_free(rdr);
-}
 
 // seg000:0105
 static int sub_0105()
@@ -175,7 +169,7 @@ static int sub_0105()
 }
 
 // seg000:02E5
-static void sub_02E5(unsigned char *raw_bytes)
+static void sub_02E5()
 {
   FILE *fp = fopen("borders", "rb");
   if (fp == NULL) {
@@ -184,16 +178,60 @@ static void sub_02E5(unsigned char *raw_bytes)
   }
 
   fseek(fp, 0x1388, SEEK_SET);
-  fread(raw_bytes, 1, 1000, fp);
+  fread(border_bytes, 1, 1000, fp);
   fclose(fp);
 
+  // archtype
   fp = fopen("archtype", "rb");
   if (fp == NULL) {
     fprintf(stderr, "Couldn't read archtype, exiting!\n");
     exit(1);
   }
 
+  long arch_size = file_size(fp);
+  printf("archtype %ld bytes\n", arch_size);
+
+  arch_bytes = malloc(arch_size);
+  fread(arch_bytes, 1, arch_size, fp);
+
   fclose(fp);
+
+  uint16_t arch4 = (arch_bytes[5] << 8) | arch_bytes[4];
+  printf("arch[4] = 0x%04X\n", arch4);
+  arch_offset = arch_bytes += arch4;
+
+  fp = fopen("hdspct", "rb");
+  if (fp == NULL) {
+    fprintf(stderr, "Couldn't read borders, exiting!\n");
+    exit(1);
+  }
+
+  fread(hds_bytes, 1, sizeof(hds_bytes), fp);
+  fclose(fp);
+}
+
+/* seg000:0x14FF */
+void sub_14FF(struct resource *r)
+{
+  word_35E0 = 0;
+  word_35E2 = 0;
+
+  struct buf_rdr *rdr = buf_rdr_init(r->bytes, r->len);
+
+  for (int j = 0; j < 25; j++) {
+    for (int i = 0; i < 40; i++) {
+      uint8_t al = buf_get8(rdr);
+      if (al != 0) {
+        sub_1778(al, i, j);
+      }
+    }
+  }
+
+  buf_rdr_free(rdr);
+}
+
+static void sub_1548()
+{
 }
 
 int main(int argc, char *argv[])
@@ -209,9 +247,9 @@ int main(int argc, char *argv[])
   printf("Unknown1: %d\n", unknown1);
 
   // Store in 3E66
-  unsigned char *raw_bytes = malloc(1000);
+  border_bytes = malloc(1000);
 
-  sub_02E5(raw_bytes);
+  sub_02E5();
 
   // Register VGA driver.
   video_setup();
@@ -222,7 +260,15 @@ int main(int argc, char *argv[])
 
   game_mem_alloc();
 
+  /*
+  word_231C = 0;
+  word_35E4 = 0xFFFF;
+  word_33DE = 0;
+  */
+
   do_title();
+
+  sub_1548();
 
   struct resource *borders = resource_load_sz(RESOURCE_BORDERS, 0x1388, 0x3E8);
 
