@@ -77,25 +77,6 @@ static void title_draw(const struct resource *title)
     ui_draw_80_line(src, dest);
     src += 80;
     dest += 160;
-
-#if 0
-    uint16_t src_pixel = *src++;
-
-    // Extract components
-    uint8_t low_byte = src_pixel & 0xFF;
-    uint8_t high_byte = src_pixel >> 8;
-
-    // Rotate left by 4, right by 12
-    uint16_t rotated_pixel = (src_pixel << 4) | (src_pixel >> 12);
-    uint8_t rotated_low = rotated_pixel & 0xFF;
-
-    // Rotated low byte goes to high.
-    uint16_t trans1 = (rotated_low << 8) | low_byte;
-    uint16_t trans2 = (rotated_pixel & 0xFF00) | high_byte;
-
-    *dest++ = trans1;
-    *dest++ = trans2;
-#endif
   }
 }
 
