@@ -25,10 +25,14 @@
 #include "fileio.h"
 #include "resource.h"
 #include "tables.h"
+#include "ui.h"
 #include "vga.h"
 
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
+
+// DSEG:0x029E
+static struct ui_unknown1 data_029E = { 0, 0, 0xA0, 0xC8 };
 
 // DSEG:0x0424
 static unsigned char unknown1 = 2;
@@ -40,6 +44,9 @@ static unsigned char *scratch_01; // DSEG:0x029A
 static unsigned char *scratch_02; // DSEG:0x0292
 static unsigned char *scratch_03; // DSEG:0x0296
 
+// DSEG:0x074F
+struct ui_unknown2 data_074F = { 0 };
+
 // DSEG:0x231E - 0x31DE
 static unsigned char disk1_bytes[3776];
 
@@ -49,8 +56,13 @@ static unsigned char *arch_bytes;
 static unsigned char hds_bytes[1180];
 // DSEG:0x3C84
 static unsigned char *arch_offset;
+// DSEG:0x3C86
+static unsigned char *font_bytes;
 // DSEG:0x3E66
 static unsigned char *border_bytes;
+
+static void sub_14D5(struct ui_unknown1 *input);
+static void sub_1548();
 
 static void title_draw(const struct resource *title)
 {
@@ -60,7 +72,13 @@ static void title_draw(const struct resource *title)
   // Processes 16000 compressed pixel groups
   // (16000 * 2 bytes for source -> 16000 * 4 bytes to destination)
   // Every short (2 bytes) defines 4 bytes of the output.
-  for (int i = 0; i < 16000; i++) {
+  for (int i = 0; i < 200; i++) {
+
+    ui_draw_80_line(src, dest);
+    src += 80;
+    dest += 160;
+
+#if 0
     uint16_t src_pixel = *src++;
 
     // Extract components
@@ -77,6 +95,7 @@ static void title_draw(const struct resource *title)
 
     *dest++ = trans1;
     *dest++ = trans2;
+#endif
   }
 }
 
@@ -93,27 +112,77 @@ static void do_title()
   resource_release(title_res);
 }
 
-static uint16_t word_35E0 = 0;
-static uint16_t word_35E2 = 0;
-
 static void sub_1778(uint8_t al, int i, int j)
 {
   printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
 
   uint16_t di = i << 4;
-//  uint16_t di = lookup[di];
+  di = get_160_offset(di);
 
   di += (j << 2);
-//  unsigned char *es = scratch;
 
-//  int ax = al << 5;
+  unsigned char *es = scratch;
+  es += di;
 
+  int ax = al << 5;
+  unsigned char *si = font_bytes;
+  si += ax;
+
+  for (int k = 0; k < 8; k++) {
+    // copy words from ds:si to es:di
+    memcpy(es, si, 4);
+    si += 4;
+    es += 4;
+
+    es += 0x9C;
+  }
 }
+
+#if 0
+// seg000:0x3BFA
+// Inputs CL ? (5)
+void sub_3BFA(int counter)
+{
+  if (counter == 0) {
+    return;
+  }
+
+  for (int i = 0; i < counter; i++) {
+    int carry = (ax & 0x8000) ? 1 : 0;
+    ax = ax << 1;
+    dx = (dx << 1) | carry;
+  }
+}
+#endif
 
 // seg000:0090
 //
 void sub_90()
 {
+  unsigned char font_size[2];
+
+  FILE *fp = fopen("font", "rb");
+  if (fp == NULL) {
+    fprintf(stderr, "Couldn't read font, exiting!\n");
+    exit(1);
+  }
+
+  fread(font_size, 1, sizeof(font_size), fp);
+
+  int size = (font_size[1] << 8) | font_size[0];
+  printf("Font size: 0x%04X\n", size);
+  size = size << 5;
+
+  font_bytes = malloc(size);
+  if (font_bytes == NULL) {
+    fclose(fp);
+    fprintf(stderr, "Couldn't read font, exiting!\n");
+  }
+
+  // sub_3BFA will expand a 16 bit number to 32 bit, but we don't need
+  // to do that on modern architectures.
+  fread(font_bytes, 1, size, fp);
+  fclose(fp);
 }
 
 // seg000:1439
@@ -211,29 +280,21 @@ static void sub_02E5()
 }
 
 /* seg000:0x14FF */
-void sub_14FF(struct resource *r)
+void sub_14FF(int offset)
 {
-  word_35E0 = 0;
-  word_35E2 = 0;
-
-  struct buf_rdr *rdr = buf_rdr_init(r->bytes, r->len);
+  unsigned char *p = border_bytes + offset;
 
   for (int j = 0; j < 25; j++) {
     for (int i = 0; i < 40; i++) {
-      uint8_t al = buf_get8(rdr);
+      uint8_t al = *p++;
       if (al != 0) {
         sub_1778(al, i, j);
       }
     }
   }
-
-  buf_rdr_free(rdr);
 }
 
-static void sub_1548()
-{
-}
-
+// seg000:0x1191
 int main(int argc, char *argv[])
 {
   if (!rm_init()) {
@@ -270,11 +331,13 @@ int main(int argc, char *argv[])
 
   sub_1548();
 
+  sub_14D5(&data_029E);
+
   struct resource *borders = resource_load_sz(RESOURCE_BORDERS, 0x1388, 0x3E8);
 
   hexdump(borders->bytes, 64);
 
-  sub_14FF(borders);
+  sub_14FF(0);
 
   free(scratch);
 
@@ -282,3 +345,29 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+
+static void sub_14B3(struct ui_unknown1 *input)
+{
+  uint16_t ax = input->arg1;
+  uint16_t di = input->arg3;
+  uint16_t cx = input->arg4;
+  uint16_t si = input->arg2;
+
+  // sub_05B0:00B0
+  ui_sub_00B0(ax, di, cx, si);
+}
+
+// seg000:0x14D5
+static void sub_14D5(struct ui_unknown1 *input)
+{
+  sub_14B3(input);
+
+  ui_sub_034D();
+}
+
+// seg000:0x1548
+static void sub_1548()
+{
+  sub_14FF(0);
+}
+

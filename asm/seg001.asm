@@ -42,9 +42,9 @@ sub_0014:
   retf
 
 sub_B0:
-  mov  bx,[0x0CCE]              ds:[0CCE]=074F
-  add  word [0x0CCE],000E       ds:[0CCE]=074F
-  inc  word [0CCC]            ds:[0CCC]=0000
+  mov  bx,[0x0CCE]     ; pointer to struct
+  add  word [0x0CCE], 0x000E       ds:[0CCE]=074F
+  inc  word [0CCC]     ; counter
   xor  ah,ah
   test ax,0001
   je   .loc_C5

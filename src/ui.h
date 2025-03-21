@@ -16,36 +16,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef UI_H
+#define UI_H
+
 #include <stdint.h>
 
-#include "tables.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// 0x5BF
-unsigned short lookup_160_table[200];
-// 0x42F
-unsigned short lookup_320_table[200];
-// 0x37A (another table, purpose unknown)
+struct ui_unknown1 {
+  uint16_t arg1;
+  uint16_t arg2;
+  uint16_t arg3;
+  uint16_t arg4;
+};
 
+struct ui_unknown2 {
+  uint16_t arg0; // BX
+  uint16_t arg1; // BX+2
+  uint16_t arg2; // BX+4
+  uint16_t arg3; // BX+6
+  uint16_t arg4;
+  uint16_t arg5;
+  uint16_t arg6;
+};
 
-// This is just a tiny part of seg001:0014
-void setup_tables()
-{
-  uint16_t ax = 0;
-  for (int i = 0; i < 200; i++) {
-    lookup_160_table[i] = ax;
-    ax += 0xA0;
-  }
+void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
+void ui_sub_034D();
+void ui_draw_80_line(const uint16_t *src, uint16_t *dest);
 
-  // additional support tables are setup as part of seg001:0294 (potentially
-  // based on saved game?)
-  ax = 0;
-  for (int i = 0; i < 200; i++) {
-    lookup_320_table[i] = ax;
-    ax += 0x140;
-  }
+#ifdef __cplusplus
 }
+#endif
 
-unsigned short get_160_offset(int index)
-{
-  return lookup_160_table[index];
-}
+#endif /* UI_H */

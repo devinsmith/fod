@@ -185,7 +185,7 @@ call 0x39FE ; inner loop?
 sub_090:
   push bp
   mov  bp,sp
-  sub  sp,0008
+  sub  sp,0x0008
   sub  ax,ax
   push ax
   mov  ax, 0x009A    ; DS:[0x9A] = "FONT"
@@ -206,11 +206,14 @@ sub_090:
   push word [bp-08] ; file handle
   call sub_1902
   add sp, 0x000A
+
   mov ax, [bp-02]  ; read first 2 bytes.
   mov cl, 0x05
   shl ax, cl
   push ax
   call sub_2FE4 ; memory allocate
+  add sp, 2
+
 
 
   ; 3bfa
@@ -249,7 +252,6 @@ sub_0105:
   push word [bp-04]
   push word [bp-06]
   call read_file_to_buffer
-
   add sp, 0x000A  ; clean up 5 arguments
 
   push word [bp-06]

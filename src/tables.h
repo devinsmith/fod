@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
 void setup_tables();
+unsigned short get_160_offset(int index);
 
 #ifdef __cplusplus
 }
