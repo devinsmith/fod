@@ -202,15 +202,15 @@ extract_file(struct buf_rdr *rdr, char *filename)
 	u_bytes = buf_get32le(rdr);
 	printf("Extracting %s (inflating %d to %d bytes)\n", filename, c_bytes, u_bytes);
 
-  struct buf_wri *writer = buf_wri_init(u_bytes);
+  unsigned char *dest = malloc(u_bytes);
 
-	decompress(rdr, writer, u_bytes);
+	decompress(rdr->data + rdr->offset, dest, u_bytes);
 
 	fp = fopen(filename, "wb");
-	fwrite(writer->base, 1, u_bytes, fp);
+	fwrite(dest, 1, u_bytes, fp);
 	fclose(fp);
 
-  buf_wri_free(writer);
+  free(dest);
 }
 
 static void
@@ -245,35 +245,35 @@ extract_disk1(struct buf_rdr *rdr)
 	c_bytes = buf_get32le(rdr);
 	u_bytes = buf_get32le(rdr);
 
-  struct buf_wri *writer = buf_wri_init(u_bytes);
+  unsigned char *dest = malloc(u_bytes);
 
-	decompress(rdr, writer, u_bytes);
+  decompress(rdr->data + rdr->offset, dest, u_bytes);
 
 	/* No idea why the installer does this */
 	junk = malloc(0xec0 - (0x729 * 2));
 	memset(junk, 0, 0xec0 - (0x729 * 2));
-	writer->base[6] = 3;
+	dest[6] = 3;
 
 	printf("Extracting disk1 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
 	fp = fopen("disk1", "wb");
-	fwrite(writer->base, 1, 0x729 * 2, fp);
+	fwrite(dest, 1, 0x729 * 2, fp);
 	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
 	fclose(fp);
 
 	printf("Extracting disk3 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
 	fp = fopen("disk3", "wb");
-	fwrite(writer->base, 1, 0x729 * 2, fp);
+	fwrite(dest, 1, 0x729 * 2, fp);
 	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
 	fclose(fp);
 
 	printf("Extracting disk4 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
 	fp = fopen("disk4", "wb");
-	fwrite(writer->base, 1, 0x729 * 2, fp);
+	fwrite(dest, 1, 0x729 * 2, fp);
 	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
 	fclose(fp);
 
 
 	free(junk);
-  buf_wri_free(writer);
+  free(dest);
 }
 

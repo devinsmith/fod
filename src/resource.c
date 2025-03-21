@@ -134,24 +134,6 @@ static struct buf_rdr *open_file(const char *filename)
   return buf_rdr_init(data, size);
 }
 
-int decompress_file(struct buf_rdr *rdr, struct resource* output)
-{
-  uint16_t u_bytes = buf_get16le(rdr);
-  uint16_t dx = buf_get16le(rdr);
-  printf("Total bytes: %d\n", u_bytes);
-  printf("DX: 0x%04x (should be 0)\n", dx);
-  if (dx != 0) {
-    printf("DX values other than 0 are unhandled\n");
-    return -1;
-  }
-
-  struct buf_wri *outb = buf_wri_init(u_bytes);
-
-  decompress(rdr, outb, u_bytes);
-
-  return 0;
-}
-
 struct resource* resource_load(enum resource_file rt)
 {
   const char *fname = NULL;
@@ -178,16 +160,15 @@ struct resource* resource_load(enum resource_file rt)
       errx(0, "DX values other than 0 are unhandled\n");
     }
 
-    struct buf_wri *uncompressed_wri = buf_wri_init(u_bytes);
+    unsigned char *dest = malloc(u_bytes);
 
-    decompress(rdr, uncompressed_wri, u_bytes);
+    decompress(rdr->data + 4, dest, u_bytes);
 
     // After decompressing, we can get rid of the compressed copy, and
     // store the data directly into the resource.
     res->len = u_bytes;
     // move pointer
-    res->bytes = uncompressed_wri->base;
-    free(uncompressed_wri);
+    res->bytes = dest;
   } else {
     res->bytes = rdr->data;
     res->len = rdr->len;

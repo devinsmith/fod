@@ -17,13 +17,13 @@
 #ifndef COMMON_COMPRESS_H
 #define COMMON_COMPRESS_H
 
-#include "common/bufio.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void decompress(struct buf_rdr *rdr, struct buf_wri *writer, uint32_t u_bytes);
+void decompress(unsigned char *src, unsigned char *dest, uint32_t u_bytes);
 
 #ifdef __cplusplus
 }
