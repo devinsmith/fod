@@ -28,6 +28,12 @@
  // seg000:0x19DA
 void decompress(const unsigned char *src, unsigned char *dest, uint32_t uncompressed_size)
 {
+  // This is a variant of LZSS with:
+  // * A 4KB (4096 bytes) sliding window/dictionary
+  // * Variable-length matches (3-18 bytes)
+  // * 1-bit flags to distinguish between literals and matches
+  // * 12-bit offsets for referencing previous data
+
   // Set up our history dictionary and window pointers
   unsigned char history[4096];
   memset(history, 0x20, sizeof(history));
