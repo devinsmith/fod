@@ -23,7 +23,14 @@
 extern "C" {
 #endif
 
-void decompress(unsigned char *src, unsigned char *dest, uint32_t u_bytes);
+/**
+* Decompresses data using an LZSS-like algorithm
+*
+* @param src Pointer to compressed source data
+* @param dest Pointer to destination buffer
+* @param uncompressed_size Expected size of uncompressed data in bytes
+*/
+void decompress(const unsigned char *src, unsigned char *dest, uint32_t uncompressed_size);
 
 #ifdef __cplusplus
 }
