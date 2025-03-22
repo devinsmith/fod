@@ -47,8 +47,13 @@ static unsigned char *scratch_03; // DSEG:0x0296
 // DSEG:0x074F
 struct ui_unknown2 data_074F = { 0 };
 
+// DSEG:0x231C
+static uint16_t word_231C = 0;
+
 // DSEG:0x231E - 0x31DE
 static unsigned char disk1_bytes[3776];
+
+static uint16_t word_35E4 = 0xFFFF;
 
 // DSEG:0x37E6
 static unsigned char *arch_bytes;
@@ -64,7 +69,8 @@ static unsigned char *border_bytes;
 static void sub_14D5(struct ui_unknown1 *input);
 static void sub_14FF(int offset);
 static void sub_1548();
-static void sub_155E();
+static void sub_155E(uint16_t arg1, uint16_t arg2);
+static void sub_1593();
 static void sub_1778(uint8_t al, int i, int j);
 
 static void screen_draw(const unsigned char *bytes)
@@ -81,6 +87,8 @@ static void screen_draw(const unsigned char *bytes)
     src += 80;
     dest += 160;
   }
+
+  vga_update();
 }
 
 static void do_title()
@@ -89,7 +97,6 @@ static void do_title()
 
   hexdump(title_res->bytes, 32);
   screen_draw(title_res->bytes);
-  vga_update();
 
   vga_waitkey();
 
@@ -238,14 +245,58 @@ static void sub_02E5()
   fclose(fp);
 }
 
+// seg000:0x044E
+static void sub_044E(uint16_t arg1)
+{
+  // word_2310 = 0x031E
+  uint16_t ax = word_35E4;
+  if (arg1 != ax) {
+    // 0x462
+    ax = arg1;
+    word_35E4 = ax;
+
+    // Open and decompress GANI
+#if 0
+    mov ax, 0x8000
+    push ax
+    mov ax, 0x00C3 // GANI
+    FILE *fp = fopen("gani", "rb");
+    long gani_size = file_size(fp);
+#endif
+
+    word_231C = 1;
+  }
+  // ax = [35E4]
+}
+
+// seg000:0x04EA
+static void sub_04EA(uint16_t arg1)
+{
+  // decoding GANI
+  //
+
+  //sub_05AE_0FCD();
+
+
+}
+
 // seg000:0x071B
 // 2 arguments
 // ex. 0x0033, 0x01CC
 void sub_071B()
 {
+  // TODO: Disassemble this
+  printf("sub_071B not finished\n");
+  exit(1);
+#if 0
+  // 2 parameters
   sub_155E();
 
+  // 1 parameter
+  sub_044E(9999);
 
+  sub_04EA(1);
+#endif
 }
 
 
@@ -276,9 +327,9 @@ int main(int argc, char *argv[])
 
   game_mem_alloc();
 
-  /*
   word_231C = 0;
   word_35E4 = 0xFFFF;
+  /*
   word_33DE = 0;
   */
 
@@ -289,7 +340,6 @@ int main(int argc, char *argv[])
   sub_14D5(&data_029E);
 
   screen_draw(scratch);
-  vga_update();
 
   vga_waitkey();
 
@@ -345,9 +395,36 @@ static void sub_1548()
 }
 
 // seg000:0x155E
-static void sub_155E()
+static void sub_155E(uint16_t arg1, uint16_t arg2)
 {
-  
+  // arg1 is likely a pointer
+  // word_029C = arg1;
+  if (arg2 == 0) {
+  }
+
+#if 0
+  // push si
+  // mov word [si+0x18], 0000 // null ?
+  call sub_1593();
+  // pop si
+  //
+  cmp word [si+0x16], 0
+  if (!= null) {
+    call near word [si+16]
+  }
+#endif
+
+}
+
+// seg000:0x1593
+static void sub_1593()
+{
+  /*
+  si = word_29C;
+  si += 0x000C;
+
+  sub_17C4();
+  */
 }
 
 // seg000:1778
@@ -355,7 +432,7 @@ static void sub_1778(uint8_t al, int i, int j)
 {
   //printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
 
-  uint16_t ax = j << 3;
+  uint16_t ax = j << 3; // multiply by 8 because a font sprite is 8 lines high.
   uint16_t di = ax;
   di = get_160_offset(ax);
 
@@ -378,4 +455,21 @@ static void sub_1778(uint8_t al, int i, int j)
 
     es += 0x9C; // next line
   }
+}
+
+static void sub_17C4()
+{
+#if 0
+  unsigned char *es = scratch;
+  di = [si+2];
+
+  shl di, 1
+    mov di [di+05BF]
+
+    repe stosw
+
+    dump ax to es:di
+    // 60 times
+    // 17DC
+#endif
 }

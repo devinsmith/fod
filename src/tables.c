@@ -33,7 +33,7 @@ void setup_tables()
   uint16_t ax = 0;
   for (int i = 0; i < 200; i++) {
     lookup_160_table[i] = ax;
-    ax += 0xA0;
+    ax += 160;
   }
 
   // additional support tables are setup as part of seg001:0294 (potentially
