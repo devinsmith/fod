@@ -62,11 +62,13 @@ static unsigned char *font_bytes;
 static unsigned char *border_bytes;
 
 static void sub_14D5(struct ui_unknown1 *input);
+static void sub_14FF(int offset);
 static void sub_1548();
+static void sub_1778(uint8_t al, int i, int j);
 
-static void title_draw(const struct resource *title)
+static void screen_draw(const unsigned char *bytes)
 {
-  const uint16_t *src = (const uint16_t *)title->bytes;
+  const uint16_t *src = (const uint16_t *)bytes;
   uint16_t *dest = (uint16_t *)vga_memory();
 
   // Processes 16000 compressed pixel groups
@@ -85,7 +87,7 @@ static void do_title()
   struct resource *title_res = resource_load(RESOURCE_TITLE);
 
   hexdump(title_res->bytes, 32);
-  title_draw(title_res);
+  screen_draw(title_res->bytes);
   vga_update();
 
   vga_waitkey();
@@ -93,31 +95,6 @@ static void do_title()
   resource_release(title_res);
 }
 
-static void sub_1778(uint8_t al, int i, int j)
-{
-  printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
-
-  uint16_t di = i << 4;
-  di = get_160_offset(di);
-
-  di += (j << 2);
-
-  unsigned char *es = scratch;
-  es += di;
-
-  int ax = al << 5;
-  unsigned char *si = font_bytes;
-  si += ax;
-
-  for (int k = 0; k < 8; k++) {
-    // copy words from ds:si to es:di
-    memcpy(es, si, 4);
-    si += 4;
-    es += 4;
-
-    es += 0x9C;
-  }
-}
 
 #if 0
 // seg000:0x3BFA
@@ -260,20 +237,6 @@ static void sub_02E5()
   fclose(fp);
 }
 
-/* seg000:0x14FF */
-void sub_14FF(int offset)
-{
-  unsigned char *p = border_bytes + offset;
-
-  for (int j = 0; j < 25; j++) {
-    for (int i = 0; i < 40; i++) {
-      uint8_t al = *p++;
-      if (al != 0) {
-        sub_1778(al, i, j);
-      }
-    }
-  }
-}
 
 // seg000:0x1191
 int main(int argc, char *argv[])
@@ -314,11 +277,10 @@ int main(int argc, char *argv[])
 
   sub_14D5(&data_029E);
 
-  struct resource *borders = resource_load_sz(RESOURCE_BORDERS, 0x1388, 0x3E8);
+  screen_draw(scratch);
+  vga_update();
 
-  hexdump(borders->bytes, 64);
-
-  sub_14FF(0);
+  vga_waitkey();
 
   free(scratch);
 
@@ -346,9 +308,51 @@ static void sub_14D5(struct ui_unknown1 *input)
   ui_sub_034D();
 }
 
+/* seg000:0x14FF */
+static void sub_14FF(int offset)
+{
+  unsigned char *p = border_bytes + offset;
+
+  for (int j = 0; j < 25; j++) {
+    for (int i = 0; i < 40; i++) {
+      uint8_t al = *p++;
+      if (al != 0) {
+        sub_1778(al, i, j);
+      }
+    }
+  }
+}
+
 // seg000:0x1548
 static void sub_1548()
 {
   sub_14FF(0);
 }
 
+// seg000:1778
+static void sub_1778(uint8_t al, int i, int j)
+{
+  printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
+
+  uint16_t ax = j << 4;
+  uint16_t di = ax;
+  di = get_160_offset(di);
+
+  di += (i << 2);
+
+  unsigned char *es = scratch;
+  es += di;
+
+  ax = al << 5;
+  unsigned char *si = font_bytes;
+  si += ax;
+
+  for (int k = 0; k < 8; k++) {
+    // copy words from ds:si to es:di
+    memcpy(es, si, 4);
+    si += 4;
+    es += 4;
+
+    es += 0x9C;
+  }
+}
