@@ -64,6 +64,7 @@ static unsigned char *border_bytes;
 static void sub_14D5(struct ui_unknown1 *input);
 static void sub_14FF(int offset);
 static void sub_1548();
+static void sub_155E();
 static void sub_1778(uint8_t al, int i, int j);
 
 static void screen_draw(const unsigned char *bytes)
@@ -128,8 +129,8 @@ void sub_90()
   fread(font_size, 1, sizeof(font_size), fp);
 
   int size = (font_size[1] << 8) | font_size[0];
-  printf("Font size: 0x%04X\n", size);
-  size = size << 5;
+  printf("Total fonts in font file: %d\n", size);
+  size = size << 5; // 4 * 8
 
   font_bytes = malloc(size);
   if (font_bytes == NULL) {
@@ -229,12 +230,22 @@ static void sub_02E5()
 
   fp = fopen("hdspct", "rb");
   if (fp == NULL) {
-    fprintf(stderr, "Couldn't read borders, exiting!\n");
+    fprintf(stderr, "Couldn't read hdspct, exiting!\n");
     exit(1);
   }
 
   fread(hds_bytes, 1, sizeof(hds_bytes), fp);
   fclose(fp);
+}
+
+// seg000:0x071B
+// 2 arguments
+// ex. 0x0033, 0x01CC
+void sub_071B()
+{
+  sub_155E();
+
+
 }
 
 
@@ -313,10 +324,14 @@ static void sub_14FF(int offset)
 {
   unsigned char *p = border_bytes + offset;
 
+  // Draws border segments in 4x8 tiles.
+  // 40*4 = 160 (expanded to 320 in screen draw)
+  // 25*8 = 200
   for (int j = 0; j < 25; j++) {
     for (int i = 0; i < 40; i++) {
       uint8_t al = *p++;
       if (al != 0) {
+        // al = font index
         sub_1778(al, i, j);
       }
     }
@@ -329,14 +344,20 @@ static void sub_1548()
   sub_14FF(0);
 }
 
+// seg000:0x155E
+static void sub_155E()
+{
+  
+}
+
 // seg000:1778
 static void sub_1778(uint8_t al, int i, int j)
 {
-  printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
+  //printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
 
-  uint16_t ax = j << 4;
+  uint16_t ax = j << 3;
   uint16_t di = ax;
-  di = get_160_offset(di);
+  di = get_160_offset(ax);
 
   di += (i << 2);
 
@@ -347,12 +368,14 @@ static void sub_1778(uint8_t al, int i, int j)
   unsigned char *si = font_bytes;
   si += ax;
 
+  // copy font "sprite" over to scratch buffer.
+  // fonts are stored in 4 x 8
   for (int k = 0; k < 8; k++) {
     // copy words from ds:si to es:di
     memcpy(es, si, 4);
     si += 4;
     es += 4;
 
-    es += 0x9C;
+    es += 0x9C; // next line
   }
 }
