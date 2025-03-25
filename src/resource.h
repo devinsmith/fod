@@ -28,6 +28,7 @@ extern "C" {
 
 enum resource_file {
   RESOURCE_TITLE,
+  RESOURCE_GANI,
   RESOURCE_BORDERS,
   RESOURCE_LAST
 };
@@ -43,18 +44,10 @@ bool rm_init();
  * @brief Loads the named resource
  *
  * @param rfile   The resource file to load.
+ * @param offset  The offset to read from, or 0.
+ * @param sz      The number of bytes to read, or 0 for entire file.
  */
-struct resource *resource_load(enum resource_file rfile);
-
-/**
- * @brief Loads a resource with a given offset and size from a resource type
- *
- * @param rfile   The type of resource to load.
- * @param offset  The offset to read from.
- * @param sz      The number of bytes to read.
- */
-struct resource *resource_load_sz(enum resource_file rfile, long offset,
-    size_t sz);
+struct resource *resource_load(enum resource_file rfile, long offset, size_t sz);
 
 /**
  * @brief Releases a resource (frees memory)

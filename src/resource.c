@@ -106,54 +106,66 @@ static bool check_files()
     check_file("disk1", NULL) &&
     check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040") &&
     check_file("borders", "ace004a244b9f55039e55092ec802869c544008f") &&
+    check_file("gani", "ee540a8ab0fcdc9172fac79fcc0d09a0979bdfe9") &&
     check_file("font", "acc08c29b1df9d4049d8c2b28b69e3897e5779a1");
 }
 
-static struct buf_rdr *open_file(const char *filename)
-{
-  FILE *fp = fopen(filename, "rb");
-  if (fp == NULL) {
-    errx(1, "couldn't open %s", filename);
-  }
-  fseek(fp, 0, SEEK_END);
-  long size = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
-  printf("Opened %s %zu bytes\n", filename, size);
-
-  unsigned char *data = malloc(size);
-  if (data == NULL) {
-    errx(1, "no memory");
-  }
-
-  size_t tb = 0;
-  while (feof(fp) == 0) {
-    tb += fread(data + tb, 1, 1024, fp);
-  }
-
-  fclose(fp);
-  return buf_rdr_init(data, size);
-}
-
-struct resource* resource_load(enum resource_file rt)
+struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
 {
   const char *fname = NULL;
   bool compressed = false;
 
-  if (rt == RESOURCE_TITLE) {
+  switch (rfile) {
+  case RESOURCE_TITLE:
     fname = "tpict";
     compressed = true;
+    break;
+  case RESOURCE_GANI:
+    fname = "gani";
+    compressed = true;
+    break;
+  case RESOURCE_BORDERS:
+    fname = "borders";
+    break;
+  default:
+    break;
   }
 
   if (fname == NULL) {
     return NULL;
   }
 
+  FILE *fp = fopen(fname, "rb");
+  if (fp == NULL) {
+    errx(1, "couldn't open %s", fname);
+  }
+
+  if (offset > 0) {
+    fseek(fp, offset, SEEK_SET);
+  } else {
+    fseek(fp, 0, SEEK_END);
+    sz = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+  }
+
+  unsigned char *data = malloc(sz);
+  if (data == NULL) {
+    errx(1, "no memory");
+  }
+
+  size_t tb = 0;
+  while (tb < sz) {
+    size_t bytes = sz > 1024 ? 1024 : sz;
+    tb += fread(data + tb, 1, bytes, fp);
+  }
+
+  fclose(fp);
+
   struct resource* res = malloc(sizeof(struct resource));
-  struct buf_rdr *rdr = open_file(fname);
 
   if (compressed) {
-    uint16_t u_bytes = buf_get16le(rdr);
-    uint16_t dx = buf_get16le(rdr);
+    uint16_t u_bytes = *(uint16_t *)data;
+    uint16_t dx = *(uint16_t *)(data+ 2);
     printf("Total bytes: %d\n", u_bytes);
     printf("DX: 0x%04x (should be 0)\n", dx);
     if (dx != 0) {
@@ -162,7 +174,8 @@ struct resource* resource_load(enum resource_file rt)
 
     unsigned char *dest = malloc(u_bytes);
 
-    decompress(rdr->data + 4, dest, u_bytes);
+    decompress(data + 4, dest, u_bytes);
+    free(data);
 
     // After decompressing, we can get rid of the compressed copy, and
     // store the data directly into the resource.
@@ -170,52 +183,9 @@ struct resource* resource_load(enum resource_file rt)
     // move pointer
     res->bytes = dest;
   } else {
-    res->bytes = rdr->data;
-    res->len = rdr->len;
+    res->bytes = data;
+    res->len = sz;
   }
-
-  buf_rdr_free(rdr);
-
-  return res;
-}
-
-struct resource *resource_load_sz(enum resource_file rfile, long offset,
-    size_t sz)
-{
-  const char *fname = NULL;
-
-  if (rfile == RESOURCE_BORDERS) {
-    fname = "borders";
-  }
-
-  if (fname == NULL) {
-    return NULL;
-  }
-
-  printf("Reading %zu bytes of %s at offset %ld\n", sz, fname, offset);
-
-  struct resource* res = malloc(sizeof(struct resource));
-
-  FILE *fp = fopen(fname, "rb");
-  if (fp == NULL) {
-    errx(1, "couldn't open %s", fname);
-  }
-  fseek(fp, offset, SEEK_SET);
-
-  res->bytes = malloc(sz);
-  if (res->bytes == NULL) {
-    errx(1, "no memory");
-  }
-
-  size_t tb = 0;
-  while (tb < sz) {
-    size_t bytes = sz > 1024 ? 1024 : sz;
-    tb += fread(res->bytes + tb, 1, bytes, fp);
-  }
-
-  fclose(fp);
-
-  res->len = sz;
 
   return res;
 }

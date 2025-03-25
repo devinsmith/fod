@@ -31,8 +31,28 @@
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
 
+struct unknown_302 {
+  // RECT structure?
+  uint16_t x_pos; // Offset 0x0C
+  uint16_t y_pos; // offset 0x0E
+  uint16_t width; // offset 0x10
+  uint16_t height; // offset 0x12
+
+  uint16_t data_16; // (this is actually a function pointer) offset 0x16
+  uint16_t data_24; // offset 0x18
+};
+
+// DSEG:0x029C
+static struct unknown_302 *ptr_029C;
+
 // DSEG:0x029E
 static struct ui_unknown1 data_029E = { 0, 0, 0xA0, 0xC8 };
+
+// DSEG:0x0302
+static struct unknown_302 unknown_302;
+
+// DSEG:0x31E
+static struct unknown_302 unknown_31E = { 4, 8, 0x30, 0x60, 0, 0 };
 
 // DSEG:0x0424
 static unsigned char unknown1 = 2;
@@ -47,6 +67,17 @@ static unsigned char *scratch_03; // DSEG:0x0296
 // DSEG:0x074F
 struct ui_unknown2 data_074F = { 0 };
 
+// DSEG:0x2310
+static struct unknown_302 *ptr_2310;
+
+// DSEG:0x2312
+static uint16_t word_2312 = 0;
+
+// DSEG:0x2314-0x2316
+static struct resource *gani_res;
+
+// DSEG:0x231A
+static uint8_t byte_231A = 0;
 // DSEG:0x231C
 static uint16_t word_231C = 0;
 
@@ -64,14 +95,15 @@ static unsigned char *arch_offset;
 // DSEG:0x3C86
 static unsigned char *font_bytes;
 // DSEG:0x3E66
-static unsigned char *border_bytes;
+static struct resource *border_res;
 
 static void sub_14D5(struct ui_unknown1 *input);
 static void sub_14FF(int offset);
 static void sub_1548();
-static void sub_155E(uint16_t arg1, uint16_t arg2);
+static void sub_155E(struct unknown_302 *arg1, uint16_t arg2);
 static void sub_1593();
 static void sub_1778(uint8_t al, int i, int j);
+static void clear_rectangle(const struct unknown_302 *r);
 
 static void screen_draw(const unsigned char *bytes)
 {
@@ -93,7 +125,7 @@ static void screen_draw(const unsigned char *bytes)
 
 static void do_title()
 {
-  struct resource *title_res = resource_load(RESOURCE_TITLE);
+  struct resource *title_res = resource_load(RESOURCE_TITLE, 0, 0);
 
   hexdump(title_res->bytes, 32);
   screen_draw(title_res->bytes);
@@ -206,18 +238,14 @@ static int sub_0105()
 // seg000:02E5
 static void sub_02E5()
 {
-  FILE *fp = fopen("borders", "rb");
-  if (fp == NULL) {
+  border_res = resource_load(RESOURCE_BORDERS, 0x1388, 1000);
+  if (border_res == NULL) {
     fprintf(stderr, "Couldn't read borders, exiting!\n");
     exit(1);
   }
 
-  fseek(fp, 0x1388, SEEK_SET);
-  fread(border_bytes, 1, 1000, fp);
-  fclose(fp);
-
   // archtype
-  fp = fopen("archtype", "rb");
+  FILE *fp = fopen("archtype", "rb");
   if (fp == NULL) {
     fprintf(stderr, "Couldn't read archtype, exiting!\n");
     exit(1);
@@ -248,7 +276,8 @@ static void sub_02E5()
 // seg000:0x044E
 static void sub_044E(uint16_t arg1)
 {
-  // word_2310 = 0x031E
+  ptr_2310 = &unknown_31E;
+
   uint16_t ax = word_35E4;
   if (arg1 != ax) {
     // 0x462
@@ -256,26 +285,108 @@ static void sub_044E(uint16_t arg1)
     word_35E4 = ax;
 
     // Open and decompress GANI
-#if 0
-    mov ax, 0x8000
-    push ax
-    mov ax, 0x00C3 // GANI
-    FILE *fp = fopen("gani", "rb");
-    long gani_size = file_size(fp);
-#endif
+    gani_res = resource_load(RESOURCE_GANI, 0, 0);
 
-    word_231C = 1;
+    uint8_t ah = gani_res->bytes[2];
+    uint8_t cl = gani_res->bytes[1];
+
+    uint16_t ax = ah << 8 | cl;
+    word_2312 = ax;
+    byte_231A = 1;
   }
-  // ax = [35E4]
+  word_231C = 1;
+}
+
+// seg001:0x0FCD
+static void seg001_sub_0FCD(uint8_t input,
+    uint16_t res_offset,
+    struct resource *r,
+    uint16_t arg4,
+    uint16_t arg5)
+{
+  unsigned char *es = r->bytes;
+  uint16_t di = res_offset;
+  uint16_t bx = input;
+
+  bx = bx << 1;
+  bx += 3;
+  di += es[bx+di];
+  uint8_t al = es[di+3];
+  uint16_t ax = al + arg4;
+  uint16_t save_ax = ax;
+  // save ax
+  ax = 0;
+  al = es[di+2];
+  ax = al + arg5;
+
+  // push ax
+  // push es
+  // push di
+  // seg001_sub_0F80()
+
+  printf("%s:0x0FCD not finished\n", __func__);
+  exit(1);
+
 }
 
 // seg000:0x04EA
 static void sub_04EA(uint16_t arg1)
 {
-  // decoding GANI
-  //
+  uint16_t gani_offset = word_2312;
+  uint16_t bx = word_2312;
 
-  //sub_05AE_0FCD();
+  gani_offset++;
+
+  uint8_t al = gani_res->bytes[bx];
+  uint8_t bp0E = al;
+
+//  uint16_t bp02 = ptr_2310;
+  uint16_t bp08 = 0;
+
+  al = bp0E;
+  if (al > bp08) {
+    // ptr_2310
+    // push ptr_2310->y_pos;
+    // ax = ptr_2310->x_pos;
+    // ax = ax << 1;
+    // push ax;
+    // push gani_res
+    // push gani_res offset (0)
+    bx = gani_offset;
+    gani_offset++;
+    al = gani_res->bytes[bx];
+
+    // push ax
+    // Takes 5 arguments
+    //seg001_sub_0FCD();
+
+
+  }
+
+
+  // decoding GANI
+#if 0
+  uint16_t ax = word_2312;
+  ax++;
+
+  uint8_t al = gani_res->bytes + word_2312;
+
+//  uint16_t new_ax = word_2310;
+//  new_ax += 0xC;
+  uint16_t bp08 = 0;
+
+  if (al > bp08) {
+    //uint16_t bx = new_ax;
+    // 
+
+    //sub_05AE_0FCD();
+  }
+#endif
+
+
+
+  printf("%s:0x04EA not finished\n", __func__);
+  exit(1);
 
 
 }
@@ -283,19 +394,19 @@ static void sub_04EA(uint16_t arg1)
 // seg000:0x071B
 // 2 arguments
 // ex. 0x0033, 0x01CC
-void sub_071B()
+void sub_071B(uint16_t arg1, uint16_t arg2)
 {
+  // 2 parameters
+  sub_155E(&unknown_31E, 1);
+
+  sub_044E(arg1);
+  sub_04EA(1);
+
   // TODO: Disassemble this
-  printf("sub_071B not finished\n");
+  printf("%s:0x073C not finished\n", __func__);
   exit(1);
 #if 0
-  // 2 parameters
-  sub_155E();
 
-  // 1 parameter
-  sub_044E(9999);
-
-  sub_04EA(1);
 #endif
 }
 
@@ -312,9 +423,6 @@ int main(int argc, char *argv[])
   printf("Saved game: %d\n", saved_game);
   unknown1 = disk1_bytes[6];
   printf("Unknown1: %d\n", unknown1);
-
-  // Store in 3E66
-  border_bytes = malloc(1000);
 
   sub_02E5();
 
@@ -338,8 +446,13 @@ int main(int argc, char *argv[])
   sub_1548();
 
   sub_14D5(&data_029E);
-
   screen_draw(scratch);
+
+//  int local_val = 0;
+  sub_155E(&unknown_302, 0);
+
+  // while
+  sub_071B(0x0033, 0x01CC);
 
   vga_waitkey();
 
@@ -372,7 +485,7 @@ static void sub_14D5(struct ui_unknown1 *input)
 /* seg000:0x14FF */
 static void sub_14FF(int offset)
 {
-  unsigned char *p = border_bytes + offset;
+  unsigned char *p = border_res->bytes + offset;
 
   // Draws border segments in 4x8 tiles.
   // 40*4 = 160 (expanded to 320 in screen draw)
@@ -395,46 +508,36 @@ static void sub_1548()
 }
 
 // seg000:0x155E
-static void sub_155E(uint16_t arg1, uint16_t arg2)
+static void sub_155E(struct unknown_302 *arg1, uint16_t arg2)
 {
   // arg1 is likely a pointer
-  // word_029C = arg1;
+  ptr_029C = arg1;
   if (arg2 == 0) {
+    return;
   }
 
-#if 0
-  // push si
-  // mov word [si+0x18], 0000 // null ?
-  call sub_1593();
-  // pop si
-  //
-  cmp word [si+0x16], 0
-  if (!= null) {
-    call near word [si+16]
-  }
-#endif
+  arg1->data_24 = 0;
+  sub_1593();
 
+  if (arg1->data_16 != 0) {
+    // Call function pointer
+    printf("%s:0x1586 unhandled\n", __func__);
+  }
 }
 
 // seg000:0x1593
 static void sub_1593()
 {
-  /*
-  si = word_29C;
-  si += 0x000C;
-
-  sub_17C4();
-  */
+  struct unknown_302 *si = ptr_029C;
+  //si += 0x000C; // Advance 12 bytes in to "rect" structure
+  clear_rectangle(si);
 }
 
 // seg000:1778
 static void sub_1778(uint8_t al, int i, int j)
 {
-  //printf("%s - 0x%02X %d %d\n", __func__, al, i, j);
-
   uint16_t ax = j << 3; // multiply by 8 because a font sprite is 8 lines high.
-  uint16_t di = ax;
-  di = get_160_offset(ax);
+  uint16_t di = get_160_offset(ax);
 
   di += (i << 2);
 
@@ -457,19 +560,21 @@ static void sub_1778(uint8_t al, int i, int j)
   }
 }
 
-static void sub_17C4()
+// Clears out an area on the scratch buffer by setting
+// the contents to black (0).
+// seg000:17C4
+static void clear_rectangle(const struct unknown_302 *r)
 {
-#if 0
   unsigned char *es = scratch;
-  di = [si+2];
 
-  shl di, 1
-    mov di [di+05BF]
+  uint16_t di = get_160_offset(r->y_pos);
+  di += r->x_pos;
 
-    repe stosw
-
-    dump ax to es:di
-    // 60 times
-    // 17DC
-#endif
+  for (uint16_t i = 0; i < r->height; i++) {
+    unsigned char *ptr = es + di;
+    for (uint16_t j = 0; j < r->width; j++) {
+      *ptr++ = '\0';
+    }
+    di += 0xA0; // advance to next line.
+  }
 }
