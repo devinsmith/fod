@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -41,6 +42,9 @@ struct unknown_302 {
   uint16_t data_16; // (this is actually a function pointer) offset 0x16
   uint16_t data_24; // offset 0x18
 };
+
+// DSEG:0x0274
+static const char *data_274 = "KEH.EXE";
 
 // DSEG:0x029C
 static struct unknown_302 *ptr_029C;
@@ -102,7 +106,7 @@ static void sub_14FF(int offset);
 static void sub_1548();
 static void sub_155E(struct unknown_302 *arg1, uint16_t arg2);
 static void sub_1593();
-static void sub_1778(uint8_t al, int i, int j);
+static void sub_1778(uint8_t chr_index, int i, int line_num);
 static void clear_rectangle(const struct unknown_302 *r);
 
 static void screen_draw(const unsigned char *bytes)
@@ -236,12 +240,16 @@ static int sub_0105()
 }
 
 // seg000:02E5
-static void sub_02E5()
+static void sub_02E5(bool saved_game)
 {
   border_res = resource_load(RESOURCE_BORDERS, 0x1388, 1000);
   if (border_res == NULL) {
     fprintf(stderr, "Couldn't read borders, exiting!\n");
     exit(1);
+  }
+
+  if (saved_game) {
+    return;
   }
 
   // archtype
@@ -390,10 +398,8 @@ static void sub_04EA(uint16_t arg1)
 
     // push ax
     // Takes 5 arguments
-    //seg001_sub_0FCD();
+    // these come from 31E rectangle struct
     seg001_sub_0FCD(al, 0, gani_res, 8, 8);
-
-
   }
 
 
@@ -428,13 +434,44 @@ static void sub_1631()
   exit(1);
 }
 
-static void sub_3338()
+// seg000:1D34
+static void sub_1D34()
 {
+
 }
 
-static void sub_0010(uint16_t arg1, uint16_t arg2)
+// seg000:22B4
+static void sub_22B4()
 {
-  sub_3338();
+  uint16_t ax = 0x164;
+  sub_1D34();
+}
+
+// sprintf ?
+// looking for % characters
+static void sub_22BD()
+{
+  // 2B54
+}
+
+// seg000:3338
+// takes 3 variables
+static void sub_3338()
+{
+  // setting up some structure
+  sub_22B4();
+}
+
+static void sub_0010(const char *arg1, uint16_t arg2)
+{
+  // push si
+  // push arg1
+  // push 0x70
+  // lea ax, [bp-2a] // local variable or gani?
+  // push ax
+  sub_3338(); // <-- sprintf?
+              //
+  //sub_32C2();
   printf("%s:0x0010 not finished\n", __func__);
   exit(1);
 }
@@ -442,7 +479,7 @@ static void sub_0010(uint16_t arg1, uint16_t arg2)
 // seg000:0x071B
 // 2 arguments
 // ex. 0x0033, 0x01CC = "Welcome"
-void sub_071B(uint16_t arg1, uint16_t arg2)
+void sub_071B(uint16_t arg1, const char *arg2)
 {
   // 2 parameters
   sub_155E(&unknown_31E, 1);
@@ -469,7 +506,7 @@ int main(int argc, char *argv[])
   unknown1 = disk1_bytes[6];
   printf("Unknown1: %d\n", unknown1);
 
-  sub_02E5();
+  sub_02E5(saved_game);
 
   // Register VGA driver.
   video_setup();
@@ -490,14 +527,15 @@ int main(int argc, char *argv[])
 
   sub_1548();
 
+  // 14D5 and screen_draw are similar
   sub_14D5(&data_029E);
   screen_draw(scratch);
 
 //  int local_val = 0;
   sub_155E(&unknown_302, 0);
 
-  // while
-  sub_071B(0x0033, 0x01CC);
+  // Only if it's a new game
+  sub_071B(0x0033, "Welcome");
 
   vga_waitkey();
 
@@ -579,9 +617,9 @@ static void sub_1593()
 }
 
 // seg000:1778
-static void sub_1778(uint8_t al, int i, int j)
+static void sub_1778(uint8_t chr_index, int i, int line_num)
 {
-  uint16_t ax = j << 3; // multiply by 8 because a font sprite is 8 lines high.
+  uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
   uint16_t di = get_160_offset(ax);
 
   di += (i << 2);
@@ -589,9 +627,8 @@ static void sub_1778(uint8_t al, int i, int j)
   unsigned char *es = scratch;
   es += di;
 
-  ax = al << 5;
   unsigned char *si = font_bytes;
-  si += ax;
+  si += (chr_index * 32); // 4x8 = 32 bytes
 
   // copy font "sprite" over to scratch buffer.
   // fonts are stored in 4 x 8
@@ -622,4 +659,34 @@ static void clear_rectangle(const struct unknown_302 *r)
     }
     di += 0xA0; // advance to next line.
   }
+}
+
+// takes KEH.EXE and 0x2E ?
+static void sub_33AA()
+{
+}
+
+static void sub_338E()
+{
+  // ah, 3d<F10>
+  // int 21
+}
+
+static void sub_33D4()
+{
+}
+
+// 0x3A14
+// 3 arguments
+static void sub_3A14()
+{
+  // sub_1D34()
+  //
+
+}
+
+static void sub_3A1D()
+{
+  // sub_33D4()
+
 }

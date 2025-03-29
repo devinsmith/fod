@@ -94,7 +94,7 @@ main:
   ; ?
   mov ax, 0x03E8   ; 1000 bytes
   push ax
-  call sub_2FE4 ; possibly memory allocation
+  call malloc ; possibly memory allocation
   add sp, 0x0002
 
   mov [0x3E66], ax  ; memory allocation pointer
@@ -1365,7 +1365,7 @@ sub_1B9E:
 ; Takes 1 argument, this might be a malloc or memory allocation
 ; function
 ; 0x2FE4
-sub_2FE4:
+malloc:
   push bp
   mov bp, sp
   push si
