@@ -297,6 +297,41 @@ static void sub_044E(uint16_t arg1)
   word_231C = 1;
 }
 
+// seg001:0x0F80
+static void seg001_sub_0F80(struct resource *res, int res_offset,
+    int arg2, int line_num)
+{
+  unsigned char *es = scratch;
+
+  uint16_t di = get_160_offset(line_num);
+
+  uint16_t ax = arg2;
+  ax = ax / 2;
+  di += ax;
+  unsigned char *ds = res->bytes;
+  uint16_t si = res_offset;
+  
+  ax = 0;
+  uint16_t dx = 0;
+  uint8_t al = ds[si];
+  uint8_t dl = ds[si+1];
+
+  uint16_t bx = 0xA0;
+  bx = bx - al;
+  si += 4;
+
+  for (int i = 0; i < dl; i++) {
+    uint16_t cx = al;
+    // repe movsw
+    // copy words from ds:si to es:di cx times, increase si/di
+    memcpy(es + di, ds + si, cx);
+    si += cx;
+    di += cx;
+
+    di += bx;
+  }
+}
+
 // seg001:0x0FCD
 static void seg001_sub_0FCD(uint8_t input,
     uint16_t res_offset,
@@ -322,11 +357,7 @@ static void seg001_sub_0FCD(uint8_t input,
   // push ax
   // push es
   // push di
-  // seg001_sub_0F80()
-
-  printf("%s:0x0FCD not finished\n", __func__);
-  exit(1);
-
+  seg001_sub_0F80(r, di, save_ax, ax);
 }
 
 // seg000:0x04EA
@@ -343,6 +374,7 @@ static void sub_04EA(uint16_t arg1)
 //  uint16_t bp02 = ptr_2310;
   uint16_t bp08 = 0;
 
+  // 0x54E
   al = bp0E;
   if (al > bp08) {
     // ptr_2310
@@ -359,6 +391,7 @@ static void sub_04EA(uint16_t arg1)
     // push ax
     // Takes 5 arguments
     //seg001_sub_0FCD();
+    seg001_sub_0FCD(al, 0, gani_res, 8, 8);
 
 
   }
@@ -387,13 +420,28 @@ static void sub_04EA(uint16_t arg1)
 
   printf("%s:0x04EA not finished\n", __func__);
   exit(1);
+}
 
+static void sub_1631()
+{
+  printf("%s:0x1631 not finished\n", __func__);
+  exit(1);
+}
 
+static void sub_3338()
+{
+}
+
+static void sub_0010(uint16_t arg1, uint16_t arg2)
+{
+  sub_3338();
+  printf("%s:0x0010 not finished\n", __func__);
+  exit(1);
 }
 
 // seg000:0x071B
 // 2 arguments
-// ex. 0x0033, 0x01CC
+// ex. 0x0033, 0x01CC = "Welcome"
 void sub_071B(uint16_t arg1, uint16_t arg2)
 {
   // 2 parameters
@@ -402,12 +450,9 @@ void sub_071B(uint16_t arg1, uint16_t arg2)
   sub_044E(arg1);
   sub_04EA(1);
 
-  // TODO: Disassemble this
-  printf("%s:0x073C not finished\n", __func__);
-  exit(1);
-#if 0
-
-#endif
+  uint16_t ax = 0xB;
+  sub_0010(arg2, 0xB);
+  sub_1631();
 }
 
 
