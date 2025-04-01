@@ -17,6 +17,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "ui.h"
 
@@ -32,6 +33,7 @@ void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si)
 {
   word_0CCC++;
 
+  // Is odd?
   if (ax & 0x1) {
     di++;
   }
@@ -42,7 +44,7 @@ void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si)
 
   uint16_t dx = 0xA0;
   dx = dx - di;
-  ptr_0CCE->arg6 = dx;
+  ptr_0CCE->rect.x_pos = dx;
 
   ax = ax & 0xFE;
   ax = ax / 2;
@@ -53,18 +55,18 @@ void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si)
   ptr_0CCE->arg2 = ax;
 
   si = si << 1;
-  di = 0x42F;
+  di = 0x42F; // offset table
   di = di + si;
   ptr_0CCE->arg1 = di;
 
-  di = 0x5BF;
+  di = 0x5BF; // offset table
   di = di + si;
 
   si = di;
   ax = ax << 1;
   si += ax;
 
-
+  printf("%s is not completely finished\n", __func__);
 }
 
 void ui_sub_034D()

@@ -25,6 +25,13 @@
 extern "C" {
 #endif
 
+struct ui_rect {
+  uint16_t x_pos; // Offset 0x0C
+  uint16_t y_pos; // offset 0x0E
+  uint16_t width; // offset 0x10
+  uint16_t height; // offset 0x12
+};
+
 struct ui_unknown1 {
   uint16_t arg1;
   uint16_t arg2;
@@ -37,9 +44,9 @@ struct ui_unknown2 {
   uint16_t arg1; // BX+2
   uint16_t arg2; // BX+4
   uint16_t arg3; // BX+6
-  uint16_t arg4;
-  uint16_t arg5;
-  uint16_t arg6;
+  uint16_t arg4; // BX+8
+  uint16_t arg5; // BX+A
+  struct ui_rect rect; // BX+C
 };
 
 void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);

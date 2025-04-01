@@ -8,6 +8,10 @@ Additional information: [Wikipedia](https://en.wikipedia.org/wiki/Fountain_of_Dr
 The game executables (fod.exe) and (keh.exe) are packed using Microsoft
 EXEPACK and can be unpacked with the [unEXEPACK](https://github.com/w4kfu/unEXEPACK) project.
 
+# Progress
+
+This repo can only display the title screen (TPICT) so far.
+
 # Code Quality
 
 The code in this repo might not follow best practices at the moment. The

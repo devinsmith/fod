@@ -542,16 +542,21 @@ sub_44E:
 
 ; 0x4EA (takes 1 argument)
 sub_4EA:
-01ED:04EA  55                  push bp
-01ED:04EB  8BEC                mov  bp,sp
-01ED:04ED  83EC0E              sub  sp,000E
-01ED:04F0  A11423              mov  ax,[2314]              ds:[2314]=0000
-01ED:04F3  8B161623            mov  dx,[2316]              ds:[2316]=1E81
-01ED:04F7  8946FA              mov  [bp-06],ax             ss:[4830]=4836
-01ED:04FA  8956FC              mov  [bp-04],dx             ss:[4832]=073C
-01ED:04FD  03061223            add  ax,[2312]              ds:[2312]=1089
-01ED:0501  8946F4              mov  [bp-0C],ax             ss:[482A]=0005
-01ED:0504  8956F6              mov  [bp-0A],dx             ss:[482C]=046A
+  push bp
+  mov  bp,sp
+  sub  sp, 0x000E
+  mov  ax, [0x2314]      ; gani offset
+  mov  dx, [0x2316]      ; gani bytes
+  mov  [bp-06],ax
+  mov  [bp-04],dx
+  add  ax,[2312]         ; increment gani offset
+  mov  [bp-0x0C],ax      ; saved offset
+  mov  [bp-0x0A],dx      ; saved segment
+  les  bx, [bp-0x0C]     ; ES:BX = gani data+offset(bx)
+  inc  word [bp-0x0C]
+  mov al, es:[bx]        ; al = es[bx]
+  mov [bp-0x0E], al
+  mov ax, [0x2310]       ; 
 
 
 

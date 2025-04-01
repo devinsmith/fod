@@ -87,7 +87,7 @@ sub_B0:
 ; support tables
 ; 0x2A9
 sub_02A9:
-  mov word cs:[0x0353], 0x0136
+  mov word cs:[0x0353], 0x0136 ; Self modifying code
   ; Switch to mode 13
   mov ax, 0x0013
   int 0x10

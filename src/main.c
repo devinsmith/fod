@@ -50,7 +50,10 @@ static const char *data_274 = "KEH.EXE";
 static struct unknown_302 *ptr_029C;
 
 // DSEG:0x029E
-static struct ui_unknown1 data_029E = { 0, 0, 0xA0, 0xC8 };
+static struct ui_unknown1 data_029E = { 0, 0, 160, 200 };
+
+// DSEG:0x02A6
+static struct ui_unknown1 data_02A6 = { 4, 8, 0x30, 0x60 };
 
 // DSEG:0x0302
 static struct unknown_302 unknown_302;
@@ -371,6 +374,7 @@ static void seg001_sub_0FCD(uint8_t input,
 // seg000:0x04EA
 static void sub_04EA(uint16_t arg1)
 {
+  uint16_t initial_offset = word_2312;
   uint16_t gani_offset = word_2312;
   uint16_t bx = word_2312;
 
@@ -379,19 +383,10 @@ static void sub_04EA(uint16_t arg1)
   uint8_t al = gani_res->bytes[bx];
   uint8_t bp0E = al;
 
-//  uint16_t bp02 = ptr_2310;
+  struct unknown_302 *bp02 = ptr_2310;
   uint16_t bp08 = 0;
 
-  // 0x54E
-  al = bp0E;
-  if (al > bp08) {
-    // ptr_2310
-    // push ptr_2310->y_pos;
-    // ax = ptr_2310->x_pos;
-    // ax = ax << 1;
-    // push ax;
-    // push gani_res
-    // push gani_res offset (0)
+  for (int i = 0; i < bp0E; i++) {
     bx = gani_offset;
     gani_offset++;
     al = gani_res->bytes[bx];
@@ -399,33 +394,15 @@ static void sub_04EA(uint16_t arg1)
     // push ax
     // Takes 5 arguments
     // these come from 31E rectangle struct
-    seg001_sub_0FCD(al, 0, gani_res, 8, 8);
+    seg001_sub_0FCD(al, initial_offset, gani_res, bp02->x_pos * 2, bp02->y_pos);
   }
 
-
-  // decoding GANI
-#if 0
-  uint16_t ax = word_2312;
-  ax++;
-
-  uint8_t al = gani_res->bytes + word_2312;
-
-//  uint16_t new_ax = word_2310;
-//  new_ax += 0xC;
-  uint16_t bp08 = 0;
-
-  if (al > bp08) {
-    //uint16_t bx = new_ax;
-    // 
-
-    //sub_05AE_0FCD();
+  if (arg1 == 0) {
+//    sub_14D5(bp02->off);
+    printf("%s:0x055A not finished\n", __func__);
+    exit(1);
   }
-#endif
 
-
-
-  printf("%s:0x04EA not finished\n", __func__);
-  exit(1);
 }
 
 static void sub_1631()
@@ -464,15 +441,24 @@ static void sub_3338()
 
 static void sub_0010(const char *arg1, uint16_t arg2)
 {
-  // push si
-  // push arg1
-  // push 0x70
-  // lea ax, [bp-2a] // local variable or gani?
-  // push ax
-  sub_3338(); // <-- sprintf?
-              //
-  //sub_32C2();
-  printf("%s:0x0010 not finished\n", __func__);
+  char output[42];
+
+  snprintf(output, sizeof(output), "%s", arg1);
+
+  struct unknown_302 *bx = ptr_029C;
+  uint16_t ax = bx->width;
+
+  uint16_t cx = 2;
+  ax = ax >> cx;
+  uint16_t si = ax;
+
+  output[si] = '\0';
+
+  cx = strlen(output);
+  
+
+
+  printf("%s:0x004D not finished\n", __func__);
   exit(1);
 }
 
@@ -487,7 +473,6 @@ void sub_071B(uint16_t arg1, const char *arg2)
   sub_044E(arg1);
   sub_04EA(1);
 
-  uint16_t ax = 0xB;
   sub_0010(arg2, 0xB);
   sub_1631();
 }
@@ -548,10 +533,10 @@ int main(int argc, char *argv[])
 
 static void sub_14B3(struct ui_unknown1 *input)
 {
-  uint16_t ax = input->arg1;
-  uint16_t di = input->arg3;
-  uint16_t cx = input->arg4;
-  uint16_t si = input->arg2;
+  uint16_t ax = input->arg1; // 0
+  uint16_t di = input->arg3; // A0
+  uint16_t cx = input->arg4; // C8
+  uint16_t si = input->arg2; // 0
 
   // sub_05B0:00B0
   ui_sub_00B0(ax, di, cx, si);
@@ -659,6 +644,11 @@ static void clear_rectangle(const struct unknown_302 *r)
     }
     di += 0xA0; // advance to next line.
   }
+}
+
+static void sub_32C2(char *data, uint16_t val)
+{
+
 }
 
 // takes KEH.EXE and 0x2E ?
