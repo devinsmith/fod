@@ -1,8 +1,15 @@
 
-BORDERS (0x5000) -> DS:48B8
-ARCHTYPE -> DS:4CA2
-HDSPCT -> DS:37E8 (1180 bytes)
-FONT -> (reads first 2 bytes into stack variable)
+| File     | Memory   | Segment |
+| -------- | -------- | ------- |
+| BORDERS  | (0x5000) | DS:48B8 |
+| ARCHTYPE |          | DS:4CA2 |
+| HDSPCT   | 1180     | DS:37E8 |
 
-FONT file size is in first 2 bytes
-FONT+2 -> DS:56EC (memory allocated)
+# FONT
+
+This is allocated to DS:56EC.
+
+First two bytes define number of sprites in the file (209 (0xD1)). The
+sprite content is shown in the below image (19 x 11 sprites):
+
+![fontsheet](fontsheet.png)
