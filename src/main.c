@@ -62,7 +62,7 @@ static struct unknown_302 unknown_302;
 static struct unknown_302 unknown_31E = { 4, 8, 0x30, 0x60, 0, 0 };
 
 // DSEG:0x0424
-static unsigned char unknown1 = 2;
+static unsigned char video_mode = 2;
 
 // FOD does most of it's work in a large allocated buffer
 // DSEG:0x042D
@@ -80,7 +80,10 @@ static struct unknown_302 *ptr_2310;
 // DSEG:0x2312
 static uint16_t word_2312 = 0;
 
-// DSEG:0x2314-0x2316
+// DSEG:0x2314
+static uint16_t word_2314 = 0;
+
+// DSEG:0x2316
 static struct resource *gani_res;
 
 // DSEG:0x231A
@@ -298,6 +301,8 @@ static void sub_044E(uint16_t arg1)
     // Open and decompress GANI
     gani_res = resource_load(RESOURCE_GANI, 0, 0);
 
+    word_2314 = 0;
+
     uint8_t ah = gani_res->bytes[2];
     uint8_t cl = gani_res->bytes[1];
 
@@ -310,7 +315,7 @@ static void sub_044E(uint16_t arg1)
 
 // seg001:0x0F80
 static void seg001_sub_0F80(struct resource *res, int res_offset,
-    int arg2, int line_num)
+    int line_num, int arg2)
 {
   unsigned char *es = scratch;
 
@@ -318,28 +323,26 @@ static void seg001_sub_0F80(struct resource *res, int res_offset,
 
   uint16_t ax = arg2;
   ax = ax / 2;
-  di += ax;
+  di += ax; // indentation
   unsigned char *ds = res->bytes;
   uint16_t si = res_offset;
-  
-  ax = 0;
-  uint16_t dx = 0;
-  uint8_t al = ds[si];
-  uint8_t dl = ds[si+1];
 
-  uint16_t bx = 0xA0;
-  bx = bx - al;
+  ax = 0;
+  uint8_t img_width = ds[si];
+  uint8_t img_height = ds[si+1];
+
+  uint16_t line_width = 160;
+  line_width -= img_width;
   si += 4;
 
-  for (int i = 0; i < dl; i++) {
-    uint16_t cx = al;
+  for (int i = 0; i < img_height; i++) {
     // repe movsw
     // copy words from ds:si to es:di cx times, increase si/di
-    memcpy(es + di, ds + si, cx);
-    si += cx;
-    di += cx;
+    memcpy(es + di, ds + si, img_width);
+    si += img_width;
+    di += img_width;
 
-    di += bx;
+    di += line_width;
   }
 }
 
@@ -374,7 +377,7 @@ static void seg001_sub_0FCD(uint8_t input,
 // seg000:0x04EA
 static void sub_04EA(uint16_t arg1)
 {
-  uint16_t initial_offset = word_2312;
+  uint16_t initial_offset = word_2314;
   uint16_t gani_offset = word_2312;
   uint16_t bx = word_2312;
 
@@ -488,8 +491,8 @@ int main(int argc, char *argv[])
 
   int saved_game = sub_0105();
   printf("Saved game: %d\n", saved_game);
-  unknown1 = disk1_bytes[6];
-  printf("Unknown1: %d\n", unknown1);
+  video_mode = disk1_bytes[6];
+  printf("Video Mode: %d\n", video_mode);
 
   sub_02E5(saved_game);
 

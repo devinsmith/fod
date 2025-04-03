@@ -176,7 +176,7 @@ sub_02A9:
   ret
 
 ; 0x338
-; This fragment of code (which is about 21 bytes) is copied to 0x4E4 80 times
+; This fragment of code (which is 21 bytes) is copied to 0x4E4 80 times
   lodsw                 ; AX = DS:SI  SI += 2
   mov  ch,ah            ;
   mov  bx,ax
