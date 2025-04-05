@@ -23,10 +23,9 @@
 
 #include <err.h>
 
-#include "common/bufio.h"
-#include "common/compress.h"
+#include "lib/compress.h"
 #include "resource.h"
-#include "utils/sha1.h"
+#include "sha1.h"
 
 static bool check_file(const char *filename, const char *hash)
 {
@@ -166,7 +165,10 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
   if (compressed) {
     uint16_t u_bytes = *(uint16_t *)data;
     uint16_t dx = *(uint16_t *)(data+ 2);
-    printf("Total bytes: %d\n", u_bytes);
+
+    double pct_inc = ((double)(u_bytes - sz) / (double)sz) * 100.0;
+
+    printf("Decompressing %s from %zu to %d bytes (%.0f%%)\n", fname, sz, u_bytes, pct_inc);
     printf("DX: 0x%04x (should be 0)\n", dx);
     if (dx != 0) {
       errx(0, "DX values other than 0 are unhandled\n");

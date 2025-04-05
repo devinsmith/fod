@@ -16,7 +16,7 @@
 
 #include <string.h>
 
-#include "common/compress.h"
+#include "lib/compress.h"
 
 /**
  * Decompresses data using an LZSS-like algorithm

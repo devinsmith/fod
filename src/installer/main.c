@@ -22,10 +22,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "common/compress.h"
-#include "common/bufio.h"
+#include "compress.h"
+#include "bufio.h"
+#include "hexdump.h"
 
-void hexdump(void *vp, int length);
 static void extract_disk1(struct buf_rdr *rdr);
 static void do_install(void);
 static void extract_raw_file(struct buf_rdr *rdr, char *filename);

@@ -38,6 +38,9 @@ struct resource {
   size_t len;
 };
 
+/**
+ * @brief Initializes the resource manager.
+ */
 bool rm_init();
 
 /**

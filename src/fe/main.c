@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common/bufio.h"
-#include "common/hexdump.h"
+#include "bufio.h"
+#include "hexdump.h"
 #include "fileio.h"
 #include "resource.h"
 #include "tables.h"
