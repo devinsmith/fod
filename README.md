@@ -12,6 +12,39 @@ EXEPACK and can be unpacked with the [unEXEPACK](https://github.com/w4kfu/unEXEP
 
 This repo can only display the title screen (TPICT) so far.
 
+# Building
+
+Install dependencies first:
+
+VoidLinux
+
+```
+sudo xbps-install -S SDL2-devel
+```
+
+Debian
+
+```
+sudo apt install libsdl2-dev
+```
+
+Then use CMake to build:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+The `fod` binary will be in build/src/fe/fod
+
+Other flags can be passed to CMake:
+
+* `ENABLE_TESTS=ON/OFF` toggles building unit tests (Requires Check). OFF by default.
+* `ENABLE_TOOLS=ON/OFF` toggles building some extra tools for extracting resources. OFF by default.
+
+
 # Code Quality
 
 The code in this repo might not follow best practices at the moment. The
