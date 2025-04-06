@@ -24,8 +24,8 @@
 
 // This program explores GANI
 
-static const size_t fb_width = 320;
-static const size_t fb_height = 200;
+static const size_t fb_width = 96;
+static const size_t fb_height = 88;
 static const int BYTES_PER_PIXEL = 3; // RGB
 static const size_t fb_size = fb_width * fb_height * BYTES_PER_PIXEL; // RGB
 static unsigned char *fb_mem;
@@ -55,7 +55,7 @@ static const struct palette dos_palette[] = {
   { 0xFF, 0xFF, 0xFF }
 };
 
-static void write_data(const unsigned char *src, int x, int y)
+static void write_data(const resource *r, int x, int y)
 {
   int line_num = y * 8;
   int rows = 0x58;
@@ -63,13 +63,14 @@ static void write_data(const unsigned char *src, int x, int y)
 
   int offset = 9;
 
-  const unsigned short *p = (unsigned short *)(src + offset);
+  const unsigned short *p = (unsigned short *)(r->bytes + offset);
 
-  for (int y = 0; y < rows; y++) {
+  for (int r = 0; r < rows; r++) {
     size_t fb_off = (line_num * (fb_width * BYTES_PER_PIXEL)) +
       ((x * 8) * BYTES_PER_PIXEL); // indentation
     for (int c = 0; c < cols; c++) {
       uint16_t src_pixel = *p++;
+      offset += 2;
 
       // Extract components
       uint8_t low_byte = src_pixel & 0xFF;
@@ -102,6 +103,10 @@ static void write_data(const unsigned char *src, int x, int y)
     }
     line_num++;
   }
+
+  printf("Offset: %d\n", offset);
+  printf("Total size: %zu\n", r->len);
+  hexdump(r->bytes + offset, r->len - offset);
 }
 
 static void init_buffers()
@@ -129,7 +134,7 @@ int main(int argc, char *argv[])
   fprintf(imageFile,"%zu %zu\n", fb_width, fb_height);   // dimensions
   fprintf(imageFile,"255\n");              // Max pixel
 
-  write_data(r->bytes, 0, 0);
+  write_data(r, 0, 0);
 //  write_data(src_bytes, 0x84, 1, 0);
 //  write_data(src_bytes, 0x85, 2, 0);
 
