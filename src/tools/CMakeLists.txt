@@ -6,12 +6,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(FONTDUMP_SOURCES fontdump.cpp)
 set(GANIDUMP_SOURCES ganidump.cpp)
+set(UNPACK_SOURCES unpack.c)
 
 add_executable(fontdump ${FONTDUMP_SOURCES})
 if(MSVC)
   target_compile_options(fontdump PRIVATE /W4 /WX)
 else()
   target_compile_options(fontdump PRIVATE -Wall -Werror)
+endif()
+
+add_executable(unpack ${UNPACK_SOURCES})
+if(MSVC)
+  target_compile_options(unpack PRIVATE /W4 /WX)
+else()
+  target_compile_options(unpack PRIVATE -Wall -Werror)
 endif()
 
 add_executable(ganidump ${GANIDUMP_SOURCES})
@@ -22,3 +30,5 @@ if(MSVC)
 else()
   target_compile_options(ganidump PRIVATE -Wall -Werror)
 endif()
+
+
