@@ -26,8 +26,8 @@ describe the end offset of the image.
 
 | Offset        | Value    | Purpose                              |
 |---------------|----------|--------------------------------------|
-| 0x00-0x01     | 0x0189   | Seems to be flipped to 0x1089 (4233) |
-| 0x02          | 0x10     | Unknown                              |
+| 0x00          | 0x01     | Unknown (number of images?)          |
+| 0x01-0x02     | 0x8910   | Size of image (0x1089)               |
 | 0x03          | 0x05     | Unknown                              |
 | 0x04          | 0x00     | Unknown                              |
 | 0x05          | 0x30     | Number of words per line (48)        |
