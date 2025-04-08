@@ -58,7 +58,7 @@ static void write_data(const unsigned char *src, int sprite, int x, int y)
   int rows = 8;
   int cols = 2;
 
-  int offset = (sprite * 32) + 2;
+  int offset = (sprite * 32) + 2; // First 2 bytes contain # sprites.
 
   const unsigned short *p = (unsigned short *)(src + offset);
 
