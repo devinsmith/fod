@@ -547,9 +547,11 @@ sub_4EA:
   sub  sp, 0x000E
   mov  ax, [0x2314]      ; gani offset
   mov  dx, [0x2316]      ; gani bytes
-  mov  [bp-06],ax
-  mov  [bp-04],dx
+  mov  [bp-06],ax        ; Store offset in local variable
+  mov  [bp-04],dx        ; Store segment in local variable
+
   add  ax,[2312]         ; increment gani offset
+
   mov  [bp-0x0C],ax      ; saved offset
   mov  [bp-0x0A],dx      ; saved segment
   les  bx, [bp-0x0C]     ; ES:BX = gani data+offset(bx)
@@ -918,6 +920,23 @@ sub_1593:
   add si, 0x000C
   call sub_17C4
   ret
+
+; 0x168E
+sub_168E:
+  push bp
+  mov  bp,sp
+  push si
+  push di
+  push bx
+  push cx
+  push dx
+  push ds
+  push es
+  push bp
+
+  mov si, [0x029C]
+  mov bx, [bp+0x08] ; Arg 2
+
 
 ; sub_1729
 sub_1729:
