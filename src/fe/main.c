@@ -32,13 +32,17 @@
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
 
+// Likely 28 bytes.
 struct unknown_302 {
-  // RECT structure?
-  uint16_t x_pos; // Offset 0x0C
-  uint16_t y_pos; // offset 0x0E
-  uint16_t width; // offset 0x10
-  uint16_t height; // offset 0x12
+  uint16_t data_00; // 0x00
+  uint16_t data_02; // 0x02
+  uint16_t data_08; // 0x08
+  uint16_t data_0A; // 0x0A - Line start?
 
+  // RECT structure?
+  struct ui_rect rect; // offset 0x0C - 0x12
+
+  uint16_t data_14; // offset 0x14
   uint16_t data_16; // (this is actually a function pointer) offset 0x16
   uint16_t data_24; // offset 0x18
 };
@@ -59,7 +63,14 @@ static struct ui_unknown1 data_02A6 = { 4, 8, 0x30, 0x60 };
 static struct unknown_302 unknown_302;
 
 // DSEG:0x31E
-static struct unknown_302 unknown_31E = { 4, 8, 0x30, 0x60, 0, 0 };
+static struct unknown_302 unknown_31E = { 1, 1, 1, 1,
+ { 4, 8, 0x30, 0x60 }, // Rect
+ 0, 0, 0
+};
+
+static char *word_33A;
+static char *word_33C;
+static char *word_33E;
 
 // DSEG:0x0424
 static unsigned char video_mode = 2;
@@ -112,8 +123,10 @@ static void sub_14FF(int offset);
 static void sub_1548();
 static void sub_155E(struct unknown_302 *arg1, uint16_t arg2);
 static void sub_1593();
+static void sub_159E();
+static void sub_168E(const char *str, int arg3, int arg4);
 static void sub_1778(uint8_t chr_index, int i, int line_num);
-static void clear_rectangle(const struct unknown_302 *r);
+static void clear_rectangle(const struct ui_rect *r);
 
 static void screen_draw(const unsigned char *bytes)
 {
@@ -187,7 +200,7 @@ void sub_90()
     fprintf(stderr, "Couldn't read font, exiting!\n");
   }
 
-  // sub_3BFA will expand a 16 bit number to 32 bit, but we don't need
+  // sub_3BFA will expand a 16-bit number to 32 bit, but we don't need
   // to do that on modern architectures.
   fread(font_bytes, 1, size, fp);
   fclose(fp);
@@ -198,7 +211,7 @@ void sub_90()
 void game_mem_alloc()
 {
   // Fountain of Dreams does most of its work within this scratch
-  // buffer. I'm not sure it really needs to be this big but that's how much
+  // buffer. I'm not sure if it really needs to be this big but that's how much
   // is allocated in the disassembly.
   scratch = malloc(286544); // 286,544 bytes.
   if (scratch == NULL) {
@@ -307,7 +320,7 @@ static void sub_044E(uint16_t arg1)
     uint8_t cl = gani_res->bytes[1];
 
     uint16_t ax = ah << 8 | cl;
-    word_2312 = ax;
+    word_2312 = ax; // 0x1089 ?
     byte_231A = 1;
   }
   word_231C = 1;
@@ -384,12 +397,11 @@ static void sub_04EA(uint16_t arg1)
   gani_offset++;
 
   uint8_t al = gani_res->bytes[bx];
-  uint8_t bp0E = al;
+  uint8_t num_runs = al;
 
-  struct unknown_302 *bp02 = ptr_2310;
-  uint16_t bp08 = 0;
+  struct ui_rect *bp02 = &ptr_2310->rect;
 
-  for (int i = 0; i < bp0E; i++) {
+  for (int i = 0; i < num_runs; i++) {
     bx = gani_offset;
     gani_offset++;
     al = gani_res->bytes[bx];
@@ -414,41 +426,13 @@ static void sub_1631()
   exit(1);
 }
 
-// seg000:1D34
-static void sub_1D34()
-{
-
-}
-
-// seg000:22B4
-static void sub_22B4()
-{
-  uint16_t ax = 0x164;
-  sub_1D34();
-}
-
-// sprintf ?
-// looking for % characters
-static void sub_22BD()
-{
-  // 2B54
-}
-
-// seg000:3338
-// takes 3 variables
-static void sub_3338()
-{
-  // setting up some structure
-  sub_22B4();
-}
-
 static void sub_0010(const char *arg1, uint16_t arg2)
 {
   char output[42];
 
   snprintf(output, sizeof(output), "%s", arg1);
 
-  struct unknown_302 *bx = ptr_029C;
+  struct ui_rect *bx = &ptr_029C->rect;
   uint16_t ax = bx->width;
 
   uint16_t cx = 2;
@@ -599,9 +583,74 @@ static void sub_155E(struct unknown_302 *arg1, uint16_t arg2)
 // seg000:0x1593
 static void sub_1593()
 {
-  struct unknown_302 *si = ptr_029C;
+  struct ui_rect *si = &ptr_029C->rect;
   //si += 0x000C; // Advance 12 bytes in to "rect" structure
   clear_rectangle(si);
+}
+
+// seg000:0x159E
+static void sub_159E(char *str)
+{
+  word_33A = str;
+  word_33C = str;
+  word_33E = str;
+
+  // 15AA
+#if 0
+  struct unknown_302 *si = ptr_029C;
+
+  char al = *str;
+  if (al == '\0') {
+    // jmp sub_1602
+  }
+  if (al == 0x0D) {
+    // sub_1602();
+    // push di
+    // call sub_164F
+    // pop di
+    // inc di
+    // jmp loc_159E
+  }
+  // 0x15C4
+  // push ax
+  // cx = dx
+  // cx -= word_33A
+  uint16_t ax = si->data_08;
+  ax += cx;
+  if (ax <= si->data_04) {
+    // 15D5
+    if (al != ' ') {
+
+    }
+  }
+  // 15E8
+#endif
+
+}
+
+// seg000:0x168E
+// 3 arguments
+static void sub_168E(const char *str, int arg3, int arg4)
+{
+  struct unknown_302 *si = ptr_029C;
+
+  uint16_t bx = arg3;
+  uint16_t ax;
+  if (bx != 0xFFFF) {
+    ax = ptr_029C->data_00;
+    ax += bx;
+    ptr_029C->data_08 = ax;
+  }
+  // 0x16AC
+  bx = arg4;
+  if (bx != 0xFFFF) {
+    ax = ptr_029C->data_02;
+    ax += bx;
+    ptr_029C->data_0A = ax;
+  }
+  // 0x16BC
+  // es:di = str
+  //sub_159E();
 }
 
 // seg000:1778
@@ -633,7 +682,7 @@ static void sub_1778(uint8_t chr_index, int i, int line_num)
 // Clears out an area on the scratch buffer by setting
 // the contents to black (0).
 // seg000:17C4
-static void clear_rectangle(const struct unknown_302 *r)
+static void clear_rectangle(const struct ui_rect *r)
 {
   unsigned char *es = scratch;
 
@@ -647,6 +696,34 @@ static void clear_rectangle(const struct unknown_302 *r)
     }
     di += 0xA0; // advance to next line.
   }
+}
+
+// seg000:0x17F2
+static void plot_font_chr(uint8_t chr_index, int i, int line_num)
+{
+#if 0
+  uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
+  uint16_t di = get_160_offset(ax);
+
+  di += (i << 2);
+
+  unsigned char *es = scratch;
+  es += di;
+
+  unsigned char *si = font_bytes;
+  si += (chr_index * 32); // 4x8 = 32 bytes
+
+  // copy font "sprite" over to scratch buffer.
+  // fonts are stored in 4 x 8
+  for (int k = 0; k < 8; k++) {
+    // copy words from ds:si to es:di
+    memcpy(es, si, 4);
+    si += 4;
+    es += 4;
+
+    es += 0x9C; // next line
+  }
+#endif
 }
 
 static void sub_32C2(char *data, uint16_t val)
