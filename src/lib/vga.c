@@ -103,11 +103,13 @@ uint16_t vga_getkey()
   return 0;
 }
 
-void vga_waitkey()
+uint8_t vga_waitkey()
 {
   if (sys_ctx != NULL && sys_ctx->waitkey != NULL) {
-    sys_ctx->waitkey();
+    return sys_ctx->waitkey();
   }
+
+  return 0;
 }
 
 void vga_end()

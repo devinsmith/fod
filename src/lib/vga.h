@@ -30,7 +30,7 @@ struct vga_driver {
   int (*initialize)(int game_width, int game_height);
   void (*end)();
   void (*update)();
-  void (*waitkey)();
+  uint8_t (*waitkey)();
   uint8_t* (*memory)();
   uint16_t (*getkey)();
   int (*poll)();
@@ -44,7 +44,7 @@ int vga_initialize(int game_width, int game_height);
 uint8_t* vga_memory();
 void vga_update();
 uint16_t vga_getkey();
-void vga_waitkey();
+uint8_t vga_waitkey();
 void vga_end();
 void vga_addkey(int key);
 int vga_getkey2();

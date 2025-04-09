@@ -36,6 +36,8 @@ static const int GAME_HEIGHT = 200;
 struct unknown_302 {
   uint16_t data_00; // 0x00
   uint16_t data_02; // 0x02
+  uint16_t data_04; // 0x04
+  uint16_t data_06; // 0x06
   uint16_t data_08; // 0x08
   uint16_t data_0A; // 0x0A - Line start?
 
@@ -45,27 +47,70 @@ struct unknown_302 {
   uint16_t data_14; // offset 0x14
   uint16_t data_16; // (this is actually a function pointer) offset 0x16
   uint16_t data_24; // offset 0x18
+  struct ui_rect *data_1A; // offset 0x1A
 };
+
 
 // DSEG:0x0274
 static const char *data_274 = "KEH.EXE";
+
+// DSEG:0x028F
+// Will contain 0x00 or 0xFF
+static uint8_t byte_028F = 0;
 
 // DSEG:0x029C
 static struct unknown_302 *ptr_029C;
 
 // DSEG:0x029E
-static struct ui_unknown1 data_029E = { 0, 0, 160, 200 };
+static struct ui_rect data_029E = { 0, 0, 160, 200 };
 
 // DSEG:0x02A6
-static struct ui_unknown1 data_02A6 = { 4, 8, 0x30, 0x60 };
+// 92 x 88 rectangle
+static struct ui_rect data_02A6 = { 4, 8, 0x30, 0x60 };
+
+// DSEG:0x02E6
+static struct unknown_302 unknown_2E6 = {
+  0xE0,   // 00
+  1,      // 02
+  0x26,   // 04
+  0x0C,   // 06
+  0x0E,   // 08
+  1,      // 0A
+  { 0x38, 8, 0x64, 0x60 }, // rect offset 0x0C-0x12
+  0,      // 14
+  0,      // 16
+  0,      // 18
+  NULL,   // 1A
+};
 
 // DSEG:0x0302
-static struct unknown_302 unknown_302;
+static struct unknown_302 unknown_302 = {
+  0,     // 00
+  0x0E,  // 02
+  0x27,  // 04
+  0x13,  // 06
+  0,     // 08
+  0x0E,  // 0A
+  { 0, 0x70, 0xA0, 0x30 }, // rect offset 0x0C-0x12
+  0,     // 14
+  0,     // 16
+  0,     // 18
+  NULL   // 1A
+};
 
 // DSEG:0x31E
-static struct unknown_302 unknown_31E = { 1, 1, 1, 1,
- { 4, 8, 0x30, 0x60 }, // Rect
- 0, 0, 0
+static struct unknown_302 unknown_31E = {
+  1,   // 00
+  1,   // 02
+  0xC, // 04
+  0xB, // 06
+  1,   // 08
+  1,   // 0A
+  { 4, 8, 0x30, 0x60 }, // Rect offset 0x0C - 0x12
+  0,   // 14
+  0,   // 16
+  0,   // 18
+  &data_02A6 // 1A
 };
 
 static char *word_33A;
@@ -118,13 +163,15 @@ static unsigned char *font_bytes;
 // DSEG:0x3E66
 static struct resource *border_res;
 
-static void sub_14D5(struct ui_unknown1 *input);
+static void sub_14D5(struct ui_rect *input);
 static void sub_14FF(int offset);
 static void sub_1548();
 static void sub_155E(struct unknown_302 *arg1, uint16_t arg2);
 static void sub_1593();
 static void sub_159E();
-static void sub_168E(const char *str, int arg3, int arg4);
+static void plot_font_str(const char *str, int len);
+static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
+static void sub_168E(const char *str, int arg2, int arg3);
 static void sub_1778(uint8_t chr_index, int i, int line_num);
 static void clear_rectangle(const struct ui_rect *r);
 
@@ -255,6 +302,9 @@ static int sub_0105()
     fprintf(stderr, "Second word of disk1 is not 0, unhandled (CS: 0x014D)!\n");
     exit(1);
   }
+
+  disk1_bytes[49] = 0; // Number of players in party
+
   return saved_game != 0;
 }
 
@@ -422,8 +472,13 @@ static void sub_04EA(uint16_t arg1)
 
 static void sub_1631()
 {
-  printf("%s:0x1631 not finished\n", __func__);
-  exit(1);
+  struct unknown_302 *si = ptr_029C;
+
+  if (si->data_1A != NULL) {
+    sub_14D5(si->data_1A);
+  } else {
+    sub_14D5(&si->rect);
+  }
 }
 
 static void sub_0010(const char *arg1, uint16_t arg2)
@@ -432,8 +487,8 @@ static void sub_0010(const char *arg1, uint16_t arg2)
 
   snprintf(output, sizeof(output), "%s", arg1);
 
-  struct ui_rect *bx = &ptr_029C->rect;
-  uint16_t ax = bx->width;
+  struct unknown_302 *bx = ptr_029C;
+  uint16_t ax = bx->rect.width;
 
   uint16_t cx = 2;
   ax = ax >> cx;
@@ -441,12 +496,18 @@ static void sub_0010(const char *arg1, uint16_t arg2)
 
   output[si] = '\0';
 
-  cx = strlen(output);
-  
+  uint16_t len = strlen(output);
 
+  ax = bx->rect.width;
 
-  printf("%s:0x004D not finished\n", __func__);
-  exit(1);
+  cx = 2;
+  ax = ax >> cx;
+
+  ax = ax - len;
+  ax = ax >> 1;
+
+  // push ax
+  sub_168E(output, ax, arg2);
 }
 
 // seg000:0x071B
@@ -464,6 +525,32 @@ void sub_071B(uint16_t arg1, const char *arg2)
   sub_1631();
 }
 
+// seg000:101B
+// Add a character
+static int sub_101B()
+{
+  if (disk1_bytes[49] == 3) {
+    return 0;
+  }
+
+  // 102C
+  sub_A64();
+  return 0;
+}
+
+static void sub_1164(const char *str)
+{
+  char output[60];
+
+  sub_1593(); // Clear area
+
+  snprintf(output, sizeof(output), "There's no one to %s!", str);
+
+  sub_0010(output, 2);
+  sub_1631();
+  screen_draw(scratch);
+  vga_waitkey();
+}
 
 // seg000:0x1191
 int main(int argc, char *argv[])
@@ -506,10 +593,85 @@ int main(int argc, char *argv[])
 //  int local_val = 0;
   sub_155E(&unknown_302, 0);
 
-  // Only if it's a new game
-  sub_071B(0x0033, "Welcome");
+  do {
+    // Only if it's a new game
+    sub_071B(0x0033, "Welcome");
 
-  vga_waitkey();
+    sub_155E(&unknown_2E6, 0);
+    sub_1593();
+    sub_1631();
+
+    sub_155E(&unknown_302, 0);
+    sub_1593();
+
+    sub_0010("Choose a function:", 1);
+
+    sub_168E("A)dd member      R)emove member", 5, 3);
+    sub_168E("E)dit member     P)lay the game", 5, 4);
+    sub_1631();
+
+    screen_draw(scratch);
+
+    uint8_t key = vga_waitkey();
+    // 0x12D1
+    printf("Key pressed: 0x%02X\n", key);
+
+    if (key >= 'a' && key <= 'z') {
+      key -= 0x20;  // Transform to uppercase
+    }
+
+    if (key == 'A') {
+      // 0x1347
+      sub_101B();
+      // jmp loc_1341
+    } else if (key <= 'A') {
+      // 12EF
+    } else {
+      // jmp 13C5
+      if (key == 'E') {
+        if (disk1_bytes[49] == 0) {
+          // 138C
+          sub_1164("edit");
+        } else {
+        }
+      } else if (key == 'P') {
+        // 1391
+        if (disk1_bytes[49] == 0) {
+          sub_1593();
+          sub_0010("It's tough out there!", 1);
+          sub_0010("You should take somebody with you.", 3);
+          sub_1631();
+          screen_draw(scratch);
+          vga_waitkey();
+        } else {
+          // sub_3E0
+          // jmp 121B
+        }
+        
+      } else if (key == 'R') {
+        if (disk1_bytes[49] == 0) {
+          sub_1164("remove");
+        } else {
+
+        }
+      }
+    }
+
+    //
+    // 12EF:
+    if (key >= ';') {
+      // 12F7
+    }
+    // jmp 13D7
+
+    // 13D7
+#if 0
+    if (var_A != 0) {
+
+    }
+#endif
+    // jmp 1262
+  } while (1);
 
   free(scratch);
 
@@ -518,19 +680,19 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-static void sub_14B3(struct ui_unknown1 *input)
+static void sub_14B3(struct ui_rect *input)
 {
-  uint16_t ax = input->arg1; // 0
-  uint16_t di = input->arg3; // A0
-  uint16_t cx = input->arg4; // C8
-  uint16_t si = input->arg2; // 0
+  uint16_t ax = input->x_pos;  // 0
+  uint16_t di = input->width;  // A0
+  uint16_t cx = input->height; // C8
+  uint16_t si = input->y_pos;  // 0
 
   // sub_05B0:00B0
   ui_sub_00B0(ax, di, cx, si);
 }
 
 // seg000:0x14D5
-static void sub_14D5(struct ui_unknown1 *input)
+static void sub_14D5(struct ui_rect *input)
 {
   sub_14B3(input);
 
@@ -565,8 +727,8 @@ static void sub_1548()
 // seg000:0x155E
 static void sub_155E(struct unknown_302 *arg1, uint16_t arg2)
 {
-  // arg1 is likely a pointer
   ptr_029C = arg1;
+
   if (arg2 == 0) {
     return;
   }
@@ -589,15 +751,18 @@ static void sub_1593()
 }
 
 // seg000:0x159E
-static void sub_159E(char *str)
+static void sub_159E(const char *str)
 {
   word_33A = str;
   word_33C = str;
   word_33E = str;
 
   // 15AA
-#if 0
   struct unknown_302 *si = ptr_029C;
+
+  // Not exactly correct, there's checking for certain new line characters.
+  plot_font_str(str, strlen(str));
+#if 0
 
   char al = *str;
   if (al == '\0') {
@@ -628,29 +793,36 @@ static void sub_159E(char *str)
 
 }
 
+// seg000:0x1614
+static void plot_font_str(const char *str, int len)
+{
+  // di = str
+  // al = es:di
+  // cx = len
+  struct unknown_302 *si = ptr_029C;
+
+  for (int i = 0; i < len; i++) {
+    plot_font_chr(str[i], si->data_08, si->data_14, si->data_0A);
+    si->data_08++;
+  }
+}
+
 // seg000:0x168E
 // 3 arguments
-static void sub_168E(const char *str, int arg3, int arg4)
+// "Welcome", 2, 0xB
+static void sub_168E(const char *str, int arg2, int arg3)
 {
   struct unknown_302 *si = ptr_029C;
 
-  uint16_t bx = arg3;
-  uint16_t ax;
-  if (bx != 0xFFFF) {
-    ax = ptr_029C->data_00;
-    ax += bx;
-    ptr_029C->data_08 = ax;
+  if (arg2 != -1) {
+    si->data_08 = arg2 + si->data_00;
   }
   // 0x16AC
-  bx = arg4;
-  if (bx != 0xFFFF) {
-    ax = ptr_029C->data_02;
-    ax += bx;
-    ptr_029C->data_0A = ax;
+  if (arg3 != -1) {
+    si->data_0A = arg3 + si->data_02;
   }
   // 0x16BC
-  // es:di = str
-  //sub_159E();
+  sub_159E(str);
 }
 
 // seg000:1778
@@ -699,31 +871,43 @@ static void clear_rectangle(const struct ui_rect *r)
 }
 
 // seg000:0x17F2
-static void plot_font_chr(uint8_t chr_index, int i, int line_num)
+static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
 {
-#if 0
-  uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
-  uint16_t di = get_160_offset(ax);
+  uint8_t bl = byte_028F;
 
-  di += (i << 2);
+  if (bl != 0) {
+    printf("%s:0x1839 not finished\n", __func__);
+    exit(1);
+  }
+
+  uint16_t ax = base;
+
+  ax *= 8;   // << 4
+  uint16_t di = ax;
+  di += line_num;
+
+  di = get_160_offset(di);
+
+  ax = i;
+  ax *= 4;
+  di += ax;
 
   unsigned char *es = scratch;
   es += di;
 
-  unsigned char *si = font_bytes;
-  si += (chr_index * 32); // 4x8 = 32 bytes
+  unsigned char *font_si = font_bytes;
+  font_si += (chr_index * 32); // 4x8 = 32 bytes
 
   // copy font "sprite" over to scratch buffer.
   // fonts are stored in 4 x 8
   for (int k = 0; k < 8; k++) {
     // copy words from ds:si to es:di
-    memcpy(es, si, 4);
-    si += 4;
+    memcpy(es, font_si, 4);
+    font_si += 4;
     es += 4;
 
     es += 0x9C; // next line
   }
-#endif
 }
 
 static void sub_32C2(char *data, uint16_t val)

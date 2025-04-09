@@ -169,8 +169,8 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
     double pct_inc = ((double)(u_bytes - sz) / (double)sz) * 100.0;
 
     printf("Decompressing %s from %zu to %d bytes (%.0f%%)\n", fname, sz, u_bytes, pct_inc);
-    printf("DX: 0x%04x (should be 0)\n", dx);
     if (dx != 0) {
+      printf("DX: 0x%04x (should be 0)\n", dx);
       errx(0, "DX values other than 0 are unhandled\n");
     }
 

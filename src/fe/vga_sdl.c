@@ -200,9 +200,10 @@ display_update(void)
   SDL_DestroyTexture(texture);
 }
 
-void waitkey()
+uint8_t waitkey()
 {
   SDL_Event event;
+  uint8_t key = 0;
   int done = 0;
 
   while (!done) {
@@ -210,11 +211,19 @@ void waitkey()
     SDL_WaitEvent(&event);
     switch (event.type) {
     case SDL_QUIT:
+      exit(0);
+      break;
+
     case SDL_KEYDOWN:
+      SDL_Keysym keysym = event.key.keysym;
       done = 1;
+
+      key = (uint8_t)keysym.sym;
       break;
     }
   }
+
+  return key;
 }
 
 static uint8_t *
@@ -237,7 +246,6 @@ shifted(const SDL_Keysym *key)
 static uint16_t get_key()
 {
   SDL_Event e;
-
 
   while (SDL_PollEvent(&e)) {
     if (e.type == SDL_KEYDOWN) {
