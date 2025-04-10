@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bufio.h"
 #include "hexdump.h"
 #include "fileio.h"
 #include "resource.h"
@@ -50,6 +49,8 @@ struct unknown_302 {
   struct ui_rect *data_1A; // offset 0x1A
 };
 
+// DSEG:0x0076
+static uint16_t word_0076 = 0;
 
 // DSEG:0x0274
 static const char *data_274 = "KEH.EXE";
@@ -122,7 +123,7 @@ static unsigned char video_mode = 2;
 
 // FOD does most of it's work in a large allocated buffer
 // DSEG:0x042D
-static unsigned char *scratch;
+unsigned char *scratch;
 static unsigned char *scratch_01; // DSEG:0x029A
 static unsigned char *scratch_02; // DSEG:0x0292
 static unsigned char *scratch_03; // DSEG:0x0296
@@ -150,12 +151,15 @@ static uint16_t word_231C = 0;
 // DSEG:0x231E - 0x31DE
 static unsigned char disk1_bytes[3776];
 
+static uint16_t word_33DE = 0;
 static uint16_t word_35E4 = 0xFFFF;
 
 // DSEG:0x37E6
 static unsigned char *arch_bytes;
+
 // DSEG:0x37E8
 static unsigned char hds_bytes[1180];
+
 // DSEG:0x3C84
 static unsigned char *arch_offset;
 // DSEG:0x3C86
@@ -166,14 +170,13 @@ static struct resource *border_res;
 static void sub_14D5(struct ui_rect *input);
 static void sub_14FF(int offset);
 static void sub_1548();
-static void sub_155E(struct unknown_302 *arg1, uint16_t arg2);
-static void sub_1593();
+static void ui_region_set_active(struct unknown_302 *arg1, bool clear);
+static void ui_active_region_clear();
 static void sub_159E();
 static void plot_font_str(const char *str, int len);
 static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 static void sub_168E(const char *str, int arg2, int arg3);
 static void sub_1778(uint8_t chr_index, int i, int line_num);
-static void clear_rectangle(const struct ui_rect *r);
 
 static void screen_draw(const unsigned char *bytes)
 {
@@ -516,7 +519,7 @@ static void sub_0010(const char *arg1, uint16_t arg2)
 void sub_071B(uint16_t arg1, const char *arg2)
 {
   // 2 parameters
-  sub_155E(&unknown_31E, 1);
+  ui_region_set_active(&unknown_31E, true);
 
   sub_044E(arg1);
   sub_04EA(1);
@@ -525,16 +528,215 @@ void sub_071B(uint16_t arg1, const char *arg2)
   sub_1631();
 }
 
+// seg000:0x07A0
+// Draws skills.
+static void sub_07A0(int profession)
+{
+  uint16_t var_4;
+  uint16_t var_8;
+  uint8_t var_A;
+  uint8_t var_C;
+
+  var_8 = 0;
+  var_4 = 0;
+
+  char *prof_ptr = (char *)arch_bytes + (profession << 7);
+  sub_071B(0x0033, prof_ptr);
+
+  ui_region_set_active(&unknown_2E6, true);
+
+  sub_0010("Skills", 0);
+  sub_0010("Active      Passive", 1);
+
+  var_8 = 0;
+  var_4 = 0;
+
+  uint8_t al;
+  char skill[128];
+
+  for (int i = 0; i < 0x10; i++) {
+
+    // Active skills
+    al = prof_ptr[i+0x38];
+    var_C = al;
+    if (al != 0) {
+      uint16_t ax = i * 0x16;
+      ax += 294;
+
+      snprintf(skill, sizeof(skill), "%1d %-10.10s", var_C, hds_bytes + ax);
+      sub_168E(skill, 0xD, var_8 + 3);
+      var_8++;
+
+    }
+
+    // Passive skills
+    al = prof_ptr[i + 0x48];
+    var_A = al;
+    if (al != 0) {
+      uint16_t ax = i * 0x16;
+      ax += 646;
+
+      snprintf(skill, sizeof(skill), "%1d %-10.10s", var_A, hds_bytes + ax);
+      sub_168E(skill, 0xD, var_4 + 3);
+      var_4++;
+    }
+  }
+
+  // 802
+}
+
+// Select a profession. The profession is returned to the caller.
+// seg000:A65
+static int choose_profession()
+{
+  ui_region_set_active(&unknown_302, false);
+  ui_active_region_clear();
+
+  sub_0010("Choose a Profession:", 1);
+
+  // 0xA92
+  for (int i = 0; i < 3; i++) {
+    char profession[30];
+
+    int ax = i;
+
+    ax = ax << 7; // 128 bytes long
+    char *prof_ptr = (char *)arch_bytes + ax;
+
+    // 3C84
+    snprintf(profession, sizeof(profession), "%1d)%-13.13s", i + 1, prof_ptr);
+
+    printf("%s\n", profession);
+    sub_168E(profession, 4, i + 3);
+    if (i >= 2) {
+      // 0xB07
+      continue;
+    } else {
+      // 0xACD
+      ax = i;
+      ax = ax << 7;
+      prof_ptr = (char *)arch_offset + ax + 0x180;
+      snprintf(profession, sizeof(profession), "%1d)%-13.13s", i + 4, prof_ptr);
+
+      printf("%s\n", profession);
+
+      sub_168E(profession, 0x17, i + 3);
+    }
+  }
+
+  sub_1631();
+
+  screen_draw(scratch);
+
+  uint8_t key;
+  do {
+     key = vga_waitkey();
+     if (key == 0x1B) {
+       // ESC
+       return -1;
+     }
+  } while (key < '1' || key > '5');
+
+  return key - '1';
+}
+
+// seg000:0x0B41
+static void sub_B41(uint16_t arg1, int profession)
+{
+  char *prof_ptr = (char *)arch_bytes + (profession << 7);
+
+  uint16_t val1 = (prof_ptr[0x72] << 8) | prof_ptr[0x73];
+  uint16_t val2 = (prof_ptr[0x70] << 8) | prof_ptr[0x71];
+  sub_16FF(val1, val2);
+}
+
+// seg000:0x0B86
+static void sub_B86(int arg1, int profession)
+{
+  char *prof_ptr = (char *)arch_bytes + (profession << 7);
+
+  uint16_t ax = 0x14C;
+  ax *= arg1;
+  ax += 58; // disk1 offset 0x2358 - 0x231E
+
+  uint16_t var_6 = ax;
+
+  uint16_t bx = var_6;
+  uint8_t al;
+  // BAC
+  // Zero out something.
+  for (int i = 0; i < 0xC; i++) {
+    bx = var_6;
+
+    disk1_bytes[bx + i + 0x18] = 0;
+  }
+
+  // BC4
+  for (int i = 0; i < 7; i++) {
+    al = prof_ptr[i+0x14];
+    bx = var_6;
+    disk1_bytes[bx + i + 0x18] = al;
+  }
+  // BDC
+  bx = var_6;
+  al = prof_ptr[0x33];
+  disk1_bytes[bx + 0x23] = al;
+
+  // BED
+  for (int i = 0; i < 0x10; i++) {
+    al = prof_ptr[i+0x38];
+    bx = var_6;
+    disk1_bytes[bx + i + 0x24] = al;
+
+    disk1_bytes[bx + i + 0x0124] = 0;
+    al = prof_ptr[i+0x48];
+    disk1_bytes[bx + i + 0x34] = al;
+    disk1_bytes[bx + i + 0x0134] = 0;
+  }
+
+  disk1_bytes[bx + 0x58] = 0;
+  disk1_bytes[bx + 0x48] = profession;
+  al = prof_ptr[0x7B];
+  disk1_bytes[bx + 0x51] = al;
+  disk1_bytes[bx + 0x50] = 1;
+
+  word_0076 = 0;
+}
+
 // seg000:101B
 // Add a character
 static int sub_101B()
 {
+  // Check party size
   if (disk1_bytes[49] == 3) {
+    // Don't add any more characters
     return 0;
   }
 
   // 102C
-  sub_A64();
+  int profession = choose_profession();
+  if (profession == -1) {
+     return 0;
+  }
+
+  word_33DE = profession;
+  int old_party_size = disk1_bytes[49];
+  disk1_bytes[49] = old_party_size + 1;
+
+  // Initialize some data
+  sub_B86(old_party_size, profession);
+
+  sub_07A0(profession);
+
+  uint16_t bx = old_party_size;
+  bx = bx << 1;
+
+  // push word ptr[bx+3D88]
+  // 0x24A4 is NOT CORRECT
+  sub_B41(0x24A4, profession);
+
+  printf("Selected profession: %d\n", profession);
+
   return 0;
 }
 
@@ -542,7 +744,7 @@ static void sub_1164(const char *str)
 {
   char output[60];
 
-  sub_1593(); // Clear area
+  ui_active_region_clear(); // Clear area
 
   snprintf(output, sizeof(output), "There's no one to %s!", str);
 
@@ -591,18 +793,18 @@ int main(int argc, char *argv[])
   screen_draw(scratch);
 
 //  int local_val = 0;
-  sub_155E(&unknown_302, 0);
+  ui_region_set_active(&unknown_302, false);
 
   do {
     // Only if it's a new game
     sub_071B(0x0033, "Welcome");
 
-    sub_155E(&unknown_2E6, 0);
-    sub_1593();
+    ui_region_set_active(&unknown_2E6, false);
+    ui_active_region_clear();
     sub_1631();
 
-    sub_155E(&unknown_302, 0);
-    sub_1593();
+    ui_region_set_active(&unknown_302, false);
+    ui_active_region_clear();
 
     sub_0010("Choose a function:", 1);
 
@@ -637,7 +839,7 @@ int main(int argc, char *argv[])
       } else if (key == 'P') {
         // 1391
         if (disk1_bytes[49] == 0) {
-          sub_1593();
+          ui_active_region_clear();
           sub_0010("It's tough out there!", 1);
           sub_0010("You should take somebody with you.", 3);
           sub_1631();
@@ -724,17 +926,18 @@ static void sub_1548()
   sub_14FF(0);
 }
 
+// Sets the active region and optionally clears it.
 // seg000:0x155E
-static void sub_155E(struct unknown_302 *arg1, uint16_t arg2)
+static void ui_region_set_active(struct unknown_302 *arg1, bool clear)
 {
   ptr_029C = arg1;
 
-  if (arg2 == 0) {
+  if (!clear) {
     return;
   }
 
   arg1->data_24 = 0;
-  sub_1593();
+  ui_active_region_clear();
 
   if (arg1->data_16 != 0) {
     // Call function pointer
@@ -742,12 +945,13 @@ static void sub_155E(struct unknown_302 *arg1, uint16_t arg2)
   }
 }
 
+// Clears the rectangle associated with the active region
 // seg000:0x1593
-static void sub_1593()
+static void ui_active_region_clear()
 {
-  struct ui_rect *si = &ptr_029C->rect;
-  //si += 0x000C; // Advance 12 bytes in to "rect" structure
-  clear_rectangle(si);
+  // Get the rectangle from the active region
+  const struct ui_rect *si = &ptr_029C->rect;
+  ui_rect_clear(si);
 }
 
 // seg000:0x159E
@@ -848,25 +1052,6 @@ static void sub_1778(uint8_t chr_index, int i, int line_num)
     es += 4;
 
     es += 0x9C; // next line
-  }
-}
-
-// Clears out an area on the scratch buffer by setting
-// the contents to black (0).
-// seg000:17C4
-static void clear_rectangle(const struct ui_rect *r)
-{
-  unsigned char *es = scratch;
-
-  uint16_t di = get_160_offset(r->y_pos);
-  di += r->x_pos;
-
-  for (uint16_t i = 0; i < r->height; i++) {
-    unsigned char *ptr = es + di;
-    for (uint16_t j = 0; j < r->width; j++) {
-      *ptr++ = '\0';
-    }
-    di += 0xA0; // advance to next line.
   }
 }
 

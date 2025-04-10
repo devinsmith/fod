@@ -19,9 +19,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "tables.h"
 #include "ui.h"
 
 extern struct ui_unknown2 data_074F;
+extern unsigned char *scratch;
 
 static uint16_t word_0CCC = 0;
 static struct ui_unknown2 *ptr_0CCE = &data_074F;
@@ -132,5 +134,24 @@ void ui_draw_80_line(const uint16_t *src, uint16_t *dest)
 
     *dest++ = trans1;
     *dest++ = trans2;
+  }
+}
+
+// Clears out an area on the scratch buffer by setting
+// the contents to black (0).
+// seg000:17C4
+void ui_rect_clear(const struct ui_rect *r)
+{
+  unsigned char *es = scratch;
+
+  uint16_t di = get_160_offset(r->y_pos);
+  di += r->x_pos;
+
+  for (uint16_t i = 0; i < r->height; i++) {
+    unsigned char *ptr = es + di;
+    for (uint16_t j = 0; j < r->width; j++) {
+      *ptr++ = '\0';
+    }
+    di += 160; // advance to next line.
   }
 }

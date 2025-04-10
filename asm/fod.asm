@@ -171,7 +171,7 @@ main:
   push ax
   mov ax 0x0302 ; ?
   push ax
-  call sub_155E
+  call ui_region_set_active
   add sp, 0x0004
 
   jmp .loc_13D7
@@ -607,7 +607,7 @@ sub_71B:
   push ax
   mov ax, 0x031E
   push ax
-  call sub_155E
+  call ui_region_set_active
   add sp, 0x0004
 
   push word [bp+0x04]
@@ -878,7 +878,7 @@ sub_1548:
 
 ; 0x155E
 ; 2 arguments
-sub_155E:
+ui_region_set_active:
   push bp
   mov bp, sp
   push si
@@ -896,7 +896,7 @@ sub_155E:
 
   push si
   mov word [si+0x18], 0x0000
-  call sub_1593
+  call ui_active_region_clear
   pop si
   cmp word [si+0x16], 0x0000
   je .loc_1589
@@ -915,7 +915,7 @@ sub_155E:
   ret
 
 ; 0x1593
-sub_1593:
+ui_active_region_clear:
   mov si, [0x029C] ; first argument from earlier?
   add si, 0x000C
   call sub_17C4

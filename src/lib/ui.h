@@ -53,6 +53,10 @@ void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
 void ui_sub_034D();
 void ui_draw_80_line(const uint16_t *src, uint16_t *dest);
 
+// Clears out an area on the scratch buffer by setting
+// the contents to black (0).
+void ui_rect_clear(const struct ui_rect *r);
+
 #ifdef __cplusplus
 }
 #endif
