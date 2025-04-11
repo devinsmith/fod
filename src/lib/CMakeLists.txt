@@ -7,6 +7,7 @@ set(SOURCES bufio.c bufio.h
   compress.c compress.h
   fileio.c fileio.h
   hexdump.c hexdump.h
+  random.c random.h
   resource.c resource.h
   sha1.c sha1.h
   tables.c tables.h

@@ -23,6 +23,7 @@
 
 #include "hexdump.h"
 #include "fileio.h"
+#include "random.h"
 #include "resource.h"
 #include "tables.h"
 #include "ui.h"
@@ -71,7 +72,7 @@ static struct ui_rect data_02A6 = { 4, 8, 0x30, 0x60 };
 
 // DSEG:0x02E6
 static struct unknown_302 unknown_2E6 = {
-  0xE0,   // 00
+  0x0E,   // 00
   1,      // 02
   0x26,   // 04
   0x0C,   // 06
@@ -164,6 +165,17 @@ static unsigned char hds_bytes[1180];
 static unsigned char *arch_offset;
 // DSEG:0x3C86
 static unsigned char *font_bytes;
+
+// DSEG:0x3D88 (offsets to memory in disk1 by character)
+// Each character is about 332 bytes apart.
+static uint16_t disk1_bytes_offsets[] = {
+  58,   /* 0x2358 - 0x231E */
+  390,  /* 0x24A4 - 0x231E */
+  722,  /* 0x25F0 - 0x231E */
+  1054, /* 0x273C - 0x231E */
+  1386  /* 0x2888 - 0x231E */
+};
+
 // DSEG:0x3E66
 static struct resource *border_res;
 
@@ -177,6 +189,7 @@ static void plot_font_str(const char *str, int len);
 static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 static void sub_168E(const char *str, int arg2, int arg3);
 static void sub_1778(uint8_t chr_index, int i, int line_num);
+static void sub_3290(uint16_t offset, const char *name);
 
 static void screen_draw(const unsigned char *bytes)
 {
@@ -564,7 +577,7 @@ static void sub_07A0(int profession)
       ax += 294;
 
       snprintf(skill, sizeof(skill), "%1d %-10.10s", var_C, hds_bytes + ax);
-      sub_168E(skill, 0xD, var_8 + 3);
+      sub_168E(skill, 0, var_8 + 3);
       var_8++;
 
     }
@@ -645,9 +658,15 @@ static void sub_B41(uint16_t arg1, int profession)
 {
   char *prof_ptr = (char *)arch_bytes + (profession << 7);
 
-  uint16_t val1 = (prof_ptr[0x72] << 8) | prof_ptr[0x73];
-  uint16_t val2 = (prof_ptr[0x70] << 8) | prof_ptr[0x71];
-  sub_16FF(val1, val2);
+  uint16_t val1 = (prof_ptr[0x71] << 8) | prof_ptr[0x70];
+  uint16_t val2 = (prof_ptr[0x73] << 8) | prof_ptr[0x72];
+  uint8_t rnd_val = game_random_range(val1, val2);
+
+  // Set CON to rnd_val??
+  // Why is CON in 3 places?
+  disk1_bytes[arg1 + 0x46] = rnd_val;
+  disk1_bytes[arg1 + 0x44] = rnd_val;
+  disk1_bytes[arg1 + 0x122] = rnd_val;
 }
 
 // seg000:0x0B86
@@ -703,6 +722,12 @@ static void sub_B86(int arg1, int profession)
   word_0076 = 0;
 }
 
+static void sub_D75()
+{
+  screen_draw(scratch);
+  vga_waitkey();
+}
+
 // seg000:101B
 // Add a character
 static int sub_101B()
@@ -720,24 +745,23 @@ static int sub_101B()
   }
 
   word_33DE = profession;
-  int old_party_size = disk1_bytes[49];
-  disk1_bytes[49] = old_party_size + 1;
+  int current_char = disk1_bytes[49];
+  disk1_bytes[49] = current_char + 1;
 
   // Initialize some data
-  sub_B86(old_party_size, profession);
+  sub_B86(current_char, profession);
 
   sub_07A0(profession);
 
-  uint16_t bx = old_party_size;
-  bx = bx << 1;
+  uint16_t char_offset = disk1_bytes_offsets[current_char];
 
-  // push word ptr[bx+3D88]
-  // 0x24A4 is NOT CORRECT
-  sub_B41(0x24A4, profession);
+  sub_B41(char_offset, profession);
 
-  printf("Selected profession: %d\n", profession);
+  sub_3290(char_offset, "Ojnab Bob");
 
-  return 0;
+  sub_D75(current_char);
+
+  return current_char;
 }
 
 static void sub_1164(const char *str)
@@ -1012,7 +1036,7 @@ static void plot_font_str(const char *str, int len)
 }
 
 // seg000:0x168E
-// 3 arguments
+// Prints a string within a region, at (x,y) coordinates
 // "Welcome", 2, 0xB
 static void sub_168E(const char *str, int arg2, int arg3)
 {
@@ -1093,6 +1117,12 @@ static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
 
     es += 0x9C; // next line
   }
+}
+
+static void sub_3290(uint16_t offset, const char *name)
+{
+  // XXX: This might not be correct.
+  memcpy(&disk1_bytes[offset], name, strlen(name));
 }
 
 static void sub_32C2(char *data, uint16_t val)
