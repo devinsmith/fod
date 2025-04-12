@@ -33,7 +33,7 @@ static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
 
 // Likely 28 bytes.
-struct unknown_302 {
+struct ui_region {
   uint16_t data_00; // 0x00
   uint16_t data_02; // 0x02
   uint16_t data_04; // 0x04
@@ -56,12 +56,30 @@ static uint16_t word_0076 = 0;
 // DSEG:0x0274
 static const char *data_274 = "KEH.EXE";
 
+// DSEG:0x7A
+struct attr_coordinates {
+  int x;
+  int y;
+  const char *str;
+};
+
+// DSEG:0x7A
+static const struct attr_coordinates attributes[] = {
+  { 0x15, 0x02, "ST:" },
+  { 0x15, 0x03, "IQ:" },
+  { 0x15, 0x04, "DX:" },
+  { 0x15, 0x05, "WP:" },
+  { 0x1E, 0x02, "AP:" },
+  { 0x1E, 0x03, "CH:" },
+  { 0x1E, 0x04, "LK:" }
+};
+
 // DSEG:0x028F
 // Will contain 0x00 or 0xFF
 static uint8_t byte_028F = 0;
 
 // DSEG:0x029C
-static struct unknown_302 *ptr_029C;
+static struct ui_region *ptr_029C;
 
 // DSEG:0x029E
 static struct ui_rect data_029E = { 0, 0, 160, 200 };
@@ -70,8 +88,23 @@ static struct ui_rect data_029E = { 0, 0, 160, 200 };
 // 92 x 88 rectangle
 static struct ui_rect data_02A6 = { 4, 8, 0x30, 0x60 };
 
+// DSEG:0x02CA
+static struct ui_region unknown_2CA = {
+  1,   // 00
+  0x15,      // 02
+  0x26,   // 04
+  0x17,   // 06
+  1,   // 08
+  0x15,      // 0A
+  { 0x4, 0xAC, 0x98, 0x18 }, // rect offset 0x0C-0x12
+  0x08,   // 14
+  0,   // 16
+  0,   // 18
+  NULL    // 1A
+};
+
 // DSEG:0x02E6
-static struct unknown_302 unknown_2E6 = {
+static struct ui_region unknown_2E6 = {
   0x0E,   // 00
   1,      // 02
   0x26,   // 04
@@ -86,7 +119,7 @@ static struct unknown_302 unknown_2E6 = {
 };
 
 // DSEG:0x0302
-static struct unknown_302 unknown_302 = {
+static struct ui_region unknown_302 = {
   0,     // 00
   0x0E,  // 02
   0x27,  // 04
@@ -101,7 +134,7 @@ static struct unknown_302 unknown_302 = {
 };
 
 // DSEG:0x31E
-static struct unknown_302 unknown_31E = {
+static struct ui_region unknown_31E = {
   1,   // 00
   1,   // 02
   0xC, // 04
@@ -133,7 +166,7 @@ static unsigned char *scratch_03; // DSEG:0x0296
 struct ui_unknown2 data_074F = { 0 };
 
 // DSEG:0x2310
-static struct unknown_302 *ptr_2310;
+static struct ui_region *ptr_2310;
 
 // DSEG:0x2312
 static uint16_t word_2312 = 0;
@@ -167,7 +200,7 @@ static unsigned char *arch_offset;
 static unsigned char *font_bytes;
 
 // DSEG:0x3D88 (offsets to memory in disk1 by character)
-// Each character is about 332 bytes apart.
+// Each character is 332 bytes apart.
 static uint16_t disk1_bytes_offsets[] = {
   58,   /* 0x2358 - 0x231E */
   390,  /* 0x24A4 - 0x231E */
@@ -182,7 +215,7 @@ static struct resource *border_res;
 static void sub_14D5(struct ui_rect *input);
 static void sub_14FF(int offset);
 static void sub_1548();
-static void ui_region_set_active(struct unknown_302 *arg1, bool clear);
+static void ui_region_set_active(struct ui_region *arg1, bool clear);
 static void ui_active_region_clear();
 static void sub_159E();
 static void plot_font_str(const char *str, int len);
@@ -488,7 +521,7 @@ static void sub_04EA(uint16_t arg1)
 
 static void sub_1631()
 {
-  struct unknown_302 *si = ptr_029C;
+  struct ui_region *si = ptr_029C;
 
   if (si->data_1A != NULL) {
     sub_14D5(si->data_1A);
@@ -503,7 +536,7 @@ static void sub_0010(const char *arg1, uint16_t arg2)
 
   snprintf(output, sizeof(output), "%s", arg1);
 
-  struct unknown_302 *bx = ptr_029C;
+  struct ui_region *bx = ptr_029C;
   uint16_t ax = bx->rect.width;
 
   uint16_t cx = 2;
@@ -539,6 +572,25 @@ void sub_071B(uint16_t arg1, const char *arg2)
 
   sub_0010(arg2, 0xB);
   sub_1631();
+}
+
+// seg000:0x0751
+// Draws CON:
+static void sub_0751(int chr_index)
+{
+  ui_region_set_active(&unknown_2E6, false);
+
+  char con_value[32];
+
+  uint16_t char_offset = disk1_bytes_offsets[chr_index];
+  uint8_t con = disk1_bytes[char_offset + 0x44];
+  snprintf(con_value, sizeof(con_value), "Con:%d", con);
+
+  sub_168E(con_value, 6, 0xB);
+
+  sub_1631();
+
+  ui_region_set_active(&unknown_2CA, false);
 }
 
 // seg000:0x07A0
@@ -596,6 +648,76 @@ static void sub_07A0(int profession)
   }
 
   // 802
+}
+
+// seg000:0x8F5
+static void sub_8F5(int char_number, struct ui_rect *arg2)
+{
+  int var_2 = 0;
+
+  ui_region_set_active(&unknown_302, false);
+  ui_active_region_clear();
+
+  // 91E
+  uint16_t ax = var_2;
+
+  // Display 5 professions on the left.
+  for (int i = 0; i < 5; i++) {
+    ax = i;
+    ax = ax << 7; // 128 bytes long
+
+    char *prof_ptr = (char *)arch_bytes + ax;
+
+    char profession[30];
+    snprintf(profession, sizeof(profession), "%1d)%-13.13s", i + 1, prof_ptr);
+
+    sub_168E(profession, 0, i + 1);
+  }
+
+  // 959
+
+  // data_316 = 8;
+  unknown_302.data_14 = 8;
+  sub_168E("Attribute Pts: <-", 0x13, 0);
+  unknown_302.data_14 = 0;
+
+  uint16_t char_offset = disk1_bytes_offsets[char_number];
+
+  for (int i = 0; i < 7; i++) {
+    char attr_str[30];
+    char attr_val[20];
+
+    snprintf(attr_str, sizeof(attr_str), "%3s", attributes[i].str);
+    sub_168E(attr_str, attributes[i].x, attributes[i].y);
+
+    uint8_t al = disk1_bytes[char_offset + i + 0x18];
+
+    snprintf(attr_val, sizeof(attr_val), "%2u", al);
+
+    byte_028F = 0xFF; // Makes it inverse (or bold)
+    sub_168E(attr_val, attributes[i].x + 3, attributes[i].y);
+    byte_028F = 0;
+  }
+
+  // AOC
+  sub_168E("Sex:", 0x1D, 5);
+  if (arg2 == 7) {
+    byte_028F = 0xFF; // Makes it inverse (or bold)
+  }
+
+  // 5
+  // 0x22
+  uint8_t gender = disk1_bytes[char_offset + 0x50];
+  const char *gender_val = "Male";
+  if (gender != 1) {
+    gender_val = "Female";
+  }
+
+  sub_168E(gender_val, 0x22, 5);
+
+  sub_0751(char_number);
+
+
 }
 
 // Select a profession. The profession is returned to the caller.
@@ -722,8 +844,16 @@ static void sub_B86(int arg1, int profession)
   word_0076 = 0;
 }
 
-static void sub_D75()
+static void sub_D75(int current_char)
 {
+  int var_6 = 0;
+  int var_A = 0;
+
+  uint16_t char_offset = disk1_bytes_offsets[current_char];
+
+  // Not sure if ui_region is the right variable to pass.
+  sub_8F5(current_char, &unknown_302.rect);
+
   screen_draw(scratch);
   vga_waitkey();
 }
@@ -952,7 +1082,7 @@ static void sub_1548()
 
 // Sets the active region and optionally clears it.
 // seg000:0x155E
-static void ui_region_set_active(struct unknown_302 *arg1, bool clear)
+static void ui_region_set_active(struct ui_region *arg1, bool clear)
 {
   ptr_029C = arg1;
 
@@ -986,7 +1116,7 @@ static void sub_159E(const char *str)
   word_33E = str;
 
   // 15AA
-  struct unknown_302 *si = ptr_029C;
+  struct ui_region *si = ptr_029C;
 
   // Not exactly correct, there's checking for certain new line characters.
   plot_font_str(str, strlen(str));
@@ -1027,7 +1157,7 @@ static void plot_font_str(const char *str, int len)
   // di = str
   // al = es:di
   // cx = len
-  struct unknown_302 *si = ptr_029C;
+  struct ui_region *si = ptr_029C;
 
   for (int i = 0; i < len; i++) {
     plot_font_chr(str[i], si->data_08, si->data_14, si->data_0A);
@@ -1040,7 +1170,7 @@ static void plot_font_str(const char *str, int len)
 // "Welcome", 2, 0xB
 static void sub_168E(const char *str, int arg2, int arg3)
 {
-  struct unknown_302 *si = ptr_029C;
+  struct ui_region *si = ptr_029C;
 
   if (arg2 != -1) {
     si->data_08 = arg2 + si->data_00;
@@ -1083,10 +1213,10 @@ static void sub_1778(uint8_t chr_index, int i, int line_num)
 static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
 {
   uint8_t bl = byte_028F;
+  bool do_xor = false;
 
   if (bl != 0) {
-    printf("%s:0x1839 not finished\n", __func__);
-    exit(1);
+    do_xor = true;
   }
 
   uint16_t ax = base;
@@ -1111,9 +1241,21 @@ static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
   // fonts are stored in 4 x 8
   for (int k = 0; k < 8; k++) {
     // copy words from ds:si to es:di
-    memcpy(es, font_si, 4);
-    font_si += 4;
-    es += 4;
+    uint16_t value = *((uint16_t *)font_si);
+    if (do_xor) {
+      value = value ^ 0xFFFF;
+    }
+    *((uint16_t *)es) = value;
+    font_si += 2;
+    es += 2;
+
+    value = *((uint16_t *)font_si);
+    if (do_xor) {
+      value = value ^ 0xFFFF;
+    }
+    *((uint16_t *)es) = value;
+    font_si += 2;
+    es += 2;
 
     es += 0x9C; // next line
   }

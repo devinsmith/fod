@@ -32,6 +32,10 @@ extern "C" {
 // seg000:173D
 uint8_t game_random();
 
+// Generates a random number in the range of val1 and val2
+// seg000:16FF
+uint8_t game_random_range(uint16_t val1, uint16_t val2);
+
 #ifdef __cplusplus
 }
 #endif
