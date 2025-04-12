@@ -7,6 +7,6 @@
 
 The game depends on several different data files which are documented below:
 
-[disk1](disk1.md)
-[font](font.md)
-[gani](gani.md)
+* [disk1](disk1.md)
+* [font](font.md)
+* [gani](gani.md)
