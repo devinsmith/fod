@@ -243,61 +243,28 @@ shifted(const SDL_Keysym *key)
   return key->sym;
 }
 
-static uint16_t get_key()
+static uint8_t pollkey(unsigned int ms)
 {
-  SDL_Event e;
+  SDL_Event event;
+  uint8_t key = 0;
 
-  while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_KEYDOWN) {
-      const SDL_KeyboardEvent *ke = &e.key;
-      const SDL_Keysym *ksym = &ke->keysym;
-
-      // Under DOS we capture both the key code and the scan code.
-      // in AX (AH/AL). Certain keys, like Ctrl, arrow keys, etc
-      // have an AL value of 0x00
-      //
-      // 0x2E7B (arrow keys)
-      if (ksym->sym == SDLK_LEFT)
-        return 0x88;
-      if (ksym->sym == SDLK_RIGHT)
-        return 0x95;
-      if (ksym->sym == SDLK_DOWN)
-        return 0x8A;
-      if (ksym->sym == SDLK_UP)
-        return 0x8B;
-
-      // Add special cases.
-      // Special case to capture + key on some keyboards.
-      if ((ksym->sym == SDLK_EQUALS && ksym->mod & KMOD_SHIFT) ||
-          ksym->sym == SDLK_PLUS) {
-        return 0x2B | 0x80;
-      }
-
-      // Special case to capture ? key.
-      if ((ksym->sym == SDLK_SLASH && ksym->mod & KMOD_SHIFT) ||
-          ksym->sym == SDLK_QUESTION) {
-        printf("question mark ?\n");
-        return 0x3F | 0x80;
-      }
-
-      // Normal keys.
-      if ((ksym->sym & SDLK_SCANCODE_MASK) == 0) {
-        printf("sym: 0x%08X\n", ksym->sym);
-        printf("mod: 0x%04X\n", ksym->mod);
-        printf("scan: 0x%04X\n", ksym->scancode);
-        if (ksym->mod & KMOD_CTRL) {
-          if (ksym->sym == SDLK_s) {
-            return 0x13 | 0x80;
-          }
-        }
-        if (ksym->mod & KMOD_SHIFT) {
-          return shifted(ksym) | 0x80;
-        }
-        return (uint8_t)ksym->sym | 0x80;
-      }
-    }
+  if (SDL_WaitEventTimeout(&event, ms) == 0) {
+    return 0;
   }
-  return 0;
+
+  switch (event.type) {
+  case SDL_QUIT:
+    exit(0);
+    break;
+
+  case SDL_KEYDOWN:
+    SDL_Keysym keysym = event.key.keysym;
+
+    key = (uint8_t)keysym.sym;
+    break;
+  }
+
+  return key;
 }
 
 static int handle_key(SDL_Event *e)
@@ -357,7 +324,7 @@ struct vga_driver sdl_driver = {
   display_update,
   waitkey,
   get_fb_mem,
-  get_key,
+  pollkey,
   poll_events,
   delay,
   ticks

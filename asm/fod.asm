@@ -922,7 +922,7 @@ ui_active_region_clear:
   ret
 
 ; 0x168E
-sub_168E:
+ui_region_print_str:
   push bp
   mov  bp,sp
   push si

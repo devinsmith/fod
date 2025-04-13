@@ -95,10 +95,10 @@ void vga_update()
   }
 }
 
-uint16_t vga_getkey()
+uint8_t vga_pollkey(unsigned int ms)
 {
-  if (sys_ctx != NULL && sys_ctx->getkey != NULL) {
-    return sys_ctx->getkey();
+  if (sys_ctx != NULL && sys_ctx->pollkey != NULL) {
+    return sys_ctx->pollkey(ms);
   }
   return 0;
 }

@@ -76,10 +76,10 @@ static const struct attr_coordinates attributes[] = {
 
 // DSEG:0x028F
 // Will contain 0x00 or 0xFF
-static uint8_t byte_028F = 0;
+static uint8_t inverse_flag = 0;
 
 // DSEG:0x029C
-static struct ui_region *ptr_029C;
+static struct ui_region *active_region;
 
 // DSEG:0x029E
 static struct ui_rect data_029E = { 0, 0, 160, 200 };
@@ -212,6 +212,7 @@ static uint16_t disk1_bytes_offsets[] = {
 // DSEG:0x3E66
 static struct resource *border_res;
 
+static void sub_14B3(struct ui_rect *input);
 static void sub_14D5(struct ui_rect *input);
 static void sub_14FF(int offset);
 static void sub_1548();
@@ -220,7 +221,7 @@ static void ui_active_region_clear();
 static void sub_159E();
 static void plot_font_str(const char *str, int len);
 static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
-static void sub_168E(const char *str, int arg2, int arg3);
+static void ui_region_print_str(const char *str, int arg2, int arg3);
 static void sub_1778(uint8_t chr_index, int i, int line_num);
 static void sub_3290(uint16_t offset, const char *name);
 
@@ -521,7 +522,7 @@ static void sub_04EA(uint16_t arg1)
 
 static void sub_1631()
 {
-  struct ui_region *si = ptr_029C;
+  struct ui_region *si = active_region;
 
   if (si->data_1A != NULL) {
     sub_14D5(si->data_1A);
@@ -536,7 +537,7 @@ static void sub_0010(const char *arg1, uint16_t arg2)
 
   snprintf(output, sizeof(output), "%s", arg1);
 
-  struct ui_region *bx = ptr_029C;
+  struct ui_region *bx = active_region;
   uint16_t ax = bx->rect.width;
 
   uint16_t cx = 2;
@@ -556,7 +557,55 @@ static void sub_0010(const char *arg1, uint16_t arg2)
   ax = ax >> 1;
 
   // push ax
-  sub_168E(output, ax, arg2);
+  ui_region_print_str(output, ax, arg2);
+}
+
+// seg000:0x0618
+static void sub_618(int char_index, int arg2, int arg3)
+{
+  struct ui_region *original_region = active_region;
+
+  ui_region_set_active(&unknown_2CA, false);
+  ui_active_region_clear();
+
+  uint8_t party_size = disk1_bytes[49]; // party size.
+  // Display characters.
+  for (int i = 0; i < party_size; i++) {
+    uint16_t char_offset = disk1_bytes_offsets[i];
+
+    char player_id[16];
+    snprintf(player_id, sizeof(player_id), "F%1d>", i + 1);
+    if (arg3 != 0) {
+      if (arg2 != i) {
+        inverse_flag = 0xFF;
+      }
+    }
+
+    ui_region_print_str(player_id, 0, i);
+    inverse_flag = 0;
+
+    uint8_t al = disk1_bytes[char_offset + 0x48]; // profession
+    al = al << 7;
+    char name_prof[64];
+
+    snprintf(name_prof, sizeof(name_prof), "%-16.16s - %-16.16s",
+             &disk1_bytes[char_offset], arch_offset + al);
+
+    ui_region_print_str(name_prof, 3, i);
+  }
+
+  if (arg3 == 0) {
+    sub_14B3(&active_region->rect);
+  } else {
+    sub_1631();
+  }
+
+
+  // 6B8
+
+  // 0x6DC
+  // Restore original region
+  ui_region_set_active(original_region, false);
 }
 
 // seg000:0x071B
@@ -586,7 +635,7 @@ static void sub_0751(int chr_index)
   uint8_t con = disk1_bytes[char_offset + 0x44];
   snprintf(con_value, sizeof(con_value), "Con:%d", con);
 
-  sub_168E(con_value, 6, 0xB);
+  ui_region_print_str(con_value, 6, 0xB);
 
   sub_1631();
 
@@ -629,7 +678,7 @@ static void sub_07A0(int profession)
       ax += 294;
 
       snprintf(skill, sizeof(skill), "%1d %-10.10s", var_C, hds_bytes + ax);
-      sub_168E(skill, 0, var_8 + 3);
+      ui_region_print_str(skill, 0, var_8 + 3);
       var_8++;
 
     }
@@ -642,7 +691,7 @@ static void sub_07A0(int profession)
       ax += 646;
 
       snprintf(skill, sizeof(skill), "%1d %-10.10s", var_A, hds_bytes + ax);
-      sub_168E(skill, 0xD, var_4 + 3);
+      ui_region_print_str(skill, 0xD, var_4 + 3);
       var_4++;
     }
   }
@@ -650,8 +699,24 @@ static void sub_07A0(int profession)
   // 802
 }
 
+// seg000:089E
+static void show_attribute_points(uint16_t char_offset)
+{
+  ui_region_set_active(&unknown_302, false);
+  uint8_t al = disk1_bytes[char_offset + 0x23];
+
+  char attr_points[16];
+  snprintf(attr_points, sizeof(attr_points), "%2.2d->", al);
+  unknown_302.data_14 = 8;
+  ui_region_print_str(attr_points, 0x24, 0);
+  unknown_302.data_14 = 0;
+  sub_1631();
+
+  ui_region_set_active(&unknown_2CA, false);
+}
+
 // seg000:0x8F5
-static void sub_8F5(int char_number, struct ui_rect *arg2)
+static void sub_8F5(int char_number, int attr_num)
 {
   int var_2 = 0;
 
@@ -671,14 +736,13 @@ static void sub_8F5(int char_number, struct ui_rect *arg2)
     char profession[30];
     snprintf(profession, sizeof(profession), "%1d)%-13.13s", i + 1, prof_ptr);
 
-    sub_168E(profession, 0, i + 1);
+    ui_region_print_str(profession, 0, i + 1);
   }
 
   // 959
 
-  // data_316 = 8;
   unknown_302.data_14 = 8;
-  sub_168E("Attribute Pts: <-", 0x13, 0);
+  ui_region_print_str("Attribute Pts: <-", 0x13, 0);
   unknown_302.data_14 = 0;
 
   uint16_t char_offset = disk1_bytes_offsets[char_number];
@@ -688,21 +752,23 @@ static void sub_8F5(int char_number, struct ui_rect *arg2)
     char attr_val[20];
 
     snprintf(attr_str, sizeof(attr_str), "%3s", attributes[i].str);
-    sub_168E(attr_str, attributes[i].x, attributes[i].y);
+    ui_region_print_str(attr_str, attributes[i].x, attributes[i].y);
 
     uint8_t al = disk1_bytes[char_offset + i + 0x18];
 
     snprintf(attr_val, sizeof(attr_val), "%2u", al);
 
-    byte_028F = 0xFF; // Makes it inverse (or bold)
-    sub_168E(attr_val, attributes[i].x + 3, attributes[i].y);
-    byte_028F = 0;
+    if (i == attr_num) {
+      inverse_flag = 0xFF; // Makes it inverse (or bold)
+    }
+    ui_region_print_str(attr_val, attributes[i].x + 3, attributes[i].y);
+    inverse_flag = 0;
   }
 
   // AOC
-  sub_168E("Sex:", 0x1D, 5);
-  if (arg2 == 7) {
-    byte_028F = 0xFF; // Makes it inverse (or bold)
+  ui_region_print_str("Sex:", 0x1D, 5);
+  if (attr_num == 7) {
+    inverse_flag = 0xFF; // Makes it inverse (or bold)
   }
 
   // 5
@@ -713,11 +779,12 @@ static void sub_8F5(int char_number, struct ui_rect *arg2)
     gender_val = "Female";
   }
 
-  sub_168E(gender_val, 0x22, 5);
+  ui_region_print_str(gender_val, 0x22, 5);
+  inverse_flag = 0;
 
   sub_0751(char_number);
 
-
+  show_attribute_points(char_offset);
 }
 
 // Select a profession. The profession is returned to the caller.
@@ -742,7 +809,7 @@ static int choose_profession()
     snprintf(profession, sizeof(profession), "%1d)%-13.13s", i + 1, prof_ptr);
 
     printf("%s\n", profession);
-    sub_168E(profession, 4, i + 3);
+    ui_region_print_str(profession, 4, i + 3);
     if (i >= 2) {
       // 0xB07
       continue;
@@ -755,7 +822,7 @@ static int choose_profession()
 
       printf("%s\n", profession);
 
-      sub_168E(profession, 0x17, i + 3);
+      ui_region_print_str(profession, 0x17, i + 3);
     }
   }
 
@@ -851,11 +918,32 @@ static void sub_D75(int current_char)
 
   uint16_t char_offset = disk1_bytes_offsets[current_char];
 
-  // Not sure if ui_region is the right variable to pass.
-  sub_8F5(current_char, &unknown_302.rect);
+  sub_8F5(current_char, 0);
+  sub_618(current_char, 1, 1);
 
-  screen_draw(scratch);
-  vga_waitkey();
+  size_t namelen = strlen((char*)disk1_bytes + char_offset);
+  disk1_bytes[char_offset + namelen] = 0x1B; // End?
+  disk1_bytes[char_offset + namelen + 1] = 0x00;
+
+  // Check keyboard input buffer
+  uint8_t key;
+  uint8_t name_end = 0x1B;
+  while ((key = vga_pollkey(220)) == 0) {
+    if (name_end == 0x1B) {
+      name_end = 0x20;
+    } else {
+      name_end = 0x1B;
+    }
+
+    disk1_bytes[char_offset + namelen] = name_end;
+    ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+
+    sub_1631();
+    screen_draw(scratch);
+  }
+
+  // a key has been pressed.
+  printf("Key pressed: 0x%02X\n", key);
 }
 
 // seg000:101B
@@ -962,8 +1050,8 @@ int main(int argc, char *argv[])
 
     sub_0010("Choose a function:", 1);
 
-    sub_168E("A)dd member      R)emove member", 5, 3);
-    sub_168E("E)dit member     P)lay the game", 5, 4);
+    ui_region_print_str("A)dd member      R)emove member", 5, 3);
+    ui_region_print_str("E)dit member     P)lay the game", 5, 4);
     sub_1631();
 
     screen_draw(scratch);
@@ -1084,7 +1172,7 @@ static void sub_1548()
 // seg000:0x155E
 static void ui_region_set_active(struct ui_region *arg1, bool clear)
 {
-  ptr_029C = arg1;
+  active_region = arg1;
 
   if (!clear) {
     return;
@@ -1104,7 +1192,7 @@ static void ui_region_set_active(struct ui_region *arg1, bool clear)
 static void ui_active_region_clear()
 {
   // Get the rectangle from the active region
-  const struct ui_rect *si = &ptr_029C->rect;
+  const struct ui_rect *si = &active_region->rect;
   ui_rect_clear(si);
 }
 
@@ -1116,7 +1204,7 @@ static void sub_159E(const char *str)
   word_33E = str;
 
   // 15AA
-  struct ui_region *si = ptr_029C;
+  struct ui_region *si = active_region;
 
   // Not exactly correct, there's checking for certain new line characters.
   plot_font_str(str, strlen(str));
@@ -1157,7 +1245,7 @@ static void plot_font_str(const char *str, int len)
   // di = str
   // al = es:di
   // cx = len
-  struct ui_region *si = ptr_029C;
+  struct ui_region *si = active_region;
 
   for (int i = 0; i < len; i++) {
     plot_font_chr(str[i], si->data_08, si->data_14, si->data_0A);
@@ -1168,9 +1256,9 @@ static void plot_font_str(const char *str, int len)
 // seg000:0x168E
 // Prints a string within a region, at (x,y) coordinates
 // "Welcome", 2, 0xB
-static void sub_168E(const char *str, int arg2, int arg3)
+static void ui_region_print_str(const char *str, int arg2, int arg3)
 {
-  struct ui_region *si = ptr_029C;
+  struct ui_region *si = active_region;
 
   if (arg2 != -1) {
     si->data_08 = arg2 + si->data_00;
@@ -1212,7 +1300,7 @@ static void sub_1778(uint8_t chr_index, int i, int line_num)
 // seg000:0x17F2
 static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
 {
-  uint8_t bl = byte_028F;
+  uint8_t bl = inverse_flag;
   bool do_xor = false;
 
   if (bl != 0) {
@@ -1223,7 +1311,7 @@ static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
 
   ax *= 8;   // << 4
   uint16_t di = ax;
-  di += line_num;
+  di += line_num / 2;
 
   di = get_160_offset(di);
 
