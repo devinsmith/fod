@@ -66,7 +66,7 @@ uint8_t game_random_range(uint16_t val1, uint16_t val2)
 
   do {
     ret = game_random();
-  } while (ret < val1 && ret > val2);
+  } while (ret < val1 || ret > val2);
 
   return ret;
 }
