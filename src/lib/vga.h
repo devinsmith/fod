@@ -35,7 +35,7 @@ struct vga_driver {
   uint8_t (*pollkey)(unsigned int ms);
   int (*poll)();
   void (*delay)(unsigned int ms);
-  unsigned short (*ticks)();
+  unsigned int (*ticks)();
 };
 
 void register_vga_driver(struct vga_driver *driver);
@@ -50,7 +50,7 @@ void vga_addkey(int key);
 int vga_getkey2();
 int vga_poll_events();
 void sys_delay(unsigned int ms);
-unsigned short sys_ticks();
+unsigned int sys_ticks();
 
 // Intended for use by various vga drivers.
 void video_setup();

@@ -136,13 +136,13 @@ void sys_delay(unsigned int ms)
   }
 }
 
-unsigned short sys_ticks()
+unsigned int sys_ticks()
 {
   if (sys_ctx != NULL && sys_ctx->ticks != NULL) {
     return sys_ctx->ticks();
   }
   // Default?
-  return 0x1234;
+  return 0x12345678;
 }
 
 void vga_addkey(int key)

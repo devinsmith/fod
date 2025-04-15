@@ -266,10 +266,9 @@ static uint8_t pollkey(unsigned int ms)
   SDL_Event event;
   uint8_t key = 0;
 
-  if (SDL_WaitEventTimeout(&event, ms)) {
+//  if (SDL_WaitEventTimeout(&event, ms)) {
 
-//  while (SDL_PollEvent(&event) != 0) {
-
+  while (SDL_PollEvent(&event) != 0) {
     switch (event.type) {
     case SDL_QUIT:
       exit(0);
@@ -329,9 +328,9 @@ static void delay(unsigned int ms)
   SDL_Delay(ms);
 }
 
-static unsigned short ticks()
+static unsigned int ticks()
 {
-  return SDL_GetTicks() & 0xFFFF;
+  return SDL_GetTicks();
 }
 
 struct vga_driver sdl_driver = {

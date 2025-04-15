@@ -926,13 +926,63 @@ static void sub_D75(int current_char)
   disk1_bytes[char_offset + namelen] = name_end;
   disk1_bytes[char_offset + namelen + 1] = 0x00;
 
+  bool dirty = false;
+
+  unsigned int last_time = sys_ticks();
   while (1) {
-    //sub_1631(); // Not correct.
-    //screen_draw(scratch);
+    if (dirty) {
+      sub_1631();
+      screen_draw(scratch);
+      dirty = false;
+    }
 
     // Check keyboard input buffer
-    uint8_t key;
-    while ((key = vga_pollkey(220)) == 0) {
+    uint8_t key = vga_pollkey(220);
+    if (key != 0) {
+
+      // a key has been pressed.
+      printf("Key pressed: 0x%02X\n", key);
+
+      // Special cases for different keys
+      // EFB?
+
+      // E16
+
+      // FB6
+      if (key == 0x08) {
+        if (namelen > 0) {
+          // Backspace
+          name_end = 0x1B;
+          disk1_bytes[char_offset + namelen] = ' ';
+          disk1_bytes[char_offset + namelen - 1] = 0x1B;
+
+          ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+          dirty = true;
+          namelen--;
+        }
+      } else if (key == 0x31) {
+
+      } else if (key == 0x35) {
+
+      } else if (key == 0x3B) {
+
+      } else if (key == 0x3D) {
+
+      } else {
+        if (namelen < 12) {
+          disk1_bytes[char_offset + namelen] = key;
+
+          namelen++;
+          dirty = true;
+          ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+        }
+      }
+    }
+
+    unsigned int now_time = sys_ticks();
+    if (now_time - last_time >= 300) {
+      last_time = now_time;
+
       if (name_end == 0x1B) {
         name_end = 0x20;
       } else {
@@ -944,44 +994,10 @@ static void sub_D75(int current_char)
 
       sub_1631();
       screen_draw(scratch);
-      //sys_delay(220);
     }
 
-    // a key has been pressed.
-    printf("Key pressed: 0x%02X\n", key);
-
-    // Special cases for different keys
-    // EFB?
-
-    // E16
-
-    // FB6
-    if (key == 0x08) {
-      if (namelen > 0) {
-        // Backspace
-        name_end = 0x1B;
-        disk1_bytes[char_offset + namelen] = ' ';
-        disk1_bytes[char_offset + namelen - 1] = 0x1B;
-
-        ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
-      sub_1631();
-      screen_draw(scratch);
-        namelen--;
-      }
-    } else if (key == 0x31) {
-
-    } else if (key == 0x35) {
-
-    } else if (key == 0x3B) {
-
-    } else if (key == 0x3D) {
-
-    } else {
-      if (namelen < 12) {
-        disk1_bytes[char_offset + namelen] = key;
-
-        namelen++;
-      }
+    if (!dirty) {
+      sys_delay(10);
     }
   }
 }
