@@ -922,28 +922,68 @@ static void sub_D75(int current_char)
   sub_618(current_char, 1, 1);
 
   size_t namelen = strlen((char*)disk1_bytes + char_offset);
-  disk1_bytes[char_offset + namelen] = 0x1B; // End?
+  uint8_t name_end = 0x1B;
+  disk1_bytes[char_offset + namelen] = name_end;
   disk1_bytes[char_offset + namelen + 1] = 0x00;
 
-  // Check keyboard input buffer
-  uint8_t key;
-  uint8_t name_end = 0x1B;
-  while ((key = vga_pollkey(220)) == 0) {
-    if (name_end == 0x1B) {
-      name_end = 0x20;
-    } else {
-      name_end = 0x1B;
+  while (1) {
+    //sub_1631(); // Not correct.
+    //screen_draw(scratch);
+
+    // Check keyboard input buffer
+    uint8_t key;
+    while ((key = vga_pollkey(220)) == 0) {
+      if (name_end == 0x1B) {
+        name_end = 0x20;
+      } else {
+        name_end = 0x1B;
+      }
+
+      disk1_bytes[char_offset + namelen] = name_end;
+      ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+
+      sub_1631();
+      screen_draw(scratch);
+      //sys_delay(220);
     }
 
-    disk1_bytes[char_offset + namelen] = name_end;
-    ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+    // a key has been pressed.
+    printf("Key pressed: 0x%02X\n", key);
 
-    sub_1631();
-    screen_draw(scratch);
+    // Special cases for different keys
+    // EFB?
+
+    // E16
+
+    // FB6
+    if (key == 0x08) {
+      if (namelen > 0) {
+        // Backspace
+        name_end = 0x1B;
+        disk1_bytes[char_offset + namelen] = ' ';
+        disk1_bytes[char_offset + namelen - 1] = 0x1B;
+
+        ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+      sub_1631();
+      screen_draw(scratch);
+        namelen--;
+      }
+    } else if (key == 0x31) {
+
+    } else if (key == 0x35) {
+
+    } else if (key == 0x3B) {
+
+    } else if (key == 0x3D) {
+
+    } else {
+      if (namelen < 12) {
+        disk1_bytes[char_offset + namelen] = key;
+
+        namelen++;
+      }
+    }
   }
-
-  // a key has been pressed.
-  printf("Key pressed: 0x%02X\n", key);
 }
 
 // seg000:101B

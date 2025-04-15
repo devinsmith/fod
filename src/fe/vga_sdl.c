@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <SDL.h>
 
@@ -200,11 +201,27 @@ display_update(void)
   SDL_DestroyTexture(texture);
 }
 
+static uint8_t translate_key(SDL_Event *e)
+{
+  const SDL_KeyboardEvent *ke = &e->key;
+  const SDL_Keysym *ksym = &ke->keysym;
+  uint8_t keyCode = 0;
+
+  if ((ksym->sym & SDLK_SCANCODE_MASK) == 0) {
+    keyCode = (uint8_t)ksym->sym;
+    if (ksym->mod & KMOD_SHIFT) {
+      keyCode -= 0x20;
+    }
+  }
+
+  return keyCode;
+}
+
 uint8_t waitkey()
 {
   SDL_Event event;
   uint8_t key = 0;
-  int done = 0;
+  bool done = false;
 
   while (!done) {
 
@@ -215,10 +232,11 @@ uint8_t waitkey()
       break;
 
     case SDL_KEYDOWN:
-      SDL_Keysym keysym = event.key.keysym;
-      done = 1;
+      key = translate_key(&event);
+      if (key != 0) {
+        done = true;
+      }
 
-      key = (uint8_t)keysym.sym;
       break;
     }
   }
@@ -248,20 +266,19 @@ static uint8_t pollkey(unsigned int ms)
   SDL_Event event;
   uint8_t key = 0;
 
-  if (SDL_WaitEventTimeout(&event, ms) == 0) {
-    return 0;
-  }
+  if (SDL_WaitEventTimeout(&event, ms)) {
 
-  switch (event.type) {
-  case SDL_QUIT:
-    exit(0);
-    break;
+//  while (SDL_PollEvent(&event) != 0) {
 
-  case SDL_KEYDOWN:
-    SDL_Keysym keysym = event.key.keysym;
+    switch (event.type) {
+    case SDL_QUIT:
+      exit(0);
+      break;
 
-    key = (uint8_t)keysym.sym;
-    break;
+    case SDL_KEYDOWN:
+      key = translate_key(&event);
+      break;
+    }
   }
 
   return key;
