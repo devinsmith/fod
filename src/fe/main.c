@@ -21,8 +21,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "hexdump.h"
 #include "fileio.h"
+#include "game.h"
+#include "hexdump.h"
 #include "random.h"
 #include "resource.h"
 #include "tables.h"
@@ -212,7 +213,7 @@ static uint16_t disk1_bytes_offsets[] = {
 // DSEG:0x3E66
 static struct resource *border_res;
 
-static void sub_14B3(struct ui_rect *input);
+static void sub_14B3(struct ui_rect const *input);
 static void sub_14D5(struct ui_rect *input);
 static void sub_14FF(int offset);
 static void sub_1548();
@@ -254,24 +255,6 @@ static void do_title()
 
   resource_release(title_res);
 }
-
-
-#if 0
-// seg000:0x3BFA
-// Inputs CL ? (5)
-void sub_3BFA(int counter)
-{
-  if (counter == 0) {
-    return;
-  }
-
-  for (int i = 0; i < counter; i++) {
-    int carry = (ax & 0x8000) ? 1 : 0;
-    ax = ax << 1;
-    dx = (dx << 1) | carry;
-  }
-}
-#endif
 
 // seg000:0090
 //
@@ -326,7 +309,6 @@ void game_mem_alloc()
 
   memset(scratch, 0, 32000);
 }
-
 
 // seg000:0105
 static int sub_0105()
@@ -568,7 +550,7 @@ static void sub_618(int char_index, int arg2, int arg3)
   ui_region_set_active(&unknown_2CA, false);
   ui_active_region_clear();
 
-  uint8_t party_size = disk1_bytes[49]; // party size.
+  uint8_t party_size = g_game_state.party_size; // party size.
   // Display characters.
   for (int i = 0; i < party_size; i++) {
     uint16_t char_offset = disk1_bytes_offsets[i];
@@ -911,6 +893,38 @@ static void sub_B86(int arg1, int profession)
   word_0076 = 0;
 }
 
+// seg000:0x0C58
+static void sub_C58(int current_char, int stat_id)
+{
+  uint16_t char_offset = disk1_bytes_offsets[current_char];
+
+  int profession = word_33DE;
+  
+  char *prof_ptr = (char *)arch_offset + (profession * 128);
+
+  if (stat_id < 7) {
+    // C80
+    if (disk1_bytes[char_offset + 0x23] == 0) {
+      // No attribute points to distribute
+      return;
+    }
+
+    uint8_t current_stat = disk1_bytes[char_offset + 0x18 + stat_id];
+    if (current_stat > prof_ptr[stat_id + 0x20]) {
+      // Don't allow incrementing stat above professions max
+      return;
+    }
+    disk1_bytes[char_offset + 0x18 + stat_id] = current_stat + 1;
+    disk1_bytes[char_offset + 0x23]--;
+  } else {
+    // CA7
+  }
+
+  // CD3
+  sub_8F5(current_char, stat_id);
+}
+
+// seg000:0x0D75
 static void sub_D75(int current_char)
 {
   int var_6 = 0;
@@ -944,6 +958,13 @@ static void sub_D75(int current_char)
       printf("Key pressed: 0x%02X\n", key);
 
       // Special cases for different keys
+      if (key == 0xFA) {
+        // Right arrow
+        sub_C58(current_char, var_A);
+      } else if (key == 0xFB) {
+        // Left arrow
+        // sub_CE5(current_char, var_A)
+      }
       // EFB?
 
       // E16
@@ -1007,7 +1028,7 @@ static void sub_D75(int current_char)
 static int sub_101B()
 {
   // Check party size
-  if (disk1_bytes[49] == 3) {
+  if (g_game_state.party_size == 3) {
     // Don't add any more characters
     return 0;
   }
@@ -1019,8 +1040,8 @@ static int sub_101B()
   }
 
   word_33DE = profession;
-  int current_char = disk1_bytes[49];
-  disk1_bytes[49] = current_char + 1;
+  uint8_t current_char = g_game_state.party_size;
+  g_game_state.party_size = current_char + 1;
 
   // Initialize some data
   sub_B86(current_char, profession);
@@ -1060,10 +1081,11 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  int saved_game = sub_0105();
-  printf("Saved game: %d\n", saved_game);
-  video_mode = disk1_bytes[6];
-  printf("Video Mode: %d\n", video_mode);
+  bool saved_game = load_game_state();
+  sub_0105();
+  printf("Saved game: %s\n", saved_game ? "true" : "false");
+  video_mode = g_game_state.video_mode;
+  printf("Video Mode: %d\n", g_game_state.video_mode);
 
   sub_02E5(saved_game);
 
@@ -1078,9 +1100,7 @@ int main(int argc, char *argv[])
 
   word_231C = 0;
   word_35E4 = 0xFFFF;
-  /*
   word_33DE = 0;
-  */
 
   do_title();
 
@@ -1129,14 +1149,14 @@ int main(int argc, char *argv[])
     } else {
       // jmp 13C5
       if (key == 'E') {
-        if (disk1_bytes[49] == 0) {
+        if (g_game_state.party_size == 0) {
           // 138C
           sub_1164("edit");
         } else {
         }
       } else if (key == 'P') {
         // 1391
-        if (disk1_bytes[49] == 0) {
+        if (g_game_state.party_size == 0) {
           ui_active_region_clear();
           sub_0010("It's tough out there!", 1);
           sub_0010("You should take somebody with you.", 3);
@@ -1149,7 +1169,7 @@ int main(int argc, char *argv[])
         }
         
       } else if (key == 'R') {
-        if (disk1_bytes[49] == 0) {
+        if (g_game_state.party_size == 0) {
           sub_1164("remove");
         } else {
 
@@ -1180,7 +1200,7 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-static void sub_14B3(struct ui_rect *input)
+static void sub_14B3(const struct ui_rect *input)
 {
   uint16_t ax = input->x_pos;  // 0
   uint16_t di = input->width;  // A0

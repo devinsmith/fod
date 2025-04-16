@@ -68,7 +68,11 @@ void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si)
   ax = ax << 1;
   si += ax;
 
-  printf("%s is not completely finished\n", __func__);
+  ptr_0CCE->arg2 = si;
+  di = ptr_0CCE->arg5;
+
+
+//  printf("%s is not completely finished\n", __func__);
 }
 
 void ui_sub_034D()

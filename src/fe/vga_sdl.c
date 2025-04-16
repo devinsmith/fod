@@ -207,6 +207,15 @@ static uint8_t translate_key(SDL_Event *e)
   const SDL_Keysym *ksym = &ke->keysym;
   uint8_t keyCode = 0;
 
+  // Special cases specific to FOD.
+  if (ksym->sym == SDLK_RIGHT) {
+    return 0xFA;
+  }
+
+  if (ksym->sym == SDLK_LEFT) {
+    return 0xFB;
+  }
+
   if ((ksym->sym & SDLK_SCANCODE_MASK) == 0) {
     keyCode = (uint8_t)ksym->sym;
     if (ksym->mod & KMOD_SHIFT) {

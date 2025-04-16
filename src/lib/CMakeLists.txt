@@ -6,6 +6,7 @@ set(TARGET_NAME common)
 set(SOURCES bufio.c bufio.h
   compress.c compress.h
   fileio.c fileio.h
+  game.c game.h
   hexdump.c hexdump.h
   random.c random.h
   resource.c resource.h
