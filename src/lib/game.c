@@ -59,16 +59,18 @@ static uint16_t read_uint16()
 }
 
 /* Read a uint32_t value */
-static uint32_t read_uint32() {
+static uint32_t read_uint32()
+{
   uint8_t bytes[4];
 
   read_bytes(bytes, 4);
 
   /* Assuming little-endian storage in the file */
-  return (uint32_t)((bytes[3] << 24) | (bytes[2] << 16) | (bytes[1] << 8) | bytes[0]);
+  return (uint32_t)((bytes[3] << 24) |
+      (bytes[2] << 16) | (bytes[1] << 8) | bytes[0]);
 }
 
-static void skip_bytes(size_t count)
+static void advance_reader(size_t count)
 {
   disk1_offset += count;
 }
@@ -79,7 +81,8 @@ static void jump_to_offset(size_t offset)
 }
 
 /* Function to read an item_rec from file */
-static void read_item_rec(struct item_rec *item) {
+static void read_item_rec(struct item_rec *item)
+{
   item->item_id = read_uint8();
 
   for (int i = 0; i < 5; i++) {
@@ -88,19 +91,25 @@ static void read_item_rec(struct item_rec *item) {
 }
 
 /* Function to read a player_rec from file */
-static void read_player_rec(struct player_rec *player) {
+static void read_player_rec(struct player_rec *player)
+{
   /* Read player name (12 chars) */
   read_bytes(player->name, 12);
 
+  advance_reader(2); // Skip 12 bytes
+
   /* Read player stats */
   player->profession = read_uint8();
-  player->strength = read_uint8();
-  player->intelligence = read_uint8();
-  player->dexterity = read_uint8();
-  player->willpower = read_uint8();
-  player->aptitude = read_uint8();
-  player->charisma = read_uint8();
-  player->luck = read_uint8();
+  advance_reader(1);
+  player->gender = read_uint8();
+  player->unknown_51 = read_uint8();
+
+  read_bytes(player->attributes, sizeof(player->attributes));
+  /* Assuming attributes are stored in the order:
+   * Strength, Intelligence, Dexterity, Willpower, Aptitude,
+   * Charisma, Luck, Unknown (0x59), Unknown (0x5A),
+   * Unknown (0x5B), Unknown (0x5C)
+   */
   player->attribute_points = read_uint8();
 
   /* Read active skills */
@@ -187,16 +196,27 @@ bool load_game_state()
     exit(1);
   }
 
-  g_game_state.party_size = 0; // Number of players in party
   for (int i = 0; i < 5; i++) {
     g_game_state.party_order[i] = 0;
     g_game_state.players[i].name[0] = '\0';
     g_game_state.players[i].unknown_8C = 6; // ???
 
     // Initialize items array
-    g_game_state.players[i].items[0].item_id = 0xFF;
+    for (int n = 0; n < 32; n++) {
+      g_game_state.players[i].items[n].item_id = 0xFF;
+      for (int j = 0; j < 5; j++) {
+        g_game_state.players[i].items[n].props[j] = 0;
+      }
+    }
+
+    // 0x01DF (TODO)
+    g_game_state.players[i].items[0].item_id = 2; // Handgun?
   }
-  // 0x018E (TODO)
+
+  // 0x298
+  g_game_state.money = 100;
+
+  g_game_state.party_size = 0; // Number of players in the party
 
   return g_game_state.saved_game != 0;
 }

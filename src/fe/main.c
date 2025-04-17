@@ -183,9 +183,6 @@ static uint8_t byte_231A = 0;
 // DSEG:0x231C
 static uint16_t word_231C = 0;
 
-// DSEG:0x231E - 0x31DE
-static unsigned char disk1_bytes[3776];
-
 static uint16_t word_33DE = 0;
 static uint16_t word_35E4 = 0xFFFF;
 
@@ -224,7 +221,7 @@ static void plot_font_str(const char *str, int len);
 static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 static void ui_region_print_str(const char *str, int arg2, int arg3);
 static void sub_1778(uint8_t chr_index, int i, int line_num);
-static void sub_3290(uint16_t offset, const char *name);
+static void sub_3290(int char_num, const char *name);
 
 static void screen_draw(const unsigned char *bytes)
 {
@@ -308,36 +305,6 @@ void game_mem_alloc()
   sub_90();
 
   memset(scratch, 0, 32000);
-}
-
-// seg000:0105
-static int sub_0105()
-{
-  FILE *fp = fopen("disk1", "rb");
-  if (fp == NULL) {
-    fprintf(stderr, "Couldn't read disk1, exiting!\n");
-    exit(1);
-  }
-
-  fread(disk1_bytes, 1, sizeof(disk1_bytes), fp);
-  fclose(fp);
-
-  uint16_t word2 = (disk1_bytes[3] << 8) | disk1_bytes[2];
-  uint16_t saved_game = (disk1_bytes[1] << 8) | disk1_bytes[0];
-
-  // TODO:
-  // This does a number of other manipulations of disk1_bytes based on whether
-  // we're dealing with a saved game or not. For a new game, we have to
-  // initialize a number of data components to 0.
-
-  if (word2 != 0) {
-    fprintf(stderr, "Second word of disk1 is not 0, unhandled (CS: 0x014D)!\n");
-    exit(1);
-  }
-
-  disk1_bytes[49] = 0; // Number of players in party
-
-  return saved_game != 0;
 }
 
 // seg000:02E5
@@ -553,8 +520,6 @@ static void sub_618(int char_index, int arg2, int arg3)
   uint8_t party_size = g_game_state.party_size; // party size.
   // Display characters.
   for (int i = 0; i < party_size; i++) {
-    uint16_t char_offset = disk1_bytes_offsets[i];
-
     char player_id[16];
     snprintf(player_id, sizeof(player_id), "F%1d>", i + 1);
     if (arg3 != 0) {
@@ -566,12 +531,12 @@ static void sub_618(int char_index, int arg2, int arg3)
     ui_region_print_str(player_id, 0, i);
     inverse_flag = 0;
 
-    uint8_t al = disk1_bytes[char_offset + 0x48]; // profession
+    uint8_t al = g_game_state.players[i].profession; // profession
     al = al << 7;
     char name_prof[64];
 
     snprintf(name_prof, sizeof(name_prof), "%-16.16s - %-16.16s",
-             &disk1_bytes[char_offset], arch_offset + al);
+             g_game_state.players[i].name, arch_offset + al);
 
     ui_region_print_str(name_prof, 3, i);
   }
@@ -607,14 +572,14 @@ void sub_071B(uint16_t arg1, const char *arg2)
 
 // seg000:0x0751
 // Draws CON:
-static void sub_0751(int chr_index)
+static void draw_con(int chr_index)
 {
   ui_region_set_active(&unknown_2E6, false);
 
   char con_value[32];
 
-  uint16_t char_offset = disk1_bytes_offsets[chr_index];
-  uint8_t con = disk1_bytes[char_offset + 0x44];
+  //uint8_t con = disk1_bytes[char_offset + 0x44];
+  uint8_t con = g_game_state.players[chr_index].condition;
   snprintf(con_value, sizeof(con_value), "Con:%d", con);
 
   ui_region_print_str(con_value, 6, 0xB);
@@ -626,12 +591,14 @@ static void sub_0751(int chr_index)
 
 // seg000:0x07A0
 // Draws skills.
-static void sub_07A0(int profession)
+static void sub_07A0()
 {
   uint16_t var_4;
   uint16_t var_8;
   uint8_t var_A;
   uint8_t var_C;
+
+  int profession = word_33DE;
 
   var_8 = 0;
   var_4 = 0;
@@ -682,10 +649,10 @@ static void sub_07A0(int profession)
 }
 
 // seg000:089E
-static void show_attribute_points(uint16_t char_offset)
+static void show_attribute_points(int char_number)
 {
   ui_region_set_active(&unknown_302, false);
-  uint8_t al = disk1_bytes[char_offset + 0x23];
+  uint8_t al = g_game_state.players[char_number].attribute_points;
 
   char attr_points[16];
   snprintf(attr_points, sizeof(attr_points), "%2.2d->", al);
@@ -727,8 +694,6 @@ static void sub_8F5(int char_number, int attr_num)
   ui_region_print_str("Attribute Pts: <-", 0x13, 0);
   unknown_302.data_14 = 0;
 
-  uint16_t char_offset = disk1_bytes_offsets[char_number];
-
   for (int i = 0; i < 7; i++) {
     char attr_str[30];
     char attr_val[20];
@@ -736,7 +701,7 @@ static void sub_8F5(int char_number, int attr_num)
     snprintf(attr_str, sizeof(attr_str), "%3s", attributes[i].str);
     ui_region_print_str(attr_str, attributes[i].x, attributes[i].y);
 
-    uint8_t al = disk1_bytes[char_offset + i + 0x18];
+    uint8_t al = g_game_state.players[char_number].attributes[i];
 
     snprintf(attr_val, sizeof(attr_val), "%2u", al);
 
@@ -755,7 +720,7 @@ static void sub_8F5(int char_number, int attr_num)
 
   // 5
   // 0x22
-  uint8_t gender = disk1_bytes[char_offset + 0x50];
+  uint8_t gender = g_game_state.players[char_number].gender;
   const char *gender_val = "Male";
   if (gender != 1) {
     gender_val = "Female";
@@ -764,9 +729,9 @@ static void sub_8F5(int char_number, int attr_num)
   ui_region_print_str(gender_val, 0x22, 5);
   inverse_flag = 0;
 
-  sub_0751(char_number);
+  draw_con(char_number);
 
-  show_attribute_points(char_offset);
+  show_attribute_points(char_number);
 }
 
 // Select a profession. The profession is returned to the caller.
@@ -825,7 +790,7 @@ static int choose_profession()
 }
 
 // seg000:0x0B41
-static void sub_B41(uint16_t arg1, int profession)
+static void set_con_val(uint16_t arg1, int profession)
 {
   char *prof_ptr = (char *)arch_bytes + (profession << 7);
 
@@ -835,60 +800,53 @@ static void sub_B41(uint16_t arg1, int profession)
 
   // Set CON to rnd_val??
   // Why is CON in 3 places?
-  disk1_bytes[arg1 + 0x46] = rnd_val;
-  disk1_bytes[arg1 + 0x44] = rnd_val;
-  disk1_bytes[arg1 + 0x122] = rnd_val;
+  g_game_state.players[arg1].condition = rnd_val;
+  g_game_state.players[arg1].max_condition = rnd_val;
+//  disk1_bytes[arg1 + 0x46] = rnd_val;
+//  disk1_bytes[arg1 + 0x44] = rnd_val;
+//  disk1_bytes[arg1 + 0x122] = rnd_val;
 }
 
 // seg000:0x0B86
-static void sub_B86(int arg1, int profession)
+static void init_player(int arg1, int profession)
 {
-  char *prof_ptr = (char *)arch_bytes + (profession << 7);
+  const char *prof_ptr = (char *)arch_bytes + (profession << 7);
 
-  uint16_t ax = 0x14C;
-  ax *= arg1;
-  ax += 58; // disk1 offset 0x2358 - 0x231E
-
-  uint16_t var_6 = ax;
-
-  uint16_t bx = var_6;
   uint8_t al;
   // BAC
-  // Zero out something.
-  for (int i = 0; i < 0xC; i++) {
-    bx = var_6;
-
-    disk1_bytes[bx + i + 0x18] = 0;
+  // Zero out attributes.
+  for (int i = 0; i < 0xB; i++) {
+    g_game_state.players[arg1].attributes[i] = 0;
   }
+  g_game_state.players[arg1].attribute_points = 0;
 
   // BC4
+  // Copy default attributes from profession.
   for (int i = 0; i < 7; i++) {
     al = prof_ptr[i+0x14];
-    bx = var_6;
-    disk1_bytes[bx + i + 0x18] = al;
+    g_game_state.players[arg1].attributes[i] = al;
   }
   // BDC
-  bx = var_6;
   al = prof_ptr[0x33];
-  disk1_bytes[bx + 0x23] = al;
+  g_game_state.players[arg1].attribute_points = al;
 
   // BED
-  for (int i = 0; i < 0x10; i++) {
+  // Copy skills (active and passive) from profession.
+  for (int i = 0; i < 16; i++) {
     al = prof_ptr[i+0x38];
-    bx = var_6;
-    disk1_bytes[bx + i + 0x24] = al;
-
-    disk1_bytes[bx + i + 0x0124] = 0;
+    g_game_state.players[arg1].active_skills[i] = al;
+    //disk1_bytes[bx + i + 0x0124] = 0; ?
     al = prof_ptr[i+0x48];
-    disk1_bytes[bx + i + 0x34] = al;
-    disk1_bytes[bx + i + 0x0134] = 0;
+    g_game_state.players[arg1].passive_skills[i] = al;
+    //disk1_bytes[bx + i + 0x0134] = 0; ?
   }
 
-  disk1_bytes[bx + 0x58] = 0;
-  disk1_bytes[bx + 0x48] = profession;
+  g_game_state.players[arg1].affliction = 0;
+  g_game_state.players[arg1].profession = profession;
   al = prof_ptr[0x7B];
-  disk1_bytes[bx + 0x51] = al;
-  disk1_bytes[bx + 0x50] = 1;
+  g_game_state.players[arg1].unknown_51 = al;
+  g_game_state.players[arg1].gender = 1;
+
 
   word_0076 = 0;
 }
@@ -896,31 +854,77 @@ static void sub_B86(int arg1, int profession)
 // seg000:0x0C58
 static void sub_C58(int current_char, int stat_id)
 {
-  uint16_t char_offset = disk1_bytes_offsets[current_char];
-
   int profession = word_33DE;
-  
+
   char *prof_ptr = (char *)arch_offset + (profession * 128);
 
   if (stat_id < 7) {
     // C80
-    if (disk1_bytes[char_offset + 0x23] == 0) {
+    if (g_game_state.players[current_char].attribute_points == 0) {
       // No attribute points to distribute
       return;
     }
 
-    uint8_t current_stat = disk1_bytes[char_offset + 0x18 + stat_id];
+    uint8_t current_stat = g_game_state.players[current_char].attributes[stat_id];
     if (current_stat > prof_ptr[stat_id + 0x20]) {
       // Don't allow incrementing stat above professions max
       return;
     }
-    disk1_bytes[char_offset + 0x18 + stat_id] = current_stat + 1;
-    disk1_bytes[char_offset + 0x23]--;
+    g_game_state.players[current_char].attributes[stat_id] = current_stat + 1;
+    g_game_state.players[current_char].attribute_points--;
   } else {
     // CA7
+    uint8_t current_gender = g_game_state.players[current_char].gender;
+    if (current_gender == 1) {
+      current_gender = 2;
+      word_0076 = 5;
+    } else {
+      current_gender = 1;
+      word_0076 = 0;
+    }
+    g_game_state.players[current_char].gender = current_gender;
+    sub_07A0();
   }
 
   // CD3
+  sub_8F5(current_char, stat_id);
+}
+
+// seg000:0x0CE5
+static void sub_0CE5(int current_char, int stat_id)
+{
+  int profession = word_33DE;
+
+  char *prof_ptr = (char *)arch_offset + (profession * 128);
+
+  if (stat_id < 7) {
+    // DOD
+    if (g_game_state.players[current_char].attribute_points >= prof_ptr[0x33]) {
+      // Don't allow incrementing attribute points above the max allowed for a given profession.
+      return;
+    }
+
+    uint8_t current_stat = g_game_state.players[current_char].attributes[stat_id];
+    if (current_stat <= prof_ptr[stat_id + 0x14]) {
+      // Don't allow decrementing stat below professions min
+      return;
+    }
+
+    g_game_state.players[current_char].attributes[stat_id] = current_stat - 1;
+    g_game_state.players[current_char].attribute_points++;
+  } else {
+    uint8_t current_gender = g_game_state.players[current_char].gender;
+    if (current_gender == 1) {
+      current_gender = 2;
+      word_0076 = 5;
+    } else {
+      current_gender = 1;
+      word_0076 = 0;
+    }
+    g_game_state.players[current_char].gender = current_gender;
+    sub_07A0();
+  }
+
   sub_8F5(current_char, stat_id);
 }
 
@@ -935,10 +939,10 @@ static void sub_D75(int current_char)
   sub_8F5(current_char, 0);
   sub_618(current_char, 1, 1);
 
-  size_t namelen = strlen((char*)disk1_bytes + char_offset);
+  size_t namelen = strlen(g_game_state.players[current_char].name);
   uint8_t name_end = 0x1B;
-  disk1_bytes[char_offset + namelen] = name_end;
-  disk1_bytes[char_offset + namelen + 1] = 0x00;
+  g_game_state.players[current_char].name[namelen] = (char)name_end;
+  g_game_state.players[current_char].name[namelen + 1] = 0x00;
 
   bool dirty = false;
 
@@ -958,26 +962,30 @@ static void sub_D75(int current_char)
       printf("Key pressed: 0x%02X\n", key);
 
       // Special cases for different keys
-      if (key == 0xFA) {
+      if (key == 0xFD) {
+        // Up arrow
+        var_A += 7;
+        var_A = var_A % 8;
+        sub_8F5(current_char, var_A);
+      } else if (key == 0xFA) {
         // Right arrow
         sub_C58(current_char, var_A);
       } else if (key == 0xFB) {
         // Left arrow
-        // sub_CE5(current_char, var_A)
-      }
-      // EFB?
-
-      // E16
-
-      // FB6
-      if (key == 0x08) {
+        sub_0CE5(current_char, var_A);
+      } else if (key == 0xFC) {
+        // Down arrow
+        var_A++;
+        var_A = var_A % 8;
+        sub_8F5(current_char, var_A);
+      } else if (key == 0x08) {
         if (namelen > 0) {
           // Backspace
           name_end = 0x1B;
-          disk1_bytes[char_offset + namelen] = ' ';
-          disk1_bytes[char_offset + namelen - 1] = 0x1B;
+          g_game_state.players[current_char].name[namelen] = ' ';
+          g_game_state.players[current_char].name[namelen - 1] = (char)0x1B;
 
-          ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+          ui_region_print_str(g_game_state.players[current_char].name, 3, current_char);
           dirty = true;
           namelen--;
         }
@@ -991,11 +999,11 @@ static void sub_D75(int current_char)
 
       } else {
         if (namelen < 12) {
-          disk1_bytes[char_offset + namelen] = key;
+          g_game_state.players[current_char].name[namelen] = (char)key;
 
           namelen++;
           dirty = true;
-          ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+          ui_region_print_str(g_game_state.players[current_char].name, 3, current_char);
         }
       }
     }
@@ -1010,8 +1018,8 @@ static void sub_D75(int current_char)
         name_end = 0x1B;
       }
 
-      disk1_bytes[char_offset + namelen] = name_end;
-      ui_region_print_str((char *)disk1_bytes + char_offset, 3, current_char);
+      g_game_state.players[current_char].name[namelen] = (char)name_end;
+      ui_region_print_str(g_game_state.players[current_char].name, 3, current_char);
 
       sub_1631();
       screen_draw(scratch);
@@ -1044,16 +1052,12 @@ static int sub_101B()
   g_game_state.party_size = current_char + 1;
 
   // Initialize some data
-  sub_B86(current_char, profession);
+  init_player(current_char, profession);
 
-  sub_07A0(profession);
+  sub_07A0();
 
-  uint16_t char_offset = disk1_bytes_offsets[current_char];
-
-  sub_B41(char_offset, profession);
-
-  sub_3290(char_offset, "Ojnab Bob");
-
+  set_con_val(current_char, profession);
+  sub_3290(current_char, "Ojnab Bob");
   sub_D75(current_char);
 
   return current_char;
@@ -1082,7 +1086,6 @@ int main(int argc, char *argv[])
   }
 
   bool saved_game = load_game_state();
-  sub_0105();
   printf("Saved game: %s\n", saved_game ? "true" : "false");
   video_mode = g_game_state.video_mode;
   printf("Video Mode: %d\n", g_game_state.video_mode);
@@ -1425,10 +1428,11 @@ static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
   }
 }
 
-static void sub_3290(uint16_t offset, const char *name)
+static void sub_3290(int char_num, const char *name)
 {
   // XXX: This might not be correct.
-  memcpy(&disk1_bytes[offset], name, strlen(name));
+  strncpy(g_game_state.players[char_num].name, name, 12);
+  g_game_state.players[char_num].name[12] = '\0';
 }
 
 static void sub_32C2(char *data, uint16_t val)

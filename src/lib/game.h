@@ -36,22 +36,30 @@ struct item_rec {
 struct player_rec {
   char name[12];
 
-  uint8_t profession;
+  uint8_t profession; // 0x48
+  uint8_t gender; // 0x50
+  uint8_t unknown_51; // 0x51
 
-  uint8_t strength;
-  uint8_t intelligence;
-  uint8_t dexterity;
-  uint8_t willpower;
-  uint8_t aptitude;
-  uint8_t charisma;
-  uint8_t luck;
+  // 0x52 - 0x5C
+  // 0 - Strength - 0x52
+  // 1 - Intelligence - 0x53
+  // 2 - Dexterity - 0x54
+  // 3 - Willpower - 0x55
+  // 4 - Aptitude - 0x56
+  // 5 - Charisma - 0x57
+  // 6 - Luck - 0x58
+  // Unknown - 0x59
+  // Unknown - 0x5A
+  // Unknown - 0x5B
+  // Unknown - 0x5C
+  uint8_t attributes[11]; // 0x52
 
-  uint8_t attribute_points; // 0x23
+  uint8_t attribute_points; // 0x5D
 
-  uint8_t active_skills[16]; // 0x24
-  uint8_t passive_skills[16]; // 0x34
+  uint8_t active_skills[16]; // 0x5E
+  uint8_t passive_skills[16]; // 0x6E
 
-  uint16_t condition;
+  uint16_t condition;        // 0x44
   uint16_t max_condition;
 
   // Value of 0xFF = no item equitped
@@ -76,6 +84,7 @@ struct player_rec {
   struct item_rec items[32];
 };
 
+// DSEG:0x231E - 0x31DE
 struct game_state {
   uint16_t saved_game;
   uint16_t do_init;

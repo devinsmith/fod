@@ -201,7 +201,7 @@ display_update(void)
   SDL_DestroyTexture(texture);
 }
 
-static uint8_t translate_key(SDL_Event *e)
+static uint8_t translate_key(const SDL_Event *e)
 {
   const SDL_KeyboardEvent *ke = &e->key;
   const SDL_Keysym *ksym = &ke->keysym;
@@ -214,6 +214,14 @@ static uint8_t translate_key(SDL_Event *e)
 
   if (ksym->sym == SDLK_LEFT) {
     return 0xFB;
+  }
+
+  if (ksym->sym == SDLK_DOWN) {
+    return 0xFC;
+  }
+
+  if (ksym->sym == SDLK_UP) {
+    return 0xFD;
   }
 
   if ((ksym->sym & SDLK_SCANCODE_MASK) == 0) {

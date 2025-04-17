@@ -18,6 +18,7 @@ be 5 characters within a party and each character is 332 bytes long.
 |---------------|-------------------------------------------------|
 | 0x3A-0x46     | Name (up to 12 characters, terminated with a 0) |
 | 0x48          | Profession (0 = Survivalist, 1 = Vigalante, etc)|
+| 0x50          | Gender (1 = Male, others = Female)              |
 | 0x52          | Strength                                        |
 | 0x53          | Intelligence                                    |
 | 0x54          | Dexterity                                       |
