@@ -956,9 +956,7 @@ static void sub_D75(int current_char)
     // Check keyboard input buffer
     uint8_t key = vga_pollkey(220);
     if (key != 0 && key != 0xFE) {
-
       // a key has been pressed.
-      printf("Key pressed: 0x%02X\n", key);
 
       // Special cases for different keys
       if (key == 0xFF) {
@@ -987,6 +985,7 @@ static void sub_D75(int current_char)
         sub_8F5(current_char, var_A);
         dirty = true;
       } else if (key >= 0x3B && key <= 0x3D) {
+        // Switch player with F1, F2, F3
         int key_num = key - 0x3B;
 
         if (key_num < g_game_state.party_size) {
@@ -1018,14 +1017,24 @@ static void sub_D75(int current_char)
           dirty = true;
           namelen--;
         }
-      } else if (key == 0x31) {
+      } else if (key >= 0x31 && key <= 0x35) {
+        // Switch profession (or re-roll) with 1, 2, 3, 4, 5
+        int new_prof = key - 0x31;
+        if (new_prof != active_profession) {
+          // Change profession
+          active_profession = new_prof;
 
-      } else if (key == 0x35) {
+          init_player(current_char, active_profession);
+          draw_profession_skills();
+        }
 
-      } else if (key == 0x3B) {
+        // Reroll stats
+        set_con_val(current_char, active_profession);
+        sub_8F5(current_char, var_A);
 
-      } else if (key == 0x3D) {
-
+        sub_618(current_char, 1, 1);
+        ui_region_set_active(&unknown_2CA, false);
+        dirty = true;
       } else {
         if (namelen < 12) {
           g_game_state.players[current_char].name[namelen] = (char)key;
