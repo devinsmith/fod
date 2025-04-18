@@ -34,7 +34,7 @@ struct item_rec {
 };
 
 struct player_rec {
-  char name[12];
+  char name[13];
 
   uint8_t profession; // 0x48
   uint8_t gender; // 0x50

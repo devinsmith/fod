@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16.3)
 
 option(ENABLE_TOOLS "Enable developer tools" OFF)
 option(ENABLE_TESTS "Enable tests" OFF)
+option(ENALBE_SANITIZERS "Enable Address and Undefined Behavior Sanitizers" OFF)
 
 # This code uses "insecure" (as determined by Microsoft) CRT functions
 # Disable warnings about this across the board.

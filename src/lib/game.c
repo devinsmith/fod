@@ -94,7 +94,8 @@ static void read_item_rec(struct item_rec *item)
 static void read_player_rec(struct player_rec *player)
 {
   /* Read player name (12 chars) */
-  read_bytes(player->name, 12);
+  read_bytes(player->name, sizeof(player->name) - 1);
+  player->name[12] = '\0';
 
   advance_reader(2); // Skip 12 bytes
 
