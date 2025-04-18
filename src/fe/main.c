@@ -183,7 +183,9 @@ static uint8_t byte_231A = 0;
 // DSEG:0x231C
 static uint16_t word_231C = 0;
 
-static uint16_t word_33DE = 0;
+// DSEG:0x33DE
+static uint16_t active_profession = 0;
+
 static uint16_t word_35E4 = 0xFFFF;
 
 // DSEG:0x37E6
@@ -522,21 +524,18 @@ static void sub_618(int char_index, int arg2, int arg3)
   for (int i = 0; i < party_size; i++) {
     char player_id[16];
     snprintf(player_id, sizeof(player_id), "F%1d>", i + 1);
-    if (arg3 != 0) {
-      if (arg2 != i) {
-        inverse_flag = 0xFF;
-      }
+    if (arg2 != 0 && char_index == i) {
+      inverse_flag = 0xFF;
     }
 
     ui_region_print_str(player_id, 0, i);
     inverse_flag = 0;
 
     uint8_t al = g_game_state.players[i].profession; // profession
-    al = al << 7;
     char name_prof[64];
 
     snprintf(name_prof, sizeof(name_prof), "%-16.16s - %-16.16s",
-             g_game_state.players[i].name, arch_offset + al);
+             g_game_state.players[i].name, arch_offset + (al * 128));
 
     ui_region_print_str(name_prof, 3, i);
   }
@@ -590,15 +589,15 @@ static void draw_con(int chr_index)
 }
 
 // seg000:0x07A0
-// Draws skills.
-static void sub_07A0()
+// Draws the skills associated with the active profession.
+static void draw_profession_skills()
 {
   uint16_t var_4;
   uint16_t var_8;
   uint8_t var_A;
   uint8_t var_C;
 
-  int profession = word_33DE;
+  int profession = active_profession;
 
   var_8 = 0;
   var_4 = 0;
@@ -854,7 +853,7 @@ static void init_player(int arg1, int profession)
 // seg000:0x0C58
 static void sub_C58(int current_char, int stat_id)
 {
-  int profession = word_33DE;
+  int profession = active_profession;
 
   char *prof_ptr = (char *)arch_offset + (profession * 128);
 
@@ -883,7 +882,7 @@ static void sub_C58(int current_char, int stat_id)
       word_0076 = 0;
     }
     g_game_state.players[current_char].gender = current_gender;
-    sub_07A0();
+    draw_profession_skills();
   }
 
   // CD3
@@ -893,7 +892,7 @@ static void sub_C58(int current_char, int stat_id)
 // seg000:0x0CE5
 static void sub_0CE5(int current_char, int stat_id)
 {
-  int profession = word_33DE;
+  int profession = active_profession;
 
   char *prof_ptr = (char *)arch_offset + (profession * 128);
 
@@ -922,7 +921,7 @@ static void sub_0CE5(int current_char, int stat_id)
       word_0076 = 0;
     }
     g_game_state.players[current_char].gender = current_gender;
-    sub_07A0();
+    draw_profession_skills();
   }
 
   sub_8F5(current_char, stat_id);
@@ -956,28 +955,58 @@ static void sub_D75(int current_char)
 
     // Check keyboard input buffer
     uint8_t key = vga_pollkey(220);
-    if (key != 0) {
+    if (key != 0 && key != 0xFE) {
 
       // a key has been pressed.
       printf("Key pressed: 0x%02X\n", key);
 
       // Special cases for different keys
-      if (key == 0xFD) {
+      if (key == 0xFF) {
+        // Escape key
+        g_game_state.players[current_char].name[namelen] = 0x00;
+        sub_618(current_char, 1, 1);
+        return;
+      } else if (key == 0xFD) {
         // Up arrow
         var_A += 7;
         var_A = var_A % 8;
         sub_8F5(current_char, var_A);
+        dirty = true;
       } else if (key == 0xFA) {
         // Right arrow
         sub_C58(current_char, var_A);
+        dirty = true;
       } else if (key == 0xFB) {
         // Left arrow
         sub_0CE5(current_char, var_A);
+        dirty = true;
       } else if (key == 0xFC) {
         // Down arrow
         var_A++;
         var_A = var_A % 8;
         sub_8F5(current_char, var_A);
+        dirty = true;
+      } else if (key >= 0x3B && key <= 0x3D) {
+        int key_num = key - 0x3B;
+
+        if (key_num < g_game_state.party_size) {
+          int old_char = current_char;
+
+          active_profession = g_game_state.players[key_num].profession;
+          current_char = key_num;
+          word_0076 = 0;
+          draw_profession_skills();
+          sub_8F5(current_char, var_A);
+
+          g_game_state.players[old_char].name[namelen] = 0x00;
+          sub_618(current_char, 1, 1);
+
+          namelen = strlen(g_game_state.players[current_char].name);
+          name_end = 0x1B;
+          g_game_state.players[current_char].name[namelen] = (char)name_end;
+          g_game_state.players[current_char].name[namelen + 1] = 0x00;
+          dirty = true;
+        }
       } else if (key == 0x08) {
         if (namelen > 0) {
           // Backspace
@@ -1047,14 +1076,14 @@ static int sub_101B()
      return 0;
   }
 
-  word_33DE = profession;
+  active_profession = profession;
   uint8_t current_char = g_game_state.party_size;
   g_game_state.party_size = current_char + 1;
 
   // Initialize some data
   init_player(current_char, profession);
 
-  sub_07A0();
+  draw_profession_skills();
 
   set_con_val(current_char, profession);
   sub_3290(current_char, "Ojnab Bob");
@@ -1103,7 +1132,7 @@ int main(int argc, char *argv[])
 
   word_231C = 0;
   word_35E4 = 0xFFFF;
-  word_33DE = 0;
+  active_profession = 0;
 
   do_title();
 

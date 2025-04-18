@@ -224,6 +224,26 @@ static uint8_t translate_key(const SDL_Event *e)
     return 0xFD;
   }
 
+  if (ksym->sym == SDLK_RETURN) {
+    return 0xFE;
+  }
+
+  if (ksym->sym == SDLK_ESCAPE) {
+    return 0xFF;
+  }
+
+  if (ksym->sym == SDLK_F1) {
+    return 0x3B;
+  }
+
+  if (ksym->sym == SDLK_F2) {
+    return 0x3C;
+  }
+
+  if (ksym->sym == SDLK_F3) {
+    return 0x3D;
+  }
+
   if ((ksym->sym & SDLK_SCANCODE_MASK) == 0) {
     keyCode = (uint8_t)ksym->sym;
     if (ksym->mod & KMOD_SHIFT) {
@@ -265,17 +285,6 @@ static uint8_t *
 get_fb_mem()
 {
   return surface->pixels;
-}
-
-static uint16_t
-shifted(const SDL_Keysym *key)
-{
-  if (key->sym >= 'a' && key->sym <= 'z') {
-    return key->sym - 0x20;
-  }
-
-  // Unhandled shift key.
-  return key->sym;
 }
 
 static uint8_t pollkey(unsigned int ms)
