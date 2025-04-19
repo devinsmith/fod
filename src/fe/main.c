@@ -1220,65 +1220,58 @@ int main(int argc, char *argv[])
     if (key == 'A') {
       // 0x1347
       current_char = sub_101B();
-      // jmp loc_1341
-    } else if (key <= 'A') {
-      // 12EF
-    } else {
-      // jmp 13C5
-      if (key == 'E') {
-        if (g_game_state.party_size == 0) {
-          // 138C
-          sub_1164("edit");
+    } else if (key == 'E') {
+      if (g_game_state.party_size == 0) {
+        // 138C
+        sub_1164("edit");
+      } else {
+        // 136E
+        active_profession = g_game_state.players[current_char].profession;
+        uint8_t current_gender = g_game_state.players[current_char].gender;
+        if (current_gender == 1) {
+          word_0076 = 5;
         } else {
-          // 136E
-          active_profession = g_game_state.players[current_char].profession;
-          uint8_t current_gender = g_game_state.players[current_char].gender;
-          if (current_gender == 1) {
-            word_0076 = 5;
-          } else {
-            word_0076 = 0;
-          }
-          draw_profession_skills();
-          current_char = sub_D75(current_char);
+          word_0076 = 0;
         }
-      } else if (key == 'P') {
-        // 1391
-        if (g_game_state.party_size == 0) {
-          ui_active_region_clear();
-          sub_0010("It's tough out there!", 1);
-          sub_0010("You should take somebody with you.", 3);
-          sub_1631();
-          screen_draw(scratch);
-          vga_waitkey();
-        } else {
-          // sub_3E0
-          // jmp 121B
-        }
+        draw_profession_skills();
+        current_char = sub_D75(current_char);
+      }
+    } else if (key == 'P') {
+      // 1391
+      if (g_game_state.party_size == 0) {
+        ui_active_region_clear();
+        sub_0010("It's tough out there!", 1);
+        sub_0010("You should take somebody with you.", 3);
+        sub_1631();
+        screen_draw(scratch);
+        vga_waitkey();
+      } else {
+        // Not done
+      }
+    } else if (key == 'R') {
+      if (g_game_state.party_size == 0) {
+        sub_1164("remove");
+      } else {
+        // 1353
+        current_char = sub_1083(current_char);
+      }
+    } else if (key >= 0x3B && key <= 0x3D) {
+      // Switch player with F1, F2, F3
+      int key_num = key - 0x3B;
 
-      } else if (key == 'R') {
-        if (g_game_state.party_size == 0) {
-          sub_1164("remove");
+      if (key_num < g_game_state.party_size) {
+        current_char = key_num;
+        active_profession = g_game_state.players[current_char].profession;
+        uint8_t current_gender = g_game_state.players[current_char].gender;
+        if (current_gender == 1) {
+          word_0076 = 5;
         } else {
-          // 1353
-          current_char = sub_1083(current_char);
+          word_0076 = 0;
         }
+        draw_profession_skills();
+        current_char = sub_D75(current_char);
       }
     }
-
-    //
-    // 12EF:
-    if (key >= ';') {
-      // 12F7
-    }
-    // jmp 13D7
-
-    // 13D7
-#if 0
-    if (var_A != 0) {
-
-    }
-#endif
-    // jmp 1262
   } while (1);
 
   free(scratch);
