@@ -928,12 +928,9 @@ static void sub_0CE5(int current_char, int stat_id)
 }
 
 // seg000:0x0D75
-static void sub_D75(int current_char)
+static int sub_D75(int current_char)
 {
-  int var_6 = 0;
   int var_A = 0;
-
-  uint16_t char_offset = disk1_bytes_offsets[current_char];
 
   sub_8F5(current_char, 0);
   sub_618(current_char, 1, 1);
@@ -963,7 +960,7 @@ static void sub_D75(int current_char)
         // Escape key
         g_game_state.players[current_char].name[namelen] = 0x00;
         sub_618(current_char, 1, 1);
-        return;
+        return current_char;
       } else if (key == 0xFD) {
         // Up arrow
         var_A += 7;
@@ -1096,9 +1093,46 @@ static int sub_101B()
 
   set_con_val(current_char, profession);
   sub_3290(current_char, "Ojnab Bob");
-  sub_D75(current_char);
+  return sub_D75(current_char);
+}
 
-  return current_char;
+// seg000:1083
+// Remove a character
+static int sub_1083(int char_num)
+{
+  ui_region_set_active(&unknown_302, false);
+  ui_active_region_clear();
+
+  sub_0010("Really remove this member?", 1);
+  sub_0010("Y)es  N)o", 3);
+
+  sub_1631();
+  screen_draw(scratch);
+  uint8_t key = vga_waitkey();
+  // 0x10C9
+  if (key >= 'a' && key <= 'z') {
+    key -= 0x20;  // Transform to uppercase
+  }
+
+  if (key == 'Y') {
+
+    if (char_num < g_game_state.party_size) {
+      // need to move characters up.
+      //
+      for (int start = char_num; start < (g_game_state.party_size - 1); start++) {
+        memcpy(&g_game_state.players[start], &g_game_state.players[start + 1], sizeof(struct player_rec));
+      }
+    }
+
+    g_game_state.party_size--;
+    g_game_state.players[g_game_state.party_size].name[0] = '\0';
+    char_num--;
+
+    sub_618(char_num, 1, 1);
+  }
+
+  ui_region_set_active(&unknown_2CA, false);
+  return char_num;
 }
 
 static void sub_1164(const char *str)
@@ -1154,6 +1188,8 @@ int main(int argc, char *argv[])
 //  int local_val = 0;
   ui_region_set_active(&unknown_302, false);
 
+  int current_char = 0;
+
   do {
     // Only if it's a new game
     sub_071B(0x0033, "Welcome");
@@ -1183,7 +1219,7 @@ int main(int argc, char *argv[])
 
     if (key == 'A') {
       // 0x1347
-      sub_101B();
+      current_char = sub_101B();
       // jmp loc_1341
     } else if (key <= 'A') {
       // 12EF
@@ -1194,6 +1230,16 @@ int main(int argc, char *argv[])
           // 138C
           sub_1164("edit");
         } else {
+          // 136E
+          active_profession = g_game_state.players[current_char].profession;
+          uint8_t current_gender = g_game_state.players[current_char].gender;
+          if (current_gender == 1) {
+            word_0076 = 5;
+          } else {
+            word_0076 = 0;
+          }
+          draw_profession_skills();
+          current_char = sub_D75(current_char);
         }
       } else if (key == 'P') {
         // 1391
@@ -1208,12 +1254,13 @@ int main(int argc, char *argv[])
           // sub_3E0
           // jmp 121B
         }
-        
+
       } else if (key == 'R') {
         if (g_game_state.party_size == 0) {
           sub_1164("remove");
         } else {
-
+          // 1353
+          current_char = sub_1083(current_char);
         }
       }
     }
