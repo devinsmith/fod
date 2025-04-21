@@ -9,7 +9,12 @@ of its contents are documented.
 | 0x02-0x03     | Skip initialization (if not 0)                        |
 | 0x04-0x05     | Unknown                                               |
 | 0x06          | Video mode (3 = MCGA/VGA)                             |
+| 0x08          | Hour (0-23)                                           |
+| 0x09          | Minute (0-59)                                         |
+| 0x0E-0x12     | Money (dword, 4 bytes)                                |
 | 0x31          | Party size (number of characters in party)            |
+| 0x32          | Character Order Byte[5]                               |
+| 0x37          | Day (relative from 0)                                 |
 
 Character offsets are at 0x3A, 0x186, 0x2D2, 0x41E, 0x56E. There can
 be 5 characters within a party and each character is 332 bytes long.
