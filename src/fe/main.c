@@ -511,6 +511,22 @@ static void sub_0010(const char *arg1, uint16_t arg2)
   ui_region_print_str(output, ax, arg2);
 }
 
+// seg000:0x03E0
+static void save_players()
+{
+  g_game_state.saved_game = 1;
+  g_game_state.do_init = 1;
+
+  for (int i = 0; i < g_game_state.party_size; i++) {
+    g_game_state.players[i].unknown_83 = -6;
+
+    // 0x2ACE ++
+    // set to 0x01
+  }
+
+  save_game_state();
+}
+
 // seg000:0x0618
 static void sub_618(int char_index, int arg2, int arg3)
 {
@@ -1246,6 +1262,9 @@ int main(int argc, char *argv[])
         screen_draw(scratch);
         vga_waitkey();
       } else {
+        //save_players();
+        break;
+
         // Not done
       }
     } else if (key == 'R') {
@@ -1273,6 +1292,13 @@ int main(int argc, char *argv[])
       }
     }
   } while (1);
+
+  printf("Game start!\n");
+  sub_14D5(&data_029E);
+
+  // 140E
+  //
+  // 39FE(0x274, 0x26C, 0);
 
   free(scratch);
 

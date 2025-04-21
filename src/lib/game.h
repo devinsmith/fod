@@ -62,7 +62,9 @@ struct player_rec {
   uint16_t condition;        // 0x44
   uint16_t max_condition;
 
-  // Value of 0xFF = no item equitped
+  int8_t unknown_83;       // 0x83
+
+  // Value of 0xFF = no item equipped
   // other values are item IDs
   uint8_t eq_items[4];
 
@@ -108,6 +110,7 @@ struct game_state {
 extern struct game_state g_game_state;
 
 bool load_game_state();
+bool save_game_state();
 
 #ifdef __cplusplus
 }

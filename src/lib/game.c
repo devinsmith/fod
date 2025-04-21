@@ -40,12 +40,27 @@ static void read_bytes(void *buffer, size_t count)
   disk1_offset += count;
 }
 
+static void write_bytes(FILE *fp, const void *buffer, size_t count)
+{
+  size_t bytes_written = fwrite(buffer, 1, count, fp);
+  if (bytes_written != count) {
+    fprintf(stderr, "Failed to write %zu bytes to file\n", count);
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
+}
+
 /* Read a uint8_t value */
 static uint8_t read_uint8()
 {
   uint8_t value;
   read_bytes(&value, sizeof(uint8_t));
   return value;
+}
+
+static void write_uint8(FILE *fp, uint8_t value)
+{
+  write_bytes(fp, &value, sizeof(uint8_t));
 }
 
 /* Read a uint16_t value */
@@ -58,6 +73,18 @@ static uint16_t read_uint16()
   return (uint16_t)((bytes[1] << 8) | bytes[0]);
 }
 
+/* Write a uint16_t value in little-endian format */
+static void write_uint16(FILE *fp, uint16_t value)
+{
+  uint8_t bytes[2];
+
+  /* Convert to little-endian format */
+  bytes[0] = (uint8_t)(value & 0xFF);
+  bytes[1] = (uint8_t)((value >> 8) & 0xFF);
+
+  write_bytes(fp, bytes, 2);
+}
+
 /* Read a uint32_t value */
 static uint32_t read_uint32()
 {
@@ -68,6 +95,20 @@ static uint32_t read_uint32()
   /* Assuming little-endian storage in the file */
   return (uint32_t)((bytes[3] << 24) |
       (bytes[2] << 16) | (bytes[1] << 8) | bytes[0]);
+}
+
+/* Write a uint32_t value in little-endian format */
+static void write_uint32(FILE *fp, uint32_t value)
+{
+  uint8_t bytes[4];
+
+  /* Convert to little-endian format */
+  bytes[0] = (uint8_t)(value & 0xFF);
+  bytes[1] = (uint8_t)((value >> 8) & 0xFF);
+  bytes[2] = (uint8_t)((value >> 16) & 0xFF);
+  bytes[3] = (uint8_t)((value >> 24) & 0xFF);
+
+  write_bytes(fp, bytes, 4);
 }
 
 static void advance_reader(size_t count)
@@ -127,6 +168,8 @@ static void read_player_rec(struct player_rec *player)
   player->condition = read_uint16();
   player->max_condition = read_uint16();
 
+  player->unknown_83 = (int8_t)read_uint8();
+
   /* Read equipped items */
   for (int i = 0; i < 4; i++) {
     player->eq_items[i] = read_uint8();
@@ -158,6 +201,10 @@ bool load_game_state()
   disk1_size = sizeof(disk1);
 
   memset(&g_game_state, 0, sizeof(g_game_state));
+
+  // The original game probably read from a file into a struct, but this is
+  // not endian safe, and it also seems that there is padding bytes that are
+  // saved and read as well.
 
   g_game_state.saved_game = read_uint16();
   g_game_state.do_init = read_uint16();
@@ -222,3 +269,73 @@ bool load_game_state()
   return g_game_state.saved_game != 0;
 }
 
+/* Save game state to disk1 */
+bool save_game_state()
+{
+  FILE *fp = fopen("disk1", "wb");
+  if (fp == NULL) {
+      fprintf(stderr, "Error: Could not open file 'disk1' for writing\n");
+      return false;
+  }
+
+  // The original game wrote directly from a struct to a file, but this is not
+  // endian safe, and it also seems that there is padding bytes that are saved
+  // and read as well.
+
+  /* Write basic game state values */
+  write_uint16(fp, g_game_state.saved_game);  // 0x00-0x01
+  write_uint16(fp, g_game_state.do_init);     // 0x02-0x03
+  write_uint16(fp, 0); // Unknown (0x04-0x05) // Padding?
+  write_uint8(fp, g_game_state.video_mode);   // 0x06
+
+  /* Write time data */
+  fwrite(&g_game_state.hour, sizeof(uint8_t), 1, fp);
+  fwrite(&g_game_state.minute, sizeof(uint8_t), 1, fp);
+
+  /* Write money */
+  fwrite(&g_game_state.money, sizeof(uint32_t), 1, fp);
+
+  /* Write party information */
+  fwrite(&g_game_state.party_size, sizeof(uint8_t), 1, fp);
+
+  /* Write party order */
+  fwrite(g_game_state.party_order, sizeof(uint8_t), 5, fp);
+
+  /* Write player records */
+  for (int i = 0; i < 5; i++) {
+    struct player_rec *player = &g_game_state.players[i];
+
+    /* Write player name */
+    fwrite(player->name, 1, 12, fp);
+
+    /* Write player stats */
+    fwrite(player->attributes, 1, sizeof(player->attributes), fp);
+    fwrite(&player->attribute_points, sizeof(uint8_t), 1, fp);
+
+    /* Write active skills */
+    fwrite(player->active_skills, sizeof(uint8_t), 16, fp);
+
+    /* Write passive skills */
+    fwrite(player->passive_skills, sizeof(uint8_t), 16, fp);
+
+    /* Write condition values */
+    fwrite(&player->condition, sizeof(uint16_t), 1, fp);
+    fwrite(&player->max_condition, sizeof(uint16_t), 1, fp);
+
+    /* Write equipped items */
+    fwrite(player->eq_items, sizeof(uint8_t), 4, fp);
+
+    /* Write rank and affliction */
+    fwrite(&player->rank, sizeof(uint8_t), 1, fp);
+    fwrite(&player->affliction, sizeof(uint8_t), 1, fp);
+
+    /* Write inventory items */
+    for (int j = 0; j < 32; j++) {
+      fwrite(&player->items[j].item_id, sizeof(uint8_t), 1, fp);
+      fwrite(player->items[j].props, sizeof(uint8_t), 5, fp);
+    }
+  }
+
+  fclose(fp);
+  return true;
+}
