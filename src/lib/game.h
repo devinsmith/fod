@@ -33,6 +33,7 @@ struct item_rec {
   uint8_t props[5];
 };
 
+// Should be 332 bytes long.
 struct player_rec {
   char name[13];
 

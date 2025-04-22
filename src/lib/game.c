@@ -272,6 +272,8 @@ bool load_game_state()
 /* Save game state to disk1 */
 bool save_game_state()
 {
+  // TODO: This is not finished, because the struct is not the same size as
+  // the game, and this would produce a corrupted save game file.
   FILE *fp = fopen("disk1", "wb");
   if (fp == NULL) {
       fprintf(stderr, "Error: Could not open file 'disk1' for writing\n");
@@ -287,7 +289,7 @@ bool save_game_state()
   write_uint16(fp, g_game_state.do_init);     // 0x02-0x03
   write_uint16(fp, 0); // Unknown (0x04-0x05) // Padding?
   write_uint8(fp, g_game_state.video_mode);   // 0x06
-
+#if 0
   /* Write time data */
   fwrite(&g_game_state.hour, sizeof(uint8_t), 1, fp);
   fwrite(&g_game_state.minute, sizeof(uint8_t), 1, fp);
@@ -335,7 +337,8 @@ bool save_game_state()
       fwrite(player->items[j].props, sizeof(uint8_t), 5, fp);
     }
   }
-
+#endif
   fclose(fp);
+
   return true;
 }

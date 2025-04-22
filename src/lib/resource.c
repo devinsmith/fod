@@ -106,7 +106,8 @@ static bool check_files()
     check_file("tpict", "b9dfccb6e084458e321aa866b1ce52e9aba0a040") &&
     check_file("borders", "ace004a244b9f55039e55092ec802869c544008f") &&
     check_file("gani", "ee540a8ab0fcdc9172fac79fcc0d09a0979bdfe9") &&
-    check_file("font", "acc08c29b1df9d4049d8c2b28b69e3897e5779a1");
+    check_file("font", "acc08c29b1df9d4049d8c2b28b69e3897e5779a1") &&
+    check_file("tiles", "3a3b9d2e46f7869b0e60750191a6af68a784d7db");
 }
 
 struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
@@ -121,6 +122,10 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
     break;
   case RESOURCE_GANI:
     fname = "gani";
+    compressed = true;
+    break;
+  case RESOURCE_TILES:
+    fname = "tiles";
     compressed = true;
     break;
   case RESOURCE_BORDERS:
@@ -163,25 +168,23 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
   struct resource* res = malloc(sizeof(struct resource));
 
   if (compressed) {
-    uint16_t u_bytes = *(uint16_t *)data;
-    uint16_t dx = *(uint16_t *)(data+ 2);
+    uint16_t low_bytes = *(uint16_t *)data;
+    uint16_t high_bytes = *(uint16_t *)(data+ 2);
+    uint32_t uncompressed_size = (high_bytes << 16) + low_bytes;
 
-    double pct_inc = ((double)(u_bytes - sz) / (double)sz) * 100.0;
+    double pct_inc = ((double)(uncompressed_size - sz) / (double)sz) * 100.0;
 
-    printf("Decompressing %s from %zu to %d bytes (%.0f%%)\n", fname, sz, u_bytes, pct_inc);
-    if (dx != 0) {
-      printf("DX: 0x%04x (should be 0)\n", dx);
-      errx(0, "DX values other than 0 are unhandled\n");
-    }
+    printf("Decompressing %s from %zu to %d bytes (%.0f%%)\n", fname, sz,
+        uncompressed_size, pct_inc);
 
-    unsigned char *dest = malloc(u_bytes);
+    unsigned char *dest = malloc(uncompressed_size);
 
-    decompress(data + 4, dest, u_bytes);
+    decompress(data + 4, dest, uncompressed_size);
     free(data);
 
     // After decompressing, we can get rid of the compressed copy, and
     // store the data directly into the resource.
-    res->len = u_bytes;
+    res->len = uncompressed_size;
     // move pointer
     res->bytes = dest;
   } else {

@@ -54,9 +54,6 @@ struct ui_region {
 // DSEG:0x0076
 static uint16_t word_0076 = 0;
 
-// DSEG:0x0274
-static const char *data_274 = "KEH.EXE";
-
 // DSEG:0x7A
 struct attr_coordinates {
   int x;
@@ -149,9 +146,11 @@ static struct ui_region unknown_31E = {
   &data_02A6 // 1A
 };
 
+#if 0
 static char *word_33A;
 static char *word_33C;
 static char *word_33E;
+#endif
 
 // DSEG:0x0424
 static unsigned char video_mode = 2;
@@ -199,16 +198,6 @@ static unsigned char *arch_offset;
 // DSEG:0x3C86
 static unsigned char *font_bytes;
 
-// DSEG:0x3D88 (offsets to memory in disk1 by character)
-// Each character is 332 bytes apart.
-static uint16_t disk1_bytes_offsets[] = {
-  58,   /* 0x2358 - 0x231E */
-  390,  /* 0x24A4 - 0x231E */
-  722,  /* 0x25F0 - 0x231E */
-  1054, /* 0x273C - 0x231E */
-  1386  /* 0x2888 - 0x231E */
-};
-
 // DSEG:0x3E66
 static struct resource *border_res;
 
@@ -224,6 +213,7 @@ static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 static void ui_region_print_str(const char *str, int arg2, int arg3);
 static void sub_1778(uint8_t chr_index, int i, int line_num);
 static void sub_3290(int char_num, const char *name);
+static void sub_39FE(int arg1, int arg2);
 
 static void screen_draw(const unsigned char *bytes)
 {
@@ -1194,111 +1184,112 @@ int main(int argc, char *argv[])
   active_profession = 0;
 
   do_title();
+  if (!saved_game) {
+    sub_1548();
 
-  sub_1548();
-
-  // 14D5 and screen_draw are similar
-  sub_14D5(&data_029E);
-  screen_draw(scratch);
-
-//  int local_val = 0;
-  ui_region_set_active(&unknown_302, false);
-
-  int current_char = 0;
-
-  do {
-    // Only if it's a new game
-    sub_071B(0x0033, "Welcome");
-
-    ui_region_set_active(&unknown_2E6, false);
-    ui_active_region_clear();
-    sub_1631();
-
-    ui_region_set_active(&unknown_302, false);
-    ui_active_region_clear();
-
-    sub_0010("Choose a function:", 1);
-
-    ui_region_print_str("A)dd member      R)emove member", 5, 3);
-    ui_region_print_str("E)dit member     P)lay the game", 5, 4);
-    sub_1631();
-
+    // 14D5 and screen_draw are similar
+    sub_14D5(&data_029E);
     screen_draw(scratch);
 
-    uint8_t key = vga_waitkey();
-    // 0x12D1
-    printf("Key pressed: 0x%02X\n", key);
+  //  int local_val = 0;
+    ui_region_set_active(&unknown_302, false);
 
-    if (key >= 'a' && key <= 'z') {
-      key -= 0x20;  // Transform to uppercase
-    }
+    int current_char = 0;
 
-    if (key == 'A') {
-      // 0x1347
-      current_char = sub_101B();
-    } else if (key == 'E') {
-      if (g_game_state.party_size == 0) {
-        // 138C
-        sub_1164("edit");
-      } else {
-        // 136E
-        active_profession = g_game_state.players[current_char].profession;
-        uint8_t current_gender = g_game_state.players[current_char].gender;
-        if (current_gender == 1) {
-          word_0076 = 5;
+    do {
+      // Only if it's a new game
+      sub_071B(0x0033, "Welcome");
+
+      ui_region_set_active(&unknown_2E6, false);
+      ui_active_region_clear();
+      sub_1631();
+
+      ui_region_set_active(&unknown_302, false);
+      ui_active_region_clear();
+
+      sub_0010("Choose a function:", 1);
+
+      ui_region_print_str("A)dd member      R)emove member", 5, 3);
+      ui_region_print_str("E)dit member     P)lay the game", 5, 4);
+      sub_1631();
+
+      screen_draw(scratch);
+
+      uint8_t key = vga_waitkey();
+      // 0x12D1
+      printf("Key pressed: 0x%02X\n", key);
+
+      if (key >= 'a' && key <= 'z') {
+        key -= 0x20;  // Transform to uppercase
+      }
+
+      if (key == 'A') {
+        // 0x1347
+        current_char = sub_101B();
+      } else if (key == 'E') {
+        if (g_game_state.party_size == 0) {
+          // 138C
+          sub_1164("edit");
         } else {
-          word_0076 = 0;
+          // 136E
+          active_profession = g_game_state.players[current_char].profession;
+          uint8_t current_gender = g_game_state.players[current_char].gender;
+          if (current_gender == 1) {
+            word_0076 = 5;
+          } else {
+            word_0076 = 0;
+          }
+          draw_profession_skills();
+          current_char = sub_D75(current_char);
         }
-        draw_profession_skills();
-        current_char = sub_D75(current_char);
-      }
-    } else if (key == 'P') {
-      // 1391
-      if (g_game_state.party_size == 0) {
-        ui_active_region_clear();
-        sub_0010("It's tough out there!", 1);
-        sub_0010("You should take somebody with you.", 3);
-        sub_1631();
-        screen_draw(scratch);
-        vga_waitkey();
-      } else {
-        //save_players();
-        break;
-
-        // Not done
-      }
-    } else if (key == 'R') {
-      if (g_game_state.party_size == 0) {
-        sub_1164("remove");
-      } else {
-        // 1353
-        current_char = sub_1083(current_char);
-      }
-    } else if (key >= 0x3B && key <= 0x3D) {
-      // Switch player with F1, F2, F3
-      int key_num = key - 0x3B;
-
-      if (key_num < g_game_state.party_size) {
-        current_char = key_num;
-        active_profession = g_game_state.players[current_char].profession;
-        uint8_t current_gender = g_game_state.players[current_char].gender;
-        if (current_gender == 1) {
-          word_0076 = 5;
+      } else if (key == 'P') {
+        // 1391
+        if (g_game_state.party_size == 0) {
+          ui_active_region_clear();
+          sub_0010("It's tough out there!", 1);
+          sub_0010("You should take somebody with you.", 3);
+          sub_1631();
+          screen_draw(scratch);
+          vga_waitkey();
         } else {
-          word_0076 = 0;
+          //save_players();
+          break;
+
+          // Not done
         }
-        draw_profession_skills();
-        current_char = sub_D75(current_char);
+      } else if (key == 'R') {
+        if (g_game_state.party_size == 0) {
+          sub_1164("remove");
+        } else {
+          // 1353
+          current_char = sub_1083(current_char);
+        }
+      } else if (key >= 0x3B && key <= 0x3D) {
+        // Switch player with F1, F2, F3
+        int key_num = key - 0x3B;
+
+        if (key_num < g_game_state.party_size) {
+          current_char = key_num;
+          active_profession = g_game_state.players[current_char].profession;
+          uint8_t current_gender = g_game_state.players[current_char].gender;
+          if (current_gender == 1) {
+            word_0076 = 5;
+          } else {
+            word_0076 = 0;
+          }
+          draw_profession_skills();
+          current_char = sub_D75(current_char);
+        }
       }
-    }
-  } while (1);
+    } while (1);
+  }
 
   printf("Game start!\n");
   sub_14D5(&data_029E);
 
   // 140E
   //
-  // 39FE(0x274, 0x26C, 0);
+  sub_39FE(0x274, 0x26C);
 
   free(scratch);
 
@@ -1382,12 +1373,14 @@ static void ui_active_region_clear()
 // seg000:0x159E
 static void sub_159E(const char *str)
 {
+#if 0
   word_33A = str;
   word_33C = str;
   word_33E = str;
 
   // 15AA
   struct ui_region *si = active_region;
+#endif
 
   // Not exactly correct, there's checking for certain new line characters.
   plot_font_str(str, strlen(str));
@@ -1539,37 +1532,18 @@ static void sub_3290(int char_num, const char *name)
   g_game_state.players[char_num].name[12] = '\0';
 }
 
-static void sub_32C2(char *data, uint16_t val)
+// Main game loop
+static void sub_39FE(int arg1, int arg2)
 {
+  // This does a lot of work and loads KEH.EXE into FOD.EXE but
+  // we wont do that here.
 
-}
+  // 0x392C is right before the jump into KEH.EXE
 
-// takes KEH.EXE and 0x2E ?
-static void sub_33AA()
-{
-}
+  struct resource *res = resource_load(RESOURCE_TILES, 0, 0);
 
-static void sub_338E()
-{
-  // ah, 3d<F10>
-  // int 21
-}
+  hexdump(res->bytes, 32);
 
-static void sub_33D4()
-{
-}
-
-// 0x3A14
-// 3 arguments
-static void sub_3A14()
-{
-  // sub_1D34()
-  //
-
-}
-
-static void sub_3A1D()
-{
-  // sub_33D4()
-
+  resource_release(res);
+  // Enviroment array?
 }
