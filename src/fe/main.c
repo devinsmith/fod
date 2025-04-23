@@ -211,7 +211,6 @@ static void sub_159E();
 static void plot_font_str(const char *str, int len);
 static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 static void ui_region_print_str(const char *str, int arg2, int arg3);
-static void sub_1778(uint8_t chr_index, int i, int line_num);
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
 
@@ -1317,7 +1316,34 @@ static void sub_14D5(struct ui_rect *input)
   ui_sub_034D();
 }
 
-/* seg000:0x14FF */
+// FOD: seg000:0x1778
+// KEH: seg000:0xE141
+static void draw_border_chr(uint8_t chr_index, int i, int line_num)
+{
+  uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
+  uint16_t di = get_160_offset(ax);
+
+  di += (i << 2);
+
+  unsigned char *es = scratch;
+  es += di;
+
+  unsigned char *si = font_bytes;
+  si += (chr_index * 32); // 4x8 = 32 bytes
+
+  // copy font "sprite" over to scratch buffer.
+  // fonts are stored in 4 x 8
+  for (int k = 0; k < 8; k++) {
+    // copy words from ds:si to es:di
+    memcpy(es, si, 4);
+    si += 4;
+    es += 4;
+
+    es += 0x9C; // next line
+  }
+}
+
+/* FOD: seg000:0x14FF */
 static void sub_14FF(int offset)
 {
   unsigned char *p = border_res->bytes + offset;
@@ -1330,7 +1356,7 @@ static void sub_14FF(int offset)
       uint8_t al = *p++;
       if (al != 0) {
         // al = font index
-        sub_1778(al, i, j);
+        draw_border_chr(al, i, j);
       }
     }
   }
@@ -1445,32 +1471,6 @@ static void ui_region_print_str(const char *str, int arg2, int arg3)
   }
   // 0x16BC
   sub_159E(str);
-}
-
-// seg000:1778
-static void sub_1778(uint8_t chr_index, int i, int line_num)
-{
-  uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
-  uint16_t di = get_160_offset(ax);
-
-  di += (i << 2);
-
-  unsigned char *es = scratch;
-  es += di;
-
-  unsigned char *si = font_bytes;
-  si += (chr_index * 32); // 4x8 = 32 bytes
-
-  // copy font "sprite" over to scratch buffer.
-  // fonts are stored in 4 x 8
-  for (int k = 0; k < 8; k++) {
-    // copy words from ds:si to es:di
-    memcpy(es, si, 4);
-    si += 4;
-    es += 4;
-
-    es += 0x9C; // next line
-  }
 }
 
 // seg000:0x17F2
