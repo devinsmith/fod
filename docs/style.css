@@ -1,0 +1,14 @@
+body {
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 10pt;
+  margin: 15px auto;
+  padding: 0 10px;
+}
+
+@media (min-width: 800px) {
+  body {
+    max-width: 85%;
+  }
+}
+
+span.blue { color: #00376D; font-size: 1.17em; font-weight: bold; }

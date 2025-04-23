@@ -1,84 +1,46 @@
 <html>
-	<head>
-		<title>Fountain of Dreams</title>
-		<link href="style.css" type="text/css" rel="stylesheet" />
-	</head>
-	<body>
-		<h1>Fountain of Dreams</h1>
-		<p>This document is about a little known game from 1990 called Fountain of Dreams.
-    </p>
-    <h2>Platforms</h2>
-    <p>The only known platform is DOS</p>
-    <h2>Credits</h2>
+  <head>
+    <title>Fountain of Dreams</title>
+    <link href="style.css" type="text/css" rel="stylesheet" />
+  </head>
+  <body>
+    <h2><font color="#e00000">Fountain of Dreams</font></h2>
+    <hr>
+    <p>This document describes an overview of the Fountain of Dreams reverse engineering project.</p>
 
-		<h2>Packaging</h2>
-    <p>The game came on two 5.25" floppy disks.  Pictured below:</p>
-    <img src="disks.jpg">
-		<p>Disk 1 contained the following files:
-		<pre>
-110114 1990-04-16 12:18 F1.PAK
-242262 1990-04-16 12:19 F1.RAW
-  7241 1990-03-30 16:05 INSTALL.EXE
-		</pre>
-		<p>Disk 2 contained the following files:
-		<pre>
- 62694 1990-04-16 12:19 F2.PAK
-297081 1990-04-16 12:19 F2.RAW
-		</pre>
+    <h3><a href="intro.html">Introduction to Fountain of Dreams</a></h3>
+    <ul>
+      <li><a href="intro.html#credits">Credits</a></li>
+      <li><a href="intro.html#platform">Platforms</a></li>
+      <li><a href="intro.html#packaging">Packaging</a></li>
+      <li><a href="intro.html#development">Development</a></li>
+    </ul>
+    <h3><a href="install.html">Installer</a></h3>
+    <h3><a href="internals.html">Game Internals</a></h3>
+    <ul>
+      <li><a href="internals.html#engine">Engine Architecture</a></li>
+      <li><a href="internals.html#gameloop">Game Loop</a></li>
+      <li><a href="internals.html#memory">Memory Management</a></li>
+      <li><a href="internals.html#savegame">Save Game Format</a></li>
+      <li><a href="internals.html#scripting">Scripting System</a></li>
+    </ul>
 
-		<h2>Installer</h2>
-		<p>The installer is completely self contained inside INSTALL.EXE.  It esentially unpacks the
-		PAK and RAW files to the install drive.  I spent some time reverse engineering INSTALL.EXE to
-		see how it worked.  The files F1.RAW and F2.RAW are not compressed while the F1.PAK and
-		F2.PAK are compressed.  The compression seems to be based on LZ77/LZW.</p>
-		<p>The F1.PAK file contains in this order:</p>
-    <pre>
-0: disk1
-1: disk3
-2: disk4
-3: fod.exe
-4: keh.exe
-5: globals
-6: hdspct
-7: weapons
-8: packets
-9: archtype
-A: services
-B: font
-C: borders
-D: disk2
-E: kmap
-		</pre>
+    <h3><a href="graphics.html">Graphics</a></h3>
+    <ul>
+      <li><a href="graphics.html#renderer">Rendering System</a></li>
+      <li><a href="graphics.html#assets">Asset Formats</a></li>
+      <li><a href="graphics.html#sprites">Sprite System</a></li>
+      <li><a href="graphics.html#animations">Animation System</a></li>
+      <li><a href="graphics.html#ui">User Interface</a></li>
+    </ul>
 
-		<p>The F1.RAW file contains in this order:</p>
-		<pre>
-0: tiles
-1: gani
-2: tpict
-3: kscr
-4: kani
-5: kpict
-6: disk3
-7: fpict
-8: epict
-9: disk4
-A: dpict
-		</pre>
+    <h3><a href="files.html">File Formats</a></h3>
+    <ul>
+      <li><a href="files.html#resources">Resource Files</a></li>
+      <li><a href="files.html#audio">Audio Files</a></li>
+      <li><a href="files.html#data">Data Files</a></li>
+      <li><a href="files.html#config">Configuration Files</a></li>
+    </ul>
 
-		<p>The F2.PAK file contains the following files:</p>
-		<pre>
-0: fmap
-1: dmap
-		</pre>
-
-		<p>The F2.RAW file contains the following files:</p>
-<pre>
-0: fscr
-1: fani
-2: dani
-3: dscr
-</pre>
-    <h2>The files</h2>
-
-	</body>
+  </body>
 </html>

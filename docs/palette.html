@@ -2,10 +2,11 @@
 <html lang="en-us">
 <head>
   <title>FOD Palette</title>
+  <link href="style.css" type="text/css" rel="stylesheet" />
 </head>
 <body>
-  <p>
-Palette is stored in the executable:
+  <p>The Fountain of Dreams palette is stored in the executable. Every byte represents a 6-bit VGA value
+  (0-0x3F). Every 3 bytes represents a single color. It is stored like this:
   </p>
   <pre>
 06B2:0CD2     00 00 00 00 00 27 03 25 03 00 1B 1B 20 00 00 1B
@@ -13,7 +14,8 @@ Palette is stored in the executable:
 06B2:0CF2     00 00 3F 3F 3A 20 10 3F 00 3F 3F 3F 00 3F 3F 3F
   </pre>
 
-  <p>It is set up like this: 6-bit VGA RGB (0-0x3F)  </p>
+  <p>The VGA palette is then set in the following ways so that every 16 entries are the same color.
+  Essentially only the high nibble matters.</p>
 
   <p>
     <table border="1">

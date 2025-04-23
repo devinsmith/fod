@@ -1,0 +1,66 @@
+<html>
+  <head>
+    <title>Fountain of Dreams - Installer</title>
+    <link href="style.css" type="text/css" rel="stylesheet" />
+  </head>
+  <body>
+    <h2><font color="#e00000">Fountain of Dreams - Installer</font></h2>
+    <hr>
+    <span class="blue"><a name="installer">Installer</a></span>
+
+    <p>The installer is completely self contained inside INSTALL.EXE.  It esentially unpacks the
+		PAK and RAW files to the install drive.  I spent some time reverse engineering INSTALL.EXE to
+		see how it worked.  The files F1.RAW and F2.RAW are not compressed while the F1.PAK and
+		F2.PAK are compressed.  The compression seems to be based on LZ77/LZW. The installer seems to be
+    hardcoded with information about the offsets of and contents of each PAK/RAW file.</p>
+
+		<p>The F1.PAK file contains in this order:</p>
+    <pre>
+0: disk1
+1: disk3
+2: disk4
+3: fod.exe
+4: keh.exe
+5: globals
+6: hdspct
+7: weapons
+8: packets
+9: archtype
+A: services
+B: font
+C: borders
+D: disk2
+E: kmap
+		</pre>
+
+		<p>The F1.RAW file contains in this order:</p>
+		<pre>
+0: tiles
+1: gani
+2: tpict
+3: kscr
+4: kani
+5: kpict
+6: disk3
+7: fpict
+8: epict
+9: disk4
+A: dpict
+		</pre>
+
+		<p>The F2.PAK file contains the following files:</p>
+		<pre>
+0: fmap
+1: dmap
+		</pre>
+
+		<p>The F2.RAW file contains the following files:</p>
+<pre>
+0: fscr
+1: fani
+2: dani
+3: dscr
+</pre>
+
+  </body>
+</html>
