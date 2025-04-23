@@ -6,6 +6,232 @@
   <body>
     <h2><font color="#e00000">Fountain of Dreams - Game Internals</font></h2>
     <hr>
-    TBD
+    <span class="blue"><a name="savegame">Save Game Format</a></span>
+    <p>The saved game (and game state) is stored in DISK1 (and maybe DISK2, DISK3, and DISK4). Each file is
+    3776 bytes. The file is likely mapped directly to a C style struct (with padding bytes present as well).
+    Since the game was compiled for the DOS platform, an integer is usually only 2 bytes. Only some of the
+    contents of this file are documented and it's not clear is there is padding or not.</p>
+    <p>
+    <table class="nicetable">
+      <thead>
+      <tr>
+        <th>Offset</th>
+        <th>Purpose</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>0x00-0x01</td>
+        <td>Is this a saved game or new game (0 = new, 1 = saved)</td>
+      </tr>
+      <tr>
+        <td>0x02-0x03</td>
+        <td>Skip initialization (if not 0)</td>
+      </tr>
+      <tr>
+        <td>0x04-0x05</td>
+        <td>Unknown</td>
+      </tr>
+      <tr>
+        <td>0x06</td>
+        <td>Video mode (3 = MCGA/VGA)</td>
+      </tr>
+      <tr>
+        <td>0x08</td>
+        <td>Hour (0-23)</td>
+      </tr>
+      <tr>
+        <td>0x09</td>
+        <td>Minute (0-59)</td>
+      </tr>
+      <tr>
+        <td>0x0E-0x12</td>
+        <td>Money (dword, 4 bytes)</td>
+      </tr>
+      <tr>
+        <td>0x31</td>
+        <td>Party size (number of characters in party)</td>
+      </tr>
+      <tr>
+        <td>0x32</td>
+        <td>Character Order Byte[5]</td>
+      </tr>
+      <tr>
+        <td>0x37</td>
+        <td>Day (relative from 0)</td>
+      </tr>
+      </tbody>
+    </table>
+    </p>
+    <p>
+      Character offsets are at 0x3A, 0x186, 0x2D2, 0x41E, 0x56E. There can
+be 5 characters within a party and each character is 332 bytes long.
+</p>
+<table class="nicetable">
+  <thead>
+  <tr>
+    <th>Offset</th>
+    <th>Purpose</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>0x3A-0x46</td>
+    <td>Name (up to 12 characters, terminated with a 0)</td>
+  </tr>
+  <tr>
+    <td>0x48</td>
+    <td>Profession (0 = Survivalist, 1 = Vigalante, etc)</td>
+  </tr>
+  <tr>
+    <td>0x50</td>
+    <td>Gender (1 = Male, others = Female)</td>
+  </tr>
+  <tr>
+    <td>0x52</td>
+    <td>Strength</td>
+  </tr>
+  <tr>
+    <td>0x53</td>
+    <td>Intelligence</td>
+  </tr>
+  <tr>
+    <td>0x54</td>
+    <td>Dexterity</td>
+  </tr>
+  <tr>
+    <td>0x55</td>
+    <td>Will Power</td>
+  </tr>
+  <tr>
+    <td>0x56</td>
+    <td>Aptitude</td>
+  </tr>
+  <tr>
+    <td>0x57</td>
+    <td>Charisma</td>
+  </tr>
+  <tr>
+    <td>0x58</td>
+    <td>Luck</td>
+  </tr>
+  <tr>
+    <td>0x5D</td>
+    <td>Attribute points to distribute</td>
+  </tr>
+  <tr>
+    <td>0x5E-0x6D</td>
+    <td>Active skills (16 bytes)
+      <ul>
+        <li>Medic</li>
+        <li>Lockpick</li>
+        <li>Forgery!!</li>
+        <li>Climb</li>
+        <li>Pharmacy</li>
+        <li>Bomb/Alarm Disarm</li>
+        <li>Mechanics</li>
+        <li>Electronics!!</li>
+        <li>Cryptography!!</li>
+        <li>Pickpocket!!</li>
+        <li>FODDY FOD</li>
+        <li>Doctor</li>
+        <li>*Chameleon</li>
+        <li>*Shriek</li>
+        <li>*Stun</li>
+        <li>*Corruption!!</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td>0x6E-0x7D</td>
+    <td>Passive skills (16 bytes)
+      <ul>
+        <li>Perception</li>
+        <li>Stealth</li>
+        <li>Languages</li>
+        <li>Demolitions</li>
+        <li>Brawling</li>
+        <li>Blades</li>
+        <li>Handgun</li>
+        <li>Rifle</li>
+        <li>Auto Weapon</li>
+        <li>Boating!!</li>
+        <li>Gunsmith</li>
+        <li>Swim</li>
+        <li>Evasion</li>
+        <li>Gambling!!</li>
+        <li>*Mutant Recog!!</li>
+        <li>*Camouflage</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td>0x7e-0x7f</td>
+    <td>Condition Word</td>
+  </tr>
+  <tr>
+    <td>0x80-0x83</td>
+    <td>Maximum Condition Word</td>
+  </tr>
+  <tr>
+    <td>0x84</td>
+    <td>Equipped Item 1 (0xFF = no item equipped, other values = item # in inventory)</td>
+  </tr>
+  <tr>
+    <td>0x85</td>
+    <td>Equipped Item 2 (0xFF = no item equipped, other values = item # in inventory)</td>
+  </tr>
+  <tr>
+    <td>0x86</td>
+    <td>Equipped Item 3 (0xFF = no item equipped, other values = item # in inventory)</td>
+  </tr>
+  <tr>
+    <td>0x87</td>
+    <td>Equipped Item 4 (0xFF = no item equipped, other values = item # in inventory)</td>
+  </tr>
+  <tr>
+    <td>0x88</td>
+    <td>Rank</td>
+  </tr>
+  <tr>
+    <td>0x92</td>
+    <td>Affliction (Bit encoded)<br>
+      Bit 0 - Poisoned<br>
+      Bit 1 - Irradiated<br>
+      Bit 2 - Rabid<br>
+      Bit 3 - Envenomed<br>
+      Bit 4 - Condition 5<br>
+      Bit 5 - Condition 6<br>
+      Bit 6 - Condition 7<br>
+      Bit 7 - Mutant</td>
+  </tr>
+  <tr>
+    <td>0x9c-0x15C</td>
+    <td>Items (32 slots × 6 bytes each)<br>
+      Each item is 6 bytes long (2nd byte often used for ammo count)<br><br>
+      Known item IDs:<br>
+      00 - Null Item<br>
+      01 - Dollars<br>
+      02 - .22 Handgun<br>
+      03 - .45 Colt Pistol<br>
+      04 - 9mm Browning Pistol<br>
+      05 - Ochoa's Rifle<br>
+      06 - Elephant Gun<br>
+      07 - Shotgun<br>
+      08 - Uzi<br>
+      09/0A - Clown MegaUzi<br>
+      0B - AK-47 Assault Rifle<br>
+      0C-19 - Various Ammunition Types<br>
+      1A-1C - Explosives<br>
+      1D-1F - Gas/Fire Weapons<br>
+      20-25 - Melee Weapons<br>
+      26-30 - Armor/Suits<br>
+      31-34 - Headgear<br>
+      35-75 - Various Items<br>
+      (See full item list in game documentation)</td>
+  </tr>
+
+  </tbody>
+</table>
   </body>
 </html>

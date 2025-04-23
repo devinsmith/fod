@@ -12,3 +12,22 @@ body {
 }
 
 span.blue { color: #00376D; font-size: 1.17em; font-weight: bold; }
+
+table.nicetable {
+  border-collapse: collapse;
+}
+
+table.nicetable td, table.nicetable th {
+  border: 1px solid #ddd;
+  padding: 4px;
+}
+
+table.nicetable tr:nth-child(even){background-color: #f2f2f2; }
+table.nicetable th {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  text-align: left;
+  background-color: #4C7F99;
+  color: white;
+}
+
