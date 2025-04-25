@@ -18,6 +18,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 
 #include "tables.h"
 #include "ui.h"
@@ -28,6 +31,13 @@ extern unsigned char *scratch;
 static uint16_t word_0CCC = 0;
 static struct ui_unknown2 *ptr_0CCE = &data_074F;
 static struct ui_unknown2 *ptr_0CD0 = &data_074F;
+
+// DSEG:0x028F
+// Will contain 0x00 or 0xFF
+static bool inverse_flag = false;
+
+// DSEG:0x3C86
+static unsigned char *font_bytes;
 
 static void ui_sub_048B();
 
@@ -159,3 +169,117 @@ void ui_rect_clear(const struct ui_rect *r)
     di += 160; // advance to next line.
   }
 }
+
+// seg000:0090
+void ui_load_fonts()
+{
+  unsigned char font_size[2];
+
+  FILE *fp = fopen("font", "rb");
+  if (fp == NULL) {
+    fprintf(stderr, "Couldn't read font, exiting!\n");
+    exit(1);
+  }
+
+  fread(font_size, 1, sizeof(font_size), fp);
+
+  int size = (font_size[1] << 8) | font_size[0];
+  printf("Total fonts in font file: %d\n", size);
+  size = size << 5; // 4 * 8
+
+  font_bytes = malloc(size);
+  if (font_bytes == NULL) {
+    fclose(fp);
+    fprintf(stderr, "Couldn't read font, exiting!\n");
+    exit(1);
+  }
+
+  // sub_3BFA will expand a 16-bit number to 32 bit, but we don't need
+  // to do that on modern architectures.
+  fread(font_bytes, 1, size, fp);
+  fclose(fp);
+}
+
+void ui_set_inverse(bool inverse)
+{
+  inverse_flag = inverse;
+}
+
+// seg000:0x17F2
+void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
+{
+  bool do_xor = false;
+  if (inverse_flag) {
+    do_xor = true;
+  }
+
+  uint16_t ax = base;
+
+  ax *= 8;   // << 4
+  uint16_t di = ax;
+  di += line_num / 2;
+
+  di = get_160_offset(di);
+
+  ax = i;
+  ax *= 4;
+  di += ax;
+
+  unsigned char *es = scratch;
+  es += di;
+
+  unsigned char *font_si = font_bytes;
+  font_si += (chr_index * 32); // 4x8 = 32 bytes
+
+  // copy font "sprite" over to scratch buffer.
+  // fonts are stored in 4 x 8
+  for (int k = 0; k < 8; k++) {
+    // copy words from ds:si to es:di
+    uint16_t value = *((uint16_t *)font_si);
+    if (do_xor) {
+      value = value ^ 0xFFFF;
+    }
+    *((uint16_t *)es) = value;
+    font_si += 2;
+    es += 2;
+
+    value = *((uint16_t *)font_si);
+    if (do_xor) {
+      value = value ^ 0xFFFF;
+    }
+    *((uint16_t *)es) = value;
+    font_si += 2;
+    es += 2;
+
+    es += 0x9C; // next line
+  }
+}
+
+// FOD: seg000:0x1778
+// KEH: seg000:0xE141
+void draw_border_chr(uint8_t chr_index, int i, int line_num)
+{
+  uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
+  uint16_t di = get_160_offset(ax);
+
+  di += (i << 2);
+
+  unsigned char *es = scratch;
+  es += di;
+
+  unsigned char *si = font_bytes;
+  si += (chr_index * 32); // 4x8 = 32 bytes
+
+  // copy font "sprite" over to scratch buffer.
+  // fonts are stored in 4 x 8
+  for (int k = 0; k < 8; k++) {
+    // copy words from ds:si to es:di
+    memcpy(es, si, 4);
+    si += 4;
+    es += 4;
+
+    es += 0x9C; // next line
+  }
+}
+
+

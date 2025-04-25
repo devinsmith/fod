@@ -72,10 +72,6 @@ static const struct attr_coordinates attributes[] = {
   { 0x1E, 0x04, "LK:" }
 };
 
-// DSEG:0x028F
-// Will contain 0x00 or 0xFF
-static uint8_t inverse_flag = 0;
-
 // DSEG:0x029C
 static struct ui_region *active_region;
 
@@ -195,21 +191,18 @@ static unsigned char hds_bytes[1180];
 
 // DSEG:0x3C84
 static unsigned char *arch_offset;
-// DSEG:0x3C86
-static unsigned char *font_bytes;
 
 // DSEG:0x3E66
 static struct resource *border_res;
 
 static void sub_14B3(struct ui_rect const *input);
 static void sub_14D5(struct ui_rect *input);
-static void sub_14FF(int offset);
+static void draw_borders(int offset);
 static void sub_1548();
 static void ui_region_set_active(struct ui_region *arg1, bool clear);
 static void ui_active_region_clear();
 static void sub_159E();
 static void plot_font_str(const char *str, int len);
-static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 static void ui_region_print_str(const char *str, int arg2, int arg3);
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
@@ -244,36 +237,6 @@ static void do_title()
   resource_release(title_res);
 }
 
-// seg000:0090
-//
-void sub_90()
-{
-  unsigned char font_size[2];
-
-  FILE *fp = fopen("font", "rb");
-  if (fp == NULL) {
-    fprintf(stderr, "Couldn't read font, exiting!\n");
-    exit(1);
-  }
-
-  fread(font_size, 1, sizeof(font_size), fp);
-
-  int size = (font_size[1] << 8) | font_size[0];
-  printf("Total fonts in font file: %d\n", size);
-  size = size << 5; // 4 * 8
-
-  font_bytes = malloc(size);
-  if (font_bytes == NULL) {
-    fclose(fp);
-    fprintf(stderr, "Couldn't read font, exiting!\n");
-  }
-
-  // sub_3BFA will expand a 16-bit number to 32 bit, but we don't need
-  // to do that on modern architectures.
-  fread(font_bytes, 1, size, fp);
-  fclose(fp);
-}
-
 // seg000:1439
 // This is approximately what sub_1439 would do.
 void game_mem_alloc()
@@ -293,7 +256,7 @@ void game_mem_alloc()
 
   setup_tables();
 
-  sub_90();
+  ui_load_fonts();
 
   memset(scratch, 0, 32000);
 }
@@ -301,7 +264,7 @@ void game_mem_alloc()
 // seg000:02E5
 static void sub_02E5(bool saved_game)
 {
-  border_res = resource_load(RESOURCE_BORDERS, 0x1388, 1000);
+  border_res = resource_load(RESOURCE_BORDERS, 0, 0);
   if (border_res == NULL) {
     fprintf(stderr, "Couldn't read borders, exiting!\n");
     exit(1);
@@ -530,11 +493,11 @@ static void sub_618(int char_index, int arg2, int arg3)
     char player_id[16];
     snprintf(player_id, sizeof(player_id), "F%1d>", i + 1);
     if (arg2 != 0 && char_index == i) {
-      inverse_flag = 0xFF;
+      ui_set_inverse(true);
     }
 
     ui_region_print_str(player_id, 0, i);
-    inverse_flag = 0;
+    ui_set_inverse(false);
 
     uint8_t al = g_game_state.players[i].profession; // profession
     char name_prof[64];
@@ -710,16 +673,16 @@ static void sub_8F5(int char_number, int attr_num)
     snprintf(attr_val, sizeof(attr_val), "%2u", al);
 
     if (i == attr_num) {
-      inverse_flag = 0xFF; // Makes it inverse (or bold)
+      ui_set_inverse(true); // Makes it inverse (or bold)
     }
     ui_region_print_str(attr_val, attributes[i].x + 3, attributes[i].y);
-    inverse_flag = 0;
+    ui_set_inverse(false);
   }
 
   // AOC
   ui_region_print_str("Sex:", 0x1D, 5);
   if (attr_num == 7) {
-    inverse_flag = 0xFF; // Makes it inverse (or bold)
+    ui_set_inverse(true); // Makes it inverse (or bold)
   }
 
   // 5
@@ -731,7 +694,7 @@ static void sub_8F5(int char_number, int attr_num)
   }
 
   ui_region_print_str(gender_val, 0x22, 5);
-  inverse_flag = 0;
+  ui_set_inverse(false);
 
   draw_con(char_number);
 
@@ -1316,35 +1279,8 @@ static void sub_14D5(struct ui_rect *input)
   ui_sub_034D();
 }
 
-// FOD: seg000:0x1778
-// KEH: seg000:0xE141
-static void draw_border_chr(uint8_t chr_index, int i, int line_num)
-{
-  uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
-  uint16_t di = get_160_offset(ax);
-
-  di += (i << 2);
-
-  unsigned char *es = scratch;
-  es += di;
-
-  unsigned char *si = font_bytes;
-  si += (chr_index * 32); // 4x8 = 32 bytes
-
-  // copy font "sprite" over to scratch buffer.
-  // fonts are stored in 4 x 8
-  for (int k = 0; k < 8; k++) {
-    // copy words from ds:si to es:di
-    memcpy(es, si, 4);
-    si += 4;
-    es += 4;
-
-    es += 0x9C; // next line
-  }
-}
-
 /* FOD: seg000:0x14FF */
-static void sub_14FF(int offset)
+static void draw_borders(int offset)
 {
   unsigned char *p = border_res->bytes + offset;
 
@@ -1365,7 +1301,7 @@ static void sub_14FF(int offset)
 // seg000:0x1548
 static void sub_1548()
 {
-  sub_14FF(0);
+  draw_borders(5000);
 }
 
 // Sets the active region and optionally clears it.
@@ -1471,58 +1407,6 @@ static void ui_region_print_str(const char *str, int arg2, int arg3)
   }
   // 0x16BC
   sub_159E(str);
-}
-
-// seg000:0x17F2
-static void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
-{
-  uint8_t bl = inverse_flag;
-  bool do_xor = false;
-
-  if (bl != 0) {
-    do_xor = true;
-  }
-
-  uint16_t ax = base;
-
-  ax *= 8;   // << 4
-  uint16_t di = ax;
-  di += line_num / 2;
-
-  di = get_160_offset(di);
-
-  ax = i;
-  ax *= 4;
-  di += ax;
-
-  unsigned char *es = scratch;
-  es += di;
-
-  unsigned char *font_si = font_bytes;
-  font_si += (chr_index * 32); // 4x8 = 32 bytes
-
-  // copy font "sprite" over to scratch buffer.
-  // fonts are stored in 4 x 8
-  for (int k = 0; k < 8; k++) {
-    // copy words from ds:si to es:di
-    uint16_t value = *((uint16_t *)font_si);
-    if (do_xor) {
-      value = value ^ 0xFFFF;
-    }
-    *((uint16_t *)es) = value;
-    font_si += 2;
-    es += 2;
-
-    value = *((uint16_t *)font_si);
-    if (do_xor) {
-      value = value ^ 0xFFFF;
-    }
-    *((uint16_t *)es) = value;
-    font_si += 2;
-    es += 2;
-
-    es += 0x9C; // next line
-  }
 }
 
 static void sub_3290(int char_num, const char *name)

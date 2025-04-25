@@ -813,10 +813,10 @@ sub_14D5:
   pop  bp
   ret
 
-; sub_14FF
+; draw_borders
 ; something 40x25   (0x28 by 0x19)
 ; cpu.ax is an input (usually 0?)
-sub_14FF:
+draw_borders:
   push di
   push si
   push es
@@ -865,7 +865,7 @@ sub_1548:
   push es
   push bp
   xor ax, ax
-  call sub_14FF
+  call draw_borders
   pop bp
   pop es
   pop ds
