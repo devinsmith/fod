@@ -7,5 +7,4 @@
 
 The game depends on several different data files which are documented below:
 
-* [font](font.md)
 * [gani](gani.md)

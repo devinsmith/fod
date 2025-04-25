@@ -39,5 +39,38 @@
         <tr><td>Color 0xF0-0xFF</td><td>3F, 3F, 3F</td><td bgcolor="#FFFFFF" style="width: 100px;">&nbsp;</td></tr>
       </table>
     </p>
+    <span class="blue"><a name="assets">Asset Formats</a></span>
+    <p>The game uses various files that contain assets. They are listed in the below table.</p>
+    <p>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>BORDERS</td>
+          <td>Contains a set of 5 borders that are used in various parts of the UI. Each border takes up
+            exactly 1000 bytes (40 * 25 * 1) and references a font byte.<br>
+            0 - Main game border<br>
+            5 - Character creation/selection border.
+          </td>
+        </tr>
+        <tr>
+          <td><a href="font.html">FONT</a></td>
+          <td>Contains the font sprites used within the game.</td>
+        </tr>
+      </tbody>
+    </table>
+    </p>
+    <span class="blue"><a name="ui">User Interface</a></span>
+    <p>The game has various screens which use different sets of borders (which contains 5 different border
+    types). The main game UI uses border #0 as shown below:
+    </p>
+    <p>
+    <img src="borders_0.png">
+    </p>
   </body>
 </html>
