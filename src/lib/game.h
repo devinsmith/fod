@@ -105,6 +105,8 @@ struct game_state {
   uint8_t party_size; // 0x31
   uint8_t party_order[5]; // 0x32
 
+  uint8_t day_of_week; // 0x37
+
   struct player_rec players[5]; // players
 };
 

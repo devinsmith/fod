@@ -131,7 +131,7 @@ static void read_item_rec(struct item_rec *item)
   }
 }
 
-/* Function to read a player_rec from file */
+/* Function to read a player_rec from a file */
 static void read_player_rec(struct player_rec *player)
 {
   /* Read player name (12 chars) */
@@ -227,10 +227,11 @@ bool load_game_state()
   for (int i = 0; i < 5; i++) {
     g_game_state.party_order[i] = read_uint8();
   }
+  g_game_state.day_of_week = read_uint8();
 
-  jump_to_offset(0x3A); // 0x3A
   /* Read player records */
   for (int i = 0; i < 5; i++) {
+    jump_to_offset(0x3A + (i * 332));
     read_player_rec(&g_game_state.players[i]);
   }
 
@@ -244,27 +245,30 @@ bool load_game_state()
     exit(1);
   }
 
-  for (int i = 0; i < 5; i++) {
-    g_game_state.party_order[i] = 0;
-    g_game_state.players[i].name[0] = '\0';
-    g_game_state.players[i].unknown_8C = 6; // ???
+  if (g_game_state.saved_game == 0) {
 
-    // Initialize items array
-    for (int n = 0; n < 32; n++) {
-      g_game_state.players[i].items[n].item_id = 0xFF;
-      for (int j = 0; j < 5; j++) {
-        g_game_state.players[i].items[n].props[j] = 0;
+    for (int i = 0; i < 5; i++) {
+      g_game_state.party_order[i] = 0;
+      g_game_state.players[i].name[0] = '\0';
+      g_game_state.players[i].unknown_8C = 6; // ???
+
+      // Initialize items array
+      for (int n = 0; n < 32; n++) {
+        g_game_state.players[i].items[n].item_id = 0xFF;
+        for (int j = 0; j < 5; j++) {
+          g_game_state.players[i].items[n].props[j] = 0;
+        }
       }
+
+      // 0x01DF (TODO)
+      g_game_state.players[i].items[0].item_id = 2; // Handgun?
     }
 
-    // 0x01DF (TODO)
-    g_game_state.players[i].items[0].item_id = 2; // Handgun?
+    // 0x298
+    g_game_state.money = 100;
+
+    g_game_state.party_size = 0; // Number of players in the party
   }
-
-  // 0x298
-  g_game_state.money = 100;
-
-  g_game_state.party_size = 0; // Number of players in the party
 
   return g_game_state.saved_game != 0;
 }
