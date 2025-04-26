@@ -1297,7 +1297,8 @@ static void sub_1548()
 }
 
 // Sets the active region and optionally clears it.
-// seg000:0x155E
+// FOD:seg000:0x155E
+// KEH:seg000:0xDB18
 static void ui_region_set_active(struct ui_region *arg1, bool clear)
 {
   active_region = arg1;
@@ -1324,7 +1325,12 @@ static void ui_active_region_clear()
   ui_rect_clear(si);
 }
 
-// seg000:0x159E
+// FOD: seg000:0x159E
+// KEH: seg000:0xDB95
+// This routine prints strings within the active region
+// by actively looking for line breaks, spaces, etc. and printing them
+// out individually. However, it is not complete yet and really can only handle
+// short strings that fit within the active region.
 static void sub_159E(const char *str)
 {
 #if 0
@@ -1369,7 +1375,8 @@ static void sub_159E(const char *str)
 
 }
 
-// seg000:0x1614
+// FOD: seg000:0x1614
+// KEH: seg000:0xDC0B
 static void plot_font_str(const char *str, int len)
 {
   // di = str
@@ -1416,6 +1423,7 @@ static void sub_39FE(int arg1, int arg2)
 
   // 0x392C is right before the jump into KEH.EXE
 
+  // KEH main 0x2813
   struct resource *res = resource_load(RESOURCE_TILES, 0, 0);
 
   hexdump(res->bytes, 32);
