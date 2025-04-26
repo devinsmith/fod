@@ -77,12 +77,12 @@ static struct ui_rect data_02A6 = { 4, 8, 0x30, 0x60 };
 
 // DSEG:0x02CA
 static struct ui_region unknown_2CA = {
-  1,   // 00
-  0x15,      // 02
-  0x26,   // 04
-  0x17,   // 06
-  1,   // 08
-  0x15,      // 0A
+  1,    // 00
+  0x15, // 02
+  0x26, // 04
+  0x17, // 06
+  1,    // 08
+  0x15, // 0A
   { 0x4, 0xAC, 0x98, 0x18 }, // rect offset 0x0C-0x12
   0x08,   // 14
   0,   // 16
