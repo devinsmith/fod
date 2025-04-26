@@ -54,6 +54,17 @@ static const struct attr_coordinates attributes[] = {
   { 0x1E, 0x04, "LK:" }
 };
 
+// KEH: DSEG:0x0142
+static const char *days[] = {
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat"
+};
+
 // DSEG:0x029C
 static struct ui_region *active_region;
 
