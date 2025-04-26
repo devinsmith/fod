@@ -84,10 +84,126 @@ static struct ui_region unknown_2CA = {
   1,    // 08
   0x15, // 0A
   { 0x4, 0xAC, 0x98, 0x18 }, // rect offset 0x0C-0x12
-  0x08,   // 14
-  0,   // 16
-  0,   // 18
-  NULL    // 1A
+  0x08, // 14
+  0,    // 16
+  0,    // 18
+  NULL  // 1A
+};
+
+// KEH: DSEG:0x1835
+const char *welcome_msg = "Welcome to the beautiful island of Florida!\n";
+
+// KEH: DSEG:0x1AD8
+static struct ui_region unknown_1AD8 = {
+  7,
+  0x16,
+  0x27,
+  0x18,
+  0x7,
+  0x18,
+  { 0x1C, 0xB0, 0x84, 0x18 },
+  0x00,
+  0xDAAA, // Draw borders?
+  0x00,
+  NULL // rect offset 0x0C-0x12
+};
+
+// KEH: DSEG:0x1C98
+static struct ui_region datetime_region = {
+  0x01,
+  0x16,
+  0x05,
+  0x17,
+  0x01,
+  0x16,
+  { 0x04, 0xB0, 0x14, 0x10 }, // rect offset 0x0C-0x12
+  0x00,
+  0x00,
+  0x00,
+  NULL
+};
+
+// KEH: DSEG:0x1DE8
+static struct ui_region player_f1_region = {
+  1,
+  1,
+  6,
+  1,
+  1,
+  1,
+  { 0x4, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
+  0,
+  0,
+  0,
+  NULL
+};
+
+// KEH: DSEG:0x1E04
+static struct ui_region player_f2_region = {
+  8,
+  1,
+  0xD,
+  0x1,
+  0x8,
+  0x1,
+  { 0x20, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
+  0,
+  0,
+  0,
+  NULL
+};
+
+// KEH: DSEG:0x1E20
+static struct ui_region player_f3_region = {
+  0xF,
+  1,
+  0x14,
+  0x1,
+  0x0F,
+  0x1,
+  { 0x3C, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
+  0,
+  0,
+  0,
+  NULL
+};
+
+// KEH: DSEG:0x1E3C
+static struct ui_region player_f4_region = {
+  0x16,
+  1,
+  0x1B,
+  0x1,
+  0x16,
+  0x1,
+  { 0x58, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
+  0,
+  0,
+  0,
+  NULL
+};
+
+// KEH: DSEG:0x1E58
+static struct ui_region player_f5_region = {
+  0x1D,
+  1,
+  0x22,
+  0x1,
+  0x1D,
+  0x1,
+  { 0x74, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
+  0,
+  0,
+  0,
+  NULL
+};
+
+static struct ui_region *player_regions[] = {
+  &player_f1_region,
+  &player_f2_region,
+  &player_f3_region,
+  &player_f4_region,
+  &player_f5_region
 };
 
 // DSEG:0x02E6
@@ -1415,6 +1531,83 @@ static void sub_3290(int char_num, const char *name)
   g_game_state.players[char_num].name[12] = '\0';
 }
 
+// KEH: seg000:0x2AFC
+static void sub_2AFC(const char *str, int arg1)
+{
+  char player_name[16];
+
+  snprintf(player_name, sizeof(player_name), "%s", str);
+  player_name[active_region->rect.width / 4] = '\0';
+
+  size_t player_name_len = strlen(player_name);
+  //player_name_len -= (active_region->rect.width / 4);
+  ui_region_print_str(player_name, 0, arg1);
+}
+
+// KEH: seg000:0x0A04
+static void sub_0A04(int arg0)
+{
+  struct ui_region *old_region = active_region;
+
+  for (int i = 0; i < 5; i++) {
+
+    const struct player_rec *current_player = &g_game_state.players[i];
+    // byte_1978 = 0;
+
+    ui_region_set_active(player_regions[i], false);
+    ui_active_region_clear();
+
+    if (i < g_game_state.party_size) {
+      sub_2AFC(current_player->name, 0);
+
+      if (current_player->affliction != 0) {
+        // 0x0A57
+        printf("%s:0x0A57 unhandled\n", __func__);
+      }
+
+      if (arg0 != 0) {
+        // 0x0A6A
+        printf("%s:0x0A6A unhandled\n", __func__);
+      }
+    }
+  }
+
+  ui_region_set_active(old_region, false);
+}
+
+// KEH: seg000:0x1033
+static void draw_day_time()
+{
+  struct ui_region *old_region = active_region;
+
+  char current_time[16];
+
+  snprintf(current_time, sizeof(current_time), "%2.2d:%.2d",
+           g_game_state.hour, g_game_state.minute);
+
+  ui_region_set_active(&datetime_region, false);
+
+  ui_region_print_str(days[g_game_state.day_of_week], 1, 0);
+  ui_region_print_str(current_time, 0, 1);
+
+  ui_region_set_active(old_region, false);
+}
+
+// KEH: seg000:0xD78
+static void sub_D78()
+{
+}
+
+// KEH: seg000:0xD9CF
+static void sub_D9CF()
+{
+  active_region = &unknown_1AD8;
+
+  draw_borders(0x0);
+
+  sub_159E(welcome_msg);
+}
+
 // Main game loop
 static void sub_39FE(int arg1, int arg2)
 {
@@ -1427,6 +1620,15 @@ static void sub_39FE(int arg1, int arg2)
   struct resource *res = resource_load(RESOURCE_TILES, 0, 0);
 
   hexdump(res->bytes, 32);
+  sub_D9CF();
+
+  sub_0A04(0);
+  draw_day_time();
+  sub_D78();
+  screen_draw(scratch);
+
+
+  vga_waitkey();
 
   resource_release(res);
   // Enviroment array?
