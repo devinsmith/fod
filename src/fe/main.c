@@ -251,12 +251,6 @@ static struct ui_region unknown_31E = {
   &data_02A6 // 1A
 };
 
-#if 0
-static char *word_33A;
-static char *word_33C;
-static char *word_33E;
-#endif
-
 // DSEG:0x0424
 static unsigned char video_mode = 2;
 
@@ -1447,48 +1441,38 @@ static void ui_active_region_clear()
 // by actively looking for line breaks, spaces, etc. and printing them
 // out individually. However, it is not complete yet and really can only handle
 // short strings that fit within the active region.
-static void sub_159E(const char *str)
+static void print_wrapped_text(const char *str)
 {
-#if 0
-  word_33A = str;
-  word_33C = str;
-  word_33E = str;
+  int max_width = (active_region->data_04 - active_region->data_08) + 1;
+  int len = (int)strlen(str);
 
-  // 15AA
-  struct ui_region *si = active_region;
-#endif
-
-  // Not exactly correct, there's checking for certain new line characters.
-  plot_font_str(str, strlen(str));
-#if 0
-
-  char al = *str;
-  if (al == '\0') {
-    // jmp sub_1602
+  if (len <= max_width) {
+    plot_font_str(str, len);
+    return;
   }
-  if (al == 0x0D) {
-    // sub_1602();
-    // push di
-    // call sub_164F
-    // pop di
-    // inc di
-    // jmp loc_159E
-  }
-  // 0x15C4
-  // push ax
-  // cx = dx
-  // cx -= word_33A
-  uint16_t ax = si->data_08;
-  ax += cx;
-  if (ax <= si->data_04) {
-    // 15D5
-    if (al != ' ') {
 
+  // Larger strings.
+  int break_pos = 0;
+  int offset = 0;
+  int current_idx = 0;
+
+  const char *p = str;
+  while (*p != '\0') {
+    if (*p == ' ' || *p == '\n' || *p == '\r') {
+      break_pos = current_idx;
     }
+    if (current_idx >= max_width) {
+      // Draw the string up to the break position
+      if (break_pos == 0) {
+        break_pos = len;
+      }
+      plot_font_str(str + offset, break_pos);
+      offset = break_pos + 1;
+      current_idx = 0;
+    }
+    p++;
+    current_idx++;
   }
-  // 15E8
-#endif
-
 }
 
 // FOD: seg000:0x1614
@@ -1521,7 +1505,7 @@ static void ui_region_print_str(const char *str, int arg2, int arg3)
     si->data_0A = arg3 + si->data_02;
   }
   // 0x16BC
-  sub_159E(str);
+  print_wrapped_text(str);
 }
 
 static void sub_3290(int char_num, const char *name)
@@ -1605,7 +1589,7 @@ static void sub_D9CF()
 
   draw_borders(0x0);
 
-  sub_159E(welcome_msg);
+  print_wrapped_text(welcome_msg);
 }
 
 // Main game loop
