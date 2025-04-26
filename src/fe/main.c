@@ -194,7 +194,6 @@ static void draw_borders(int offset);
 static void sub_1548();
 static void ui_region_set_active(struct ui_region *arg1, bool clear);
 static void ui_active_region_clear();
-static void sub_159E();
 static void plot_font_str(const char *str, int len);
 static void ui_region_print_str(const char *str, int arg2, int arg3);
 static void sub_3290(int char_num, const char *name);
