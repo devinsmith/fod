@@ -49,6 +49,24 @@ struct ui_unknown2 {
   struct ui_rect rect; // BX+C
 };
 
+// Likely 28 bytes.
+struct ui_region {
+  uint16_t data_00; // 0x00
+  uint16_t data_02; // 0x02
+  uint16_t data_04; // 0x04
+  uint16_t data_06; // 0x06
+  uint16_t data_08; // 0x08
+  uint16_t data_0A; // 0x0A - Line start?
+
+  // RECT structure?
+  struct ui_rect rect; // offset 0x0C - 0x12
+
+  uint16_t data_14; // offset 0x14
+  uint16_t data_16; // (this is actually a function pointer) offset 0x16
+  uint16_t data_24; // offset 0x18
+  struct ui_rect *data_1A; // offset 0x1A
+};
+
 void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
 void ui_sub_034D();
 void ui_draw_80_line(const uint16_t *src, uint16_t *dest);
