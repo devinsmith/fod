@@ -55,7 +55,9 @@ struct ui_region {
   uint16_t data_02; // 0x02
   uint16_t data_04; // 0x04
   uint16_t data_06; // 0x06
-  uint16_t data_08; // 0x08
+
+  // Current X (horizontal) location of the cursor.
+  uint16_t cursor_index_x; // 0x08
   uint16_t data_0A; // 0x0A - Line start?
 
   // RECT structure?

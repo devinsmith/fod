@@ -220,7 +220,8 @@ bool load_game_state()
   jump_to_offset(0xE); // 0x0E
   g_game_state.money = read_uint32();
 
-  jump_to_offset(0x31); // 0x31
+  jump_to_offset(0x30); // 0x30
+  g_game_state.map = read_uint8();
   g_game_state.party_size = read_uint8();
 
   /* Read party order */

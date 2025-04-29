@@ -43,6 +43,8 @@ struct attr_coordinates {
   const char *str;
 };
 
+static uint8_t byte_00EA = 0;
+
 // DSEG:0x7A
 static const struct attr_coordinates attributes[] = {
   { 0x15, 0x02, "ST:" },
@@ -100,7 +102,7 @@ static struct ui_region unknown_1AD8 = {
   0x27,
   0x18,
   0x7,
-  0x18,
+  0x16,
   { 0x1C, 0xB0, 0x84, 0x18 },
   0x00,
   0xDAAA, // Draw borders?
@@ -344,7 +346,7 @@ static void do_title()
 void game_mem_alloc()
 {
   // Fountain of Dreams does most of its work within this scratch
-  // buffer. I'm not sure if it really needs to be this big but that's how much
+  // buffer. I'm not sure if it really needs to be this big, but that's how much
   // is allocated in the disassembly.
   scratch = malloc(286544); // 286,544 bytes.
   if (scratch == NULL) {
@@ -1362,6 +1364,8 @@ int main(int argc, char *argv[])
   return 0;
 }
 
+// FEH: seg000:0x14B3
+// KEH: seg000:0xD9F5
 static void sub_14B3(const struct ui_rect *input)
 {
   uint16_t ax = input->x_pos;  // 0
@@ -1435,6 +1439,21 @@ static void ui_active_region_clear()
   ui_rect_clear(si);
 }
 
+// KEH: seg000:0xDDFD
+static void reset_offsets()
+{
+  struct ui_region *si = active_region;
+
+  si->cursor_index_x = si->data_00;
+  si->data_0A++;
+  if (si->data_0A <= si->data_06) {
+    return;
+  }
+
+  printf("%s:0xDE12 unhandled\n", __func__);
+  exit(0);
+}
+
 // FOD: seg000:0x159E
 // KEH: seg000:0xDB95
 // This routine prints strings within the active region
@@ -1443,35 +1462,50 @@ static void ui_active_region_clear()
 // short strings that fit within the active region.
 static void print_wrapped_text(const char *str)
 {
-  int max_width = (active_region->data_04 - active_region->data_08) + 1;
+  int max_width = (active_region->data_04 - active_region->cursor_index_x) + 1;
   int len = (int)strlen(str);
+  int i = 0;
 
-  if (len <= max_width) {
-    plot_font_str(str, len);
-    return;
-  }
-
-  // Larger strings.
-  int break_pos = 0;
-  int offset = 0;
-  int current_idx = 0;
-
-  const char *p = str;
-  while (*p != '\0') {
-    if (*p == ' ' || *p == '\n' || *p == '\r') {
-      break_pos = current_idx;
+  while (i < len) {
+    // Skip any leading spaces or newlines
+    while (i < len && (str[i] == ' ' || str[i] == '\n')) {
+      i++;
     }
-    if (current_idx >= max_width) {
-      // Draw the string up to the break position
-      if (break_pos == 0) {
-        break_pos = len;
+
+    if (i >= len) {
+      break;
+    }
+
+    int line_start = i;
+    int line_len = 0;
+    int last_space = -1;
+
+    while (i < len && line_len < max_width) {
+      if (str[i] == '\n') {
+        // Explicit line break
+        reset_offsets();
+        break;
       }
-      plot_font_str(str + offset, break_pos);
-      offset = break_pos + 1;
-      current_idx = 0;
+      if (str[i] == ' ') {
+        last_space = i;
+      }
+      i++;
+      line_len++;
     }
-    p++;
-    current_idx++;
+
+    if (i < len && str[i] != '\n' && last_space != -1) {
+      // backtrack to the last space if possible.
+      i = last_space + 1;
+      line_len = last_space - line_start;
+    }
+
+    plot_font_str(str + line_start, line_len);
+
+    if (i < len && str[i] == '\n') {
+      // Skip explicit line break
+      reset_offsets();
+      i++;
+    }
   }
 }
 
@@ -1485,8 +1519,8 @@ static void plot_font_str(const char *str, int len)
   struct ui_region *si = active_region;
 
   for (int i = 0; i < len; i++) {
-    plot_font_chr(str[i], si->data_08, si->data_14, si->data_0A);
-    si->data_08++;
+    plot_font_chr(str[i], si->cursor_index_x, si->data_14, si->data_0A);
+    si->cursor_index_x++;
   }
 }
 
@@ -1498,7 +1532,7 @@ static void ui_region_print_str(const char *str, int arg2, int arg3)
   struct ui_region *si = active_region;
 
   if (arg2 != -1) {
-    si->data_08 = arg2 + si->data_00;
+    si->cursor_index_x = arg2 + si->data_00;
   }
   // 0x16AC
   if (arg3 != -1) {
@@ -1592,6 +1626,43 @@ static void sub_D9CF()
   print_wrapped_text(welcome_msg);
 }
 
+// KEH: seg000:0x87E5
+static void sub_87E5(int arg0)
+{
+  if (arg0 == 0) {
+    return;
+  }
+
+  // 0x87E5
+  printf("%s:0x87F1 unhandled\n", __func__);
+  exit(1);
+}
+
+// KEH: seg000:0x8C
+static void sub_8C(int arg0)
+{
+  if (arg0 != byte_00EA) {
+    sub_87E5(byte_00EA);
+    byte_00EA = arg0;
+  }
+
+  // arg0 is a byte offset into DS:125 table.
+
+
+
+}
+
+// KEH: seg000:0x293F
+static void sub_293F(int arg1, int arg2)
+{
+  ui_region_set_active(&unknown_1AD8, false);
+  ui_active_region_clear();
+
+  // 0x293F
+  printf("%s:0x293F unhandled\n", __func__);
+  exit(1);
+}
+
 // Main game loop
 static void sub_39FE(int arg1, int arg2)
 {
@@ -1604,6 +1675,9 @@ static void sub_39FE(int arg1, int arg2)
   struct resource *res = resource_load(RESOURCE_TILES, 0, 0);
 
   hexdump(res->bytes, 32);
+
+  sub_8C(0x1C);
+
   sub_D9CF();
 
   sub_0A04(0);
@@ -1613,6 +1687,9 @@ static void sub_39FE(int arg1, int arg2)
 
 
   vga_waitkey();
+
+  // 293F (left)
+  sub_293F(4, 0);
 
   resource_release(res);
   // Enviroment array?

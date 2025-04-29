@@ -87,7 +87,8 @@ struct player_rec {
   struct item_rec items[32];
 };
 
-// DSEG:0x231E - 0x31DE
+// FOD: DSEG:0x231E - 0x31DE
+// KEH: DSEG:0xBEEA - ?
 struct game_state {
   uint16_t saved_game;
   uint16_t do_init;
@@ -100,6 +101,8 @@ struct game_state {
   uint8_t minute; // 0x09
 
   uint32_t money; // 0x0E
+
+  uint8_t map; // 0x30
 
   // Number of players in the party (0-5)
   uint8_t party_size; // 0x31
