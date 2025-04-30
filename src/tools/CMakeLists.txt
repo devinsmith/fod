@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(FONTDUMP_SOURCES fontdump.cpp)
 set(GANIDUMP_SOURCES ganidump.cpp)
+set(TILEDUMP_SOURCES tiledump.cpp)
 set(UNPACK_SOURCES unpack.c)
 
 add_executable(fontdump ${FONTDUMP_SOURCES})
@@ -31,4 +32,12 @@ else()
   target_compile_options(ganidump PRIVATE -Wall -Werror)
 endif()
 
+add_executable(tiledump ${TILEDUMP_SOURCES})
+target_include_directories(tiledump PRIVATE ${CMAKE_SOURCE_DIR}/src/lib)
+target_link_libraries(tiledump PRIVATE common)
+if(MSVC)
+  target_compile_options(tiledump PRIVATE /W4 /WX)
+else()
+  target_compile_options(tiledump PRIVATE -Wall -Werror)
+endif()
 
