@@ -45,6 +45,21 @@ struct attr_coordinates {
 
 static uint8_t byte_00EA = 0;
 
+// KEH: DSEG:00EC
+// Current map?
+static uint16_t word_00EC = 0xffff;
+
+// KEH: DSEG: 0xD284
+static const char *level_map_file = NULL;
+static unsigned char level_map_bytes[256];
+static unsigned char *level_map_large = NULL;
+// KEH: DSEG: 0xD9BC
+static const char *level_scr_file = NULL;
+static unsigned char level_scr_bytes[256];
+// KEH: DSEG: 0xD9C8
+static const char *level_ani_file = NULL;
+static unsigned char level_ani_bytes[256];
+
 // DSEG:0x7A
 static const struct attr_coordinates attributes[] = {
   { 0x15, 0x02, "ST:" },
@@ -96,7 +111,7 @@ static struct ui_region unknown_2CA = {
 const char *welcome_msg = "Welcome to the beautiful island of Florida!\n";
 
 // KEH: DSEG:0x1AD8
-static struct ui_region unknown_1AD8 = {
+static struct ui_region message_region = {
   7,
   0x16,
   0x27,
@@ -307,7 +322,7 @@ static void sub_1548();
 static void ui_region_set_active(struct ui_region *arg1, bool clear);
 static void ui_active_region_clear();
 static void plot_font_str(const char *str, int len);
-static void ui_region_print_str(const char *str, int arg2, int arg3);
+static void ui_region_print_str(const char *str, int x_pos, int y_pos);
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
 
@@ -727,9 +742,9 @@ static void show_attribute_points(int char_number)
 
   char attr_points[16];
   snprintf(attr_points, sizeof(attr_points), "%2.2d->", al);
-  unknown_302.data_14 = 8;
+  unknown_302.line_number = 8;
   ui_region_print_str(attr_points, 0x24, 0);
-  unknown_302.data_14 = 0;
+  unknown_302.line_number = 0;
   sub_1631();
 
   ui_region_set_active(&unknown_2CA, false);
@@ -761,9 +776,9 @@ static void sub_8F5(int char_number, int attr_num)
 
   // 959
 
-  unknown_302.data_14 = 8;
+  unknown_302.line_number = 8;
   ui_region_print_str("Attribute Pts: <-", 0x13, 0);
-  unknown_302.data_14 = 0;
+  unknown_302.line_number = 0;
 
   for (int i = 0; i < 7; i++) {
     char attr_str[30];
@@ -1444,9 +1459,9 @@ static void reset_offsets()
 {
   struct ui_region *si = active_region;
 
-  si->cursor_index_x = si->data_00;
-  si->data_0A++;
-  if (si->data_0A <= si->data_06) {
+  si->cursor_index_x = si->initial_x_cursor_pos;
+  si->cursor_index_y++;
+  if (si->cursor_index_y <= si->max_y_cursor_pos) {
     return;
   }
 
@@ -1458,11 +1473,10 @@ static void reset_offsets()
 // KEH: seg000:0xDB95
 // This routine prints strings within the active region
 // by actively looking for line breaks, spaces, etc. and printing them
-// out individually. However, it is not complete yet and really can only handle
-// short strings that fit within the active region.
+// out individually.
 static void print_wrapped_text(const char *str)
 {
-  int max_width = (active_region->data_04 - active_region->cursor_index_x) + 1;
+  int max_width = (active_region->max_x_cursor_pos - active_region->cursor_index_x) + 1;
   int len = (int)strlen(str);
   int i = 0;
 
@@ -1519,7 +1533,7 @@ static void plot_font_str(const char *str, int len)
   struct ui_region *si = active_region;
 
   for (int i = 0; i < len; i++) {
-    plot_font_chr(str[i], si->cursor_index_x, si->data_14, si->data_0A);
+    plot_font_chr(str[i], si->cursor_index_x, si->line_number, si->cursor_index_y);
     si->cursor_index_x++;
   }
 }
@@ -1527,16 +1541,16 @@ static void plot_font_str(const char *str, int len)
 // seg000:0x168E
 // Prints a string within a region, at (x,y) coordinates
 // "Welcome", 2, 0xB
-static void ui_region_print_str(const char *str, int arg2, int arg3)
+static void ui_region_print_str(const char *str, int x_pos, int y_pos)
 {
   struct ui_region *si = active_region;
 
-  if (arg2 != -1) {
-    si->cursor_index_x = arg2 + si->data_00;
+  if (x_pos != -1) {
+    si->cursor_index_x = x_pos + si->initial_x_cursor_pos;
   }
   // 0x16AC
-  if (arg3 != -1) {
-    si->data_0A = arg3 + si->data_02;
+  if (y_pos != -1) {
+    si->cursor_index_y = y_pos + si->initial_y_cursor_pos;
   }
   // 0x16BC
   print_wrapped_text(str);
@@ -1555,11 +1569,12 @@ static void sub_2AFC(const char *str, int arg1)
   char player_name[16];
 
   snprintf(player_name, sizeof(player_name), "%s", str);
-  player_name[active_region->rect.width / 4] = '\0';
+  int max_char_len = active_region->rect.width / 4;
+  player_name[max_char_len] = '\0';
 
+  // Attempt to center
   size_t player_name_len = strlen(player_name);
-  //player_name_len -= (active_region->rect.width / 4);
-  ui_region_print_str(player_name, 0, arg1);
+  ui_region_print_str(player_name, (max_char_len - player_name_len) / 2, arg1);
 }
 
 // KEH: seg000:0x0A04
@@ -1619,7 +1634,7 @@ static void sub_D78()
 // KEH: seg000:0xD9CF
 static void sub_D9CF()
 {
-  active_region = &unknown_1AD8;
+  active_region = &message_region;
 
   draw_borders(0x0);
 
@@ -1638,6 +1653,35 @@ static void sub_87E5(int arg0)
   exit(1);
 }
 
+// KEH: seg000:0x0444
+static void sub_0444(const char *file, uint8_t *buffer, uint16_t size)
+{
+  FILE *fp = fopen(file, "rb");
+  fread(buffer, 1, size, fp);
+  fclose(fp);
+}
+
+// KEH: seg000:0x03BF
+static void sub_03BF(const char *file, uint8_t *data, uint8_t val, unsigned char *buffer, int val2)
+{
+  FILE *fp = fopen(file, "rb");
+
+  uint16_t bx = val << 1;
+  uint16_t *si = (uint16_t *)buffer;
+  uint16_t ax = si[bx];
+  uint32_t dxax = ax << 4;
+
+  fseek(fp, dxax, SEEK_SET);
+  if (val2 == 1) {
+    printf("%s:0x03F9 unhandled\n", __func__);
+    exit(1);
+  } else {
+    fread(data, 1, si[(val * 2) + 1], fp);
+  }
+
+  fclose(fp);
+}
+
 // KEH: seg000:0x8C
 static void sub_8C(int arg0)
 {
@@ -1648,14 +1692,31 @@ static void sub_8C(int arg0)
 
   // arg0 is a byte offset into DS:125 table.
 
+  word_00EC = 2; // Current map?
 
+  uint16_t index = word_00EC * 10;
 
+  level_map_file = "fmap";
+  level_scr_file = "fscr";
+  level_ani_file = "fani";
+
+  sub_0444(level_map_file, level_map_bytes, 112);
+  sub_0444(level_scr_file, level_scr_bytes, 112);
+  sub_0444(level_ani_file, level_ani_bytes, 212);
+
+  sub_03BF(level_map_file, level_map_large, arg0 - 1, level_map_bytes, 0);
+  printf("Level map large:\n");
+  hexdump(level_map_large, 32);
+
+  uint16_t *es = (uint16_t *)level_map_large;
+  uint16_t ax = es[0x404]; // guns and clutter?
+  printf("0x%04X\n", ax);
 }
 
 // KEH: seg000:0x293F
 static void sub_293F(int arg1, int arg2)
 {
-  ui_region_set_active(&unknown_1AD8, false);
+  ui_region_set_active(&message_region, false);
   ui_active_region_clear();
 
   // 0x293F
@@ -1673,6 +1734,8 @@ static void sub_39FE(int arg1, int arg2)
 
   // KEH main 0x2813
   struct resource *res = resource_load(RESOURCE_TILES, 0, 0);
+
+  level_map_large = malloc(0x10000);
 
   hexdump(res->bytes, 32);
 
@@ -1692,5 +1755,5 @@ static void sub_39FE(int arg1, int arg2)
   sub_293F(4, 0);
 
   resource_release(res);
-  // Enviroment array?
+  free(level_map_large);
 }

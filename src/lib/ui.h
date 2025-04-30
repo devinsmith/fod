@@ -49,21 +49,21 @@ struct ui_unknown2 {
   struct ui_rect rect; // BX+C
 };
 
-// Likely 28 bytes.
+// A UI region describes an area on the screen. A screen may have multiple regions.
 struct ui_region {
-  uint16_t data_00; // 0x00
-  uint16_t data_02; // 0x02
-  uint16_t data_04; // 0x04
-  uint16_t data_06; // 0x06
+  uint16_t initial_x_cursor_pos; // 0x00
+  uint16_t initial_y_cursor_pos; // 0x02
+  uint16_t max_x_cursor_pos; // 0x04
+  uint16_t max_y_cursor_pos; // 0x06
 
   // Current X (horizontal) location of the cursor.
   uint16_t cursor_index_x; // 0x08
-  uint16_t data_0A; // 0x0A - Line start?
+  uint16_t cursor_index_y; // 0x0A - Line start?
 
-  // RECT structure?
+  // The rectangle structure defines the region's placement within the screen.
   struct ui_rect rect; // offset 0x0C - 0x12
 
-  uint16_t data_14; // offset 0x14
+  uint16_t line_number; // offset 0x14
   uint16_t data_16; // (this is actually a function pointer) offset 0x16
   uint16_t data_24; // offset 0x18
   struct ui_rect *data_1A; // offset 0x1A

@@ -93,6 +93,8 @@ struct game_state {
   uint16_t saved_game;
   uint16_t do_init;
 
+  uint8_t video_init; // 0x04
+
   uint8_t video_mode; // 0x06
 
   // 0-23 (hour of the day)

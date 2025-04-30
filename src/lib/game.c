@@ -208,6 +208,7 @@ bool load_game_state()
 
   g_game_state.saved_game = read_uint16();
   g_game_state.do_init = read_uint16();
+  g_game_state.video_init = read_uint8();
   jump_to_offset(0x6);
   g_game_state.video_mode = read_uint8();
 
