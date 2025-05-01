@@ -217,8 +217,10 @@ bool load_game_state()
   g_game_state.hour = read_uint8();
   g_game_state.minute = read_uint8();
 
+  g_game_state.unknown_10 = read_uint16();
+  g_game_state.unknown_12 = read_uint16();
+
   /* Read money */
-  jump_to_offset(0xE); // 0x0E
   g_game_state.money = read_uint32();
 
   jump_to_offset(0x30); // 0x30

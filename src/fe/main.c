@@ -315,6 +315,21 @@ static unsigned char *arch_offset;
 // DSEG:0x3E66
 static struct resource *border_res;
 
+// KEH globals
+// KEH DSEG:0x1E9A
+static uint16_t word_1E9A = 0;
+// KEH DSEG:0x1E9C
+static uint16_t word_1E9C = 0;
+// KEH DSEG:0x1E9E
+static uint16_t word_1E9E = 0;
+// KEH DSEG:0x1EA0
+static uint16_t word_1EA0 = 0;
+// KEH DSEG:0x1EA2
+static uint16_t word_1EA2 = 0;
+
+// KEH DSEG:0x1EA4
+static uint16_t map_tile_array[9 * 19];
+
 static void sub_14B3(struct ui_rect const *input);
 static void sub_14D5(struct ui_rect *input);
 static void draw_borders(int offset);
@@ -1724,6 +1739,149 @@ static void sub_293F(int arg1, int arg2)
   exit(1);
 }
 
+static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
+{
+  int line_num = (y * 16) + 24;
+  int rows = 16;
+//  int cols = 4;
+
+  uint16_t bx = 0;
+  int sprite = tile_id;
+
+  if (sprite >= 512) {
+    sprite -= 512;
+    bx = 0x1000;
+  }
+
+  if ((tile_id & 0xF800) != 0) {
+    printf("%s: 0xE0E4 unhandled, tile_id = 0x%04X 0x%04X\n", __func__, tile_id, tile_id & 0xF800);
+  }
+
+  int offset = sprite * 128; // 8*16 bytes
+
+  unsigned char *es = scratch;
+  uint16_t di = get_160_offset(line_num);
+  di += (x << 3);
+  di += 4; // indentation
+  es += di;
+
+  unsigned char *si = r->bytes + offset;
+
+  // copy tile "sprite" over to scratch buffer.
+  // tiles are stored in 8 x 16
+  for (int k = 0; k < rows; k++) {
+    // copy words from ds:si to es:di
+    memcpy(es, si, 8);
+    si += 8;
+    es += 8;
+
+    es += 0x98; // next line
+  }
+}
+
+/* KEH: seg000:0xDD19 */
+static void draw_map(struct resource *r)
+{
+  // Draws our map 19x9 sprites
+  for (int j = 0; j < 9; j++) {
+    for (int i = 0; i < 19; i++) {
+      draw_map_tile(r, map_tile_array[i + (j * 19)], i, j);
+    }
+  }
+}
+
+// KEH: seg000:0xDC46
+static void sub_DC46(struct resource *r)
+{
+  uint16_t ax = ((uint16_t *)level_map_large)[2];
+  ax = ax & 0x7FFF;
+
+  printf("%s: DC51 - 0x%04X\n", __func__, ax);
+
+  word_1EA2 = ax;
+
+  ax = g_game_state.unknown_10;
+  printf("%s: DC57 - 0x%04X\n", __func__, ax);
+  ax -= 9;
+  word_1E9A = ax;
+
+  ax = g_game_state.unknown_12;
+  printf("%s: DC63 - 0x%04X\n", __func__, ax);
+  ax -= 4;
+  word_1E9C = ax;
+
+  uint16_t *di = map_tile_array;
+  uint16_t si = 0;
+
+  // DC79
+  for (int j = 0; j < 9; j++) {
+    for (int i = 0; i < 19; i++) {
+      word_1E9E = i + word_1E9A;
+      si = 0;
+
+      uint16_t si_word = ((uint16_t *)level_map_large)[si];
+      if (word_1E9E >= si_word) {
+        *di = word_1EA2;
+        di++;
+        continue;
+      }
+
+      word_1EA0 = j + word_1E9C;
+      si_word = ((uint16_t *)level_map_large)[si + 1];
+      if (word_1EA0 >= si_word) {
+        *di = word_1EA2;
+        di++;
+        continue;
+      }
+
+      ax = 0x8000;
+      if ((word_1E9E & 0x8000) != 0) {
+        *di = word_1EA2;
+        di++;
+        continue;
+      }
+
+      if ((word_1EA0 & 0x8000) != 0) {
+        *di = word_1EA2;
+        di++;
+        continue;
+      }
+
+      uint16_t cx = ((uint16_t *)level_map_large)[si];
+      ax = word_1EA0 * cx;
+      ax += word_1E9E;
+      ax = ax << 3;
+      si += 0x414;
+      si += ax;
+
+      ax = ((uint16_t *)level_map_large)[si / 2];
+      if ((level_map_large[si + 2] & 0x40) == 0) {
+        if ((level_map_large[si + 2] & 0x80) != 0) {
+          ax = ax & 0x7FF;
+          ax = ax | 0x1000;
+        }
+      } else {
+        ax = ax & 0x7FF;
+        ax = ax | 0x1800;
+      }
+
+      // DCE9
+      *di = ax;
+      di++;
+    }
+  }
+
+  // Add center portion
+  int center = (4 * 19) + 9;
+  map_tile_array[center] &= 0x7FF;
+  map_tile_array[center] |= 0x800;
+
+  printf("Map done\n");
+  hexdump(map_tile_array, 64);
+
+  draw_map(r);
+}
+
 // Main game loop
 static void sub_39FE(int arg1, int arg2)
 {
@@ -1733,11 +1891,11 @@ static void sub_39FE(int arg1, int arg2)
   // 0x392C is right before the jump into KEH.EXE
 
   // KEH main 0x2813
-  struct resource *res = resource_load(RESOURCE_TILES, 0, 0);
+  struct resource *tile_res = resource_load(RESOURCE_TILES, 0, 0);
 
   level_map_large = malloc(0x10000);
 
-  hexdump(res->bytes, 32);
+  hexdump(tile_res->bytes, 32);
 
   sub_8C(0x1C);
 
@@ -1746,6 +1904,7 @@ static void sub_39FE(int arg1, int arg2)
   sub_0A04(0);
   draw_day_time();
   sub_D78();
+  sub_DC46(tile_res);
   screen_draw(scratch);
 
 
@@ -1754,6 +1913,6 @@ static void sub_39FE(int arg1, int arg2)
   // 293F (left)
   sub_293F(4, 0);
 
-  resource_release(res);
+  resource_release(tile_res);
   free(level_map_large);
 }
