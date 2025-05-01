@@ -1746,7 +1746,7 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
 //  int cols = 4;
 
   uint16_t bx = 0;
-  int sprite = tile_id;
+  int sprite = tile_id & 0x7FF;
 
   if (sprite >= 512) {
     sprite -= 512;

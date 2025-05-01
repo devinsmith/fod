@@ -133,10 +133,9 @@ int main(int argc, char *argv[])
   fprintf(imageFile,"%zu %zu\n", fb_width, fb_height);   // dimensions
   fprintf(imageFile,"255\n");              // Max pixel
 
-  // There seem to be some duplicate tiles...
   for (int j = 0; j < 25; j++) {
     for (int i = 0; i < 40; i++) {
-      write_data(r, i + (j * 25), i, j);
+      write_data(r, i + (j * 40), i, j);
     }
   }
 
