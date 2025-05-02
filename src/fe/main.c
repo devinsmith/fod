@@ -49,6 +49,11 @@ static uint8_t byte_00EA = 0;
 // Current map?
 static uint16_t word_00EC = 0xffff;
 
+// KEH: DSEG:D1DE
+static unsigned char *ptr_D1DE = NULL;
+// KEH: DSEG:D206
+static unsigned char *ptr_D206 = NULL;
+
 // KEH: DSEG: 0xD284
 static const char *level_map_file = NULL;
 static unsigned char level_map_bytes[256];
@@ -1641,9 +1646,80 @@ static void draw_day_time()
   ui_region_set_active(old_region, false);
 }
 
+// KEH: seg000:0x073E
+static bool sub_73E(int arg0, int arg1, int arg2)
+{
+  if ((arg1 < (g_game_state.unknown_10 - arg0)) ||
+      ((g_game_state.unknown_10 + arg0) < arg1) ||
+      (arg2 < (g_game_state.unknown_12 - arg0)) ||
+      ((g_game_state.unknown_12 + arg0) < arg2)) {
+    return false;
+  }
+
+  return true;
+}
+
+// KEH: seg000:0xD19
+static void sub_D19(int arg0, int arg2, int arg4, int arg6)
+{
+  int ax = (int)(char)arg4;
+  ax *= ((uint16_t *)level_map_large)[0];
+  int cx = ax;
+
+  ax = (int)(char)arg2;
+  cx += ax;
+
+  ax = cx;
+  ax = ax << 3;
+
+  ax += 0x414;
+  level_map_large[ax + 1] &= 0x7;
+
+  if (sub_73E(arg0, arg2, arg4)) {
+    uint16_t *ptr = (uint16_t *)(&level_map_large[ax]);
+    *ptr |= (arg6 << 0xB);
+  }
+}
+
 // KEH: seg000:0xD78
 static void sub_D78()
 {
+  // We need to set these properly!
+  ptr_D206 = level_map_large + 0xE34; // ?
+  ptr_D1DE = level_map_large + 0xF6C; // ?
+
+  int val1 = level_map_large[9];
+  int val2 = level_map_large[0xb];
+
+  uint8_t unknowns[4];
+  int offset;
+
+  printf("%s: val1: %d, val2: %d\n", __func__, val1, val2);
+
+  for (int i = 0; i < val1; i++) {
+
+    offset = i * 0x68;
+    unknowns[0] = ptr_D206[0x65 + offset];
+    unknowns[1] = ptr_D206[0x5c + offset];
+    unknowns[2] = ptr_D206[0x5B + offset];
+    unknowns[3] = ptr_D206[0x5F + offset];
+
+    printf("%x %x %x %x\n", unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
+
+    sub_D19(unknowns[3], unknowns[2], unknowns[1], unknowns[0]);
+  }
+
+  for (int i = 0; i < val2; i++) {
+    offset = i * 0x66;
+    unknowns[0] = ptr_D1DE[5 + offset];
+    unknowns[1] = ptr_D1DE[2 + offset];
+    unknowns[2] = ptr_D1DE[3 + offset];
+    unknowns[3] = ptr_D1DE[0xC + offset];
+
+    if ((ptr_D1DE[9 + offset] & 0xF) != 0) {
+      sub_D19(unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
+    }
+  }
 }
 
 // KEH: seg000:0xD9CF
@@ -1739,6 +1815,15 @@ static void sub_293F(int arg1, int arg2)
   exit(1);
 }
 
+// Sprite overlays
+// KEH: DSEG:0x9E1A
+static uint16_t overlay_table[] = {
+  0x0000, 0x1E68, 0x1E60, 0x1F38, 0x1E48, 0x1E50,
+  0x1E58, 0x1EC8, 0x1ED0, 0x1ED8, 0x1EE0, 0x1EE8,
+  0x1EF0, 0x1EF8, 0x1F00, 0x1F08, 0x1F10, 0x1F18,
+  0x1F20, 0x1F28, 0x1F30
+};
+
 static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
 {
   int line_num = (y * 16) + 24;
@@ -1757,10 +1842,24 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
   }
 
   if (tile_id >= 0x800) {
+    /*
     printf("%s: 0xE0E4 unhandled, tile_id = 0x%04X 0x%04X %d %d\n", __func__,
         tile_id, tile_id & 0xF800, x, y);
+        */
 
-    overlay = 973;
+    // Calculate overlay.
+    uint16_t mask = tile_id & 0xF800;
+    uint16_t mask_flipped = (mask & 0xFF) << 8 | mask >> 8;
+    int table_lookup = mask_flipped >> 3;
+    if (table_lookup > 20) {
+      printf("%s: Overlay too large, check 0xE0E4\n", __func__);
+      table_lookup = 20;
+    }
+
+    overlay = overlay_table[table_lookup];
+    // Convert from segment:offset to absolute, then index.
+    overlay = (overlay * 16) / 128;
+    printf("%s: Overlay number: %d\n", __func__, overlay);
   }
 
   int offset = sprite * 128; // 8*16 bytes
@@ -1794,6 +1893,7 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
     di += (x << 3);
     di += 4; // indentation
     printf("Starting di: 0x%04X\n", di);
+    int index = 0;
 
     offset = overlay * 128; // 8*16 bytes
     si = r->bytes + offset;
@@ -1806,8 +1906,8 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
           es[di] &= 0x0F;
           es[di] |= al;
         }
-        si++;
-        al = *si;
+        index++;
+        al = *si++;
         al &= 0x0F;
         if (al != 0) {
           es[di] &= 0xF0;
