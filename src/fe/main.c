@@ -1747,17 +1747,26 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
 
   uint16_t bx = 0;
   int sprite = tile_id & 0x7FF;
+  int overlay = 0;
 
   if (sprite >= 512) {
     sprite -= 512;
     bx = 0x1000;
+    printf("%s: 0xE0A7 unhandled, tile_id = 0x%04X 0x%04X %d %d\n", __func__,
+        tile_id, tile_id & 0xF800, x, y);
   }
 
-  if ((tile_id & 0xF800) != 0) {
-    printf("%s: 0xE0E4 unhandled, tile_id = 0x%04X 0x%04X\n", __func__, tile_id, tile_id & 0xF800);
+  if (tile_id >= 0x800) {
+    printf("%s: 0xE0E4 unhandled, tile_id = 0x%04X 0x%04X %d %d\n", __func__,
+        tile_id, tile_id & 0xF800, x, y);
+
+    overlay = 973;
   }
 
   int offset = sprite * 128; // 8*16 bytes
+  if (bx > 0) {
+    offset += bx;
+  }
 
   unsigned char *es = scratch;
   uint16_t di = get_160_offset(line_num);
@@ -1776,6 +1785,38 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
     es += 8;
 
     es += 0x98; // next line
+  }
+
+  if (overlay > 0) {
+    // KEH: 0xE10E
+    es = scratch;
+    di = get_160_offset(line_num);
+    di += (x << 3);
+    di += 4; // indentation
+    printf("Starting di: 0x%04X\n", di);
+
+    offset = overlay * 128; // 8*16 bytes
+    si = r->bytes + offset;
+
+    for (int j = 0; j < rows; j++) {
+      for (int k = 0; k < 8; k++) {
+        uint8_t al = *si;
+        al &= 0xF0;
+        if (al != 0) {
+          es[di] &= 0x0F;
+          es[di] |= al;
+        }
+        si++;
+        al = *si;
+        al &= 0x0F;
+        if (al != 0) {
+          es[di] &= 0xF0;
+          es[di] |= al;
+        }
+        di++;
+      }
+      di += 0x98; // next line
+    }
   }
 }
 
