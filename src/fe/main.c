@@ -51,11 +51,22 @@ static uint16_t word_00EC = 0xffff;
 
 // KEH: DSEG:D1DE
 static unsigned char *ptr_D1DE = NULL;
+
+// KEH: DSEG:D1E3
+static uint8_t byte_D1E3;
+
+// KEH: DSEG:D1E8
+static uint8_t byte_D1E8;
+
 // KEH: DSEG:D206
 static unsigned char *ptr_D206 = NULL;
 
 // KEH: DSEG: 0xD284
 static const char *level_map_file = NULL;
+
+// KEH: DSEG: 0xD286
+static unsigned char *level_map_player_pos;
+
 static unsigned char level_map_bytes[256];
 static unsigned char *level_map_large = NULL;
 // KEH: DSEG: 0xD9BC
@@ -87,11 +98,39 @@ static const char *days[] = {
   "Sat"
 };
 
-// DSEG:0x029C
+// KEH: DSEG:0x1A36
+static uint16_t party_sprite_positions[] = {
+  0x1E70,
+  0x1E68,
+  0x1E78,
+  0x1E80,
+  0x1E90,
+  0x1E88,
+  0x1E98,
+  0x1EA0
+};
+
+// Sprite overlays
+// KEH: DSEG:0x9E1A
+static uint16_t overlay_table[] = {
+  0x0000, 0x1E68, 0x1E60, 0x1F38, 0x1E48, 0x1E50,
+  0x1E58, 0x1EC8, 0x1ED0, 0x1ED8, 0x1EE0, 0x1EE8,
+  0x1EF0, 0x1EF8, 0x1F00, 0x1F08, 0x1F10, 0x1F18,
+  0x1F20, 0x1F28, 0x1F30
+};
+
+// KEH: DSEG:0x1A48
+static int current_direction = 0;
+
+// FOD: DSEG:0x029C
+// KEH: DSEG:0x1A4C
 static struct ui_region *active_region;
 
 // DSEG:0x029E
 static struct ui_rect data_029E = { 0, 0, 160, 200 };
+
+// KEH: DSEG:0x1A7E
+static struct ui_rect middle_rect = { 0x4C, 0x58, 0x8, 0x10 };
 
 // DSEG:0x02A6
 // 92 x 88 rectangle
@@ -298,6 +337,8 @@ static uint16_t word_2314 = 0;
 // DSEG:0x2316
 static struct resource *gani_res;
 
+static struct resource *tile_res;
+
 // DSEG:0x231A
 static uint8_t byte_231A = 0;
 // DSEG:0x231C
@@ -321,6 +362,10 @@ static unsigned char *arch_offset;
 static struct resource *border_res;
 
 // KEH globals
+// KEH DSEG:0x1E96
+static uint16_t word_1E96;
+// KEH DSEG:0x1E98
+static uint16_t word_1E98;
 // KEH DSEG:0x1E9A
 static uint16_t word_1E9A = 0;
 // KEH DSEG:0x1E9C
@@ -345,6 +390,7 @@ static void plot_font_str(const char *str, int len);
 static void ui_region_print_str(const char *str, int x_pos, int y_pos);
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
+static void draw_map_tile(uint16_t tile_id, int x, int y);
 
 static void screen_draw(const unsigned char *bytes)
 {
@@ -562,6 +608,8 @@ static void sub_04EA(uint16_t arg1)
 
 }
 
+// FOD: DSEG:0x1631
+// KEH: DSEG:0xDC28
 static void sub_1631()
 {
   struct ui_region *si = active_region;
@@ -881,8 +929,6 @@ static int choose_profession()
 
   sub_1631();
 
-  screen_draw(scratch);
-
   uint8_t key;
   do {
      key = vga_waitkey();
@@ -1053,7 +1099,6 @@ static int sub_D75(int current_char)
   while (1) {
     if (dirty) {
       sub_1631();
-      screen_draw(scratch);
       dirty = false;
     }
 
@@ -1164,7 +1209,6 @@ static int sub_D75(int current_char)
       ui_region_print_str(g_game_state.players[current_char].name, 3, current_char);
 
       sub_1631();
-      screen_draw(scratch);
     }
 
     if (!dirty) {
@@ -1214,7 +1258,6 @@ static int sub_1083(int char_num)
   sub_0010("Y)es  N)o", 3);
 
   sub_1631();
-  screen_draw(scratch);
   uint8_t key = vga_waitkey();
   // 0x10C9
   if (key >= 'a' && key <= 'z') {
@@ -1252,7 +1295,6 @@ static void sub_1164(const char *str)
 
   sub_0010(output, 2);
   sub_1631();
-  screen_draw(scratch);
   vga_waitkey();
 }
 
@@ -1290,7 +1332,6 @@ int main(int argc, char *argv[])
 
     // 14D5 and screen_draw are similar
     sub_14D5(&data_029E);
-    screen_draw(scratch);
 
   //  int local_val = 0;
     ui_region_set_active(&unknown_302, false);
@@ -1313,8 +1354,6 @@ int main(int argc, char *argv[])
       ui_region_print_str("A)dd member      R)emove member", 5, 3);
       ui_region_print_str("E)dit member     P)lay the game", 5, 4);
       sub_1631();
-
-      screen_draw(scratch);
 
       uint8_t key = vga_waitkey();
       // 0x12D1
@@ -1350,7 +1389,6 @@ int main(int argc, char *argv[])
           sub_0010("It's tough out there!", 1);
           sub_0010("You should take somebody with you.", 3);
           sub_1631();
-          screen_draw(scratch);
           vga_waitkey();
         } else {
           //save_players();
@@ -1412,12 +1450,17 @@ static void sub_14B3(const struct ui_rect *input)
   ui_sub_00B0(ax, di, cx, si);
 }
 
-// seg000:0x14D5
+// FEH: seg000:0x14D5
+// KEH: seg000:0xDA17
 static void sub_14D5(struct ui_rect *input)
 {
+  // This refreshes a fraction of the screen, but we can just flush the
+  // whole screen and let SDL handle it.
   sub_14B3(input);
 
   ui_sub_034D();
+
+  screen_draw(scratch);
 }
 
 /* FOD: seg000:0x14FF */
@@ -1649,10 +1692,10 @@ static void draw_day_time()
 // KEH: seg000:0x073E
 static bool sub_73E(int arg0, int arg1, int arg2)
 {
-  if ((arg1 < (g_game_state.unknown_10 - arg0)) ||
-      ((g_game_state.unknown_10 + arg0) < arg1) ||
-      (arg2 < (g_game_state.unknown_12 - arg0)) ||
-      ((g_game_state.unknown_12 + arg0) < arg2)) {
+  if ((arg1 < (g_game_state.x_pos - arg0)) ||
+      ((g_game_state.x_pos + arg0) < arg1) ||
+      (arg2 < (g_game_state.y_pos - arg0)) ||
+      ((g_game_state.y_pos + arg0) < arg2)) {
     return false;
   }
 
@@ -1804,27 +1847,106 @@ static void sub_8C(int arg0)
   printf("0x%04X\n", ax);
 }
 
-// KEH: seg000:0x293F
-static void sub_293F(int arg1, int arg2)
+// KEH: seg000:0xDFC6
+// Saves the player's current direction, as well as updating the sprite
+// character to reflect the direction accurately.
+static void set_direction(int direction)
+{
+  if (direction != 5) {
+    current_direction = direction;
+
+    overlay_table[1] = party_sprite_positions[direction - 1];
+  }
+}
+
+// KEH: seg000:0xDFEE
+static void draw_map_center_tile()
+{
+  word_1E96 = 9;
+  word_1E98 = 4;
+
+  int center = (4 * 19) + 9;
+  map_tile_array[center] |= 0x800;
+
+  draw_map_tile(map_tile_array[center], 9, 4);
+
+  sub_14D5(&middle_rect);
+}
+
+// KEH: seg000:0x253F
+static void sub_253F(int arg1, int arg2)
 {
   ui_region_set_active(&message_region, false);
   ui_active_region_clear();
 
-  // 0x293F
-  printf("%s:0x293F unhandled\n", __func__);
+  sub_1631();
+
+  bool bVar7 = false;
+
+  for (int i = 0; i < g_game_state.party_size; i++) {
+    if (g_game_state.players[i].condition > 0 &&
+        g_game_state.players[i].unknown_91 != 0) {
+      bVar7 = true;
+      break;
+    }
+  }
+
+  // One member of the party is drunk
+  if (arg2 == 0 && bVar7) {
+    uint8_t rnd_val = game_random_range(1, 100);
+    if (rnd_val < 11) {
+      // Move in a random direction.
+      arg1 = game_random_range(1, 4);
+      printf("%s: TODO: sub_E376\n", __func__);
+      // sub_E376(4);
+    }
+  }
+
+  int local_x = g_game_state.x_pos;
+  int local_y = g_game_state.y_pos;
+
+  switch (arg1) {
+  case 1: // up arrow
+    local_y--;
+    break;
+  default:
+    break;
+  }
+
+  set_direction(arg1);
+
+  if (local_x >= 0 && local_x < ((uint16_t *)&level_map_large)[0] &&
+      local_y >= 0 && local_y < ((uint16_t *)&level_map_large)[1]) {
+
+    byte_D1E3 = g_game_state.x_pos;
+    byte_D1E8 = g_game_state.y_pos;
+
+    // calculate location
+    uint16_t map_width = ((uint16_t *)&level_map_large)[0];
+    map_width *= g_game_state.y_pos;
+    map_width += g_game_state.x_pos;
+
+    map_width = map_width << 3;
+    map_width += 0x414;
+
+    level_map_player_pos = level_map_large + map_width;
+
+    unsigned char *saved_pos = level_map_player_pos;
+
+    // byte_CDAE = 1;
+    // byte_DBC6 = 0;
+    draw_map_center_tile();
+
+
+
+  }
+
+  printf("%s:0x25F7 unhandled\n", __func__);
   exit(1);
 }
 
-// Sprite overlays
-// KEH: DSEG:0x9E1A
-static uint16_t overlay_table[] = {
-  0x0000, 0x1E68, 0x1E60, 0x1F38, 0x1E48, 0x1E50,
-  0x1E58, 0x1EC8, 0x1ED0, 0x1ED8, 0x1EE0, 0x1EE8,
-  0x1EF0, 0x1EF8, 0x1F00, 0x1F08, 0x1F10, 0x1F18,
-  0x1F20, 0x1F28, 0x1F30
-};
 
-static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
+static void draw_map_tile(uint16_t tile_id, int x, int y)
 {
   int line_num = (y * 16) + 24;
   int rows = 16;
@@ -1873,7 +1995,7 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
   di += 4; // indentation
   es += di;
 
-  unsigned char *si = r->bytes + offset;
+  unsigned char *si = tile_res->bytes + offset;
 
   // copy tile "sprite" over to scratch buffer.
   // tiles are stored in 8 x 16
@@ -1896,7 +2018,7 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
     int index = 0;
 
     offset = overlay * 128; // 8*16 bytes
-    si = r->bytes + offset;
+    si = tile_res->bytes + offset;
 
     for (int j = 0; j < rows; j++) {
       for (int k = 0; k < 8; k++) {
@@ -1921,18 +2043,18 @@ static void draw_map_tile(struct resource *r, uint16_t tile_id, int x, int y)
 }
 
 /* KEH: seg000:0xDD19 */
-static void draw_map(struct resource *r)
+static void draw_map()
 {
   // Draws our map 19x9 sprites
   for (int j = 0; j < 9; j++) {
     for (int i = 0; i < 19; i++) {
-      draw_map_tile(r, map_tile_array[i + (j * 19)], i, j);
+      draw_map_tile(map_tile_array[i + (j * 19)], i, j);
     }
   }
 }
 
 // KEH: seg000:0xDC46
-static void sub_DC46(struct resource *r)
+static void sub_DC46()
 {
   uint16_t ax = ((uint16_t *)level_map_large)[2];
   ax = ax & 0x7FFF;
@@ -1941,12 +2063,12 @@ static void sub_DC46(struct resource *r)
 
   word_1EA2 = ax;
 
-  ax = g_game_state.unknown_10;
+  ax = g_game_state.x_pos;
   printf("%s: DC57 - 0x%04X\n", __func__, ax);
   ax -= 9;
   word_1E9A = ax;
 
-  ax = g_game_state.unknown_12;
+  ax = g_game_state.y_pos;
   printf("%s: DC63 - 0x%04X\n", __func__, ax);
   ax -= 4;
   word_1E9C = ax;
@@ -2020,7 +2142,7 @@ static void sub_DC46(struct resource *r)
   printf("Map done\n");
   hexdump(map_tile_array, 64);
 
-  draw_map(r);
+  draw_map();
 }
 
 // Main game loop
@@ -2032,7 +2154,7 @@ static void sub_39FE(int arg1, int arg2)
   // 0x392C is right before the jump into KEH.EXE
 
   // KEH main 0x2813
-  struct resource *tile_res = resource_load(RESOURCE_TILES, 0, 0);
+  tile_res = resource_load(RESOURCE_TILES, 0, 0);
 
   level_map_large = malloc(0x10000);
 
@@ -2045,14 +2167,21 @@ static void sub_39FE(int arg1, int arg2)
   sub_0A04(0);
   draw_day_time();
   sub_D78();
-  sub_DC46(tile_res);
+  sub_DC46();
   screen_draw(scratch);
-
 
   vga_waitkey();
 
+  // Process UP
+  // 29BB
+  // 0 out AX, push
+  // ax = 1
+  // 29D9
+  // UP
+  sub_253F(1, 0);
+
   // 293F (left)
-  sub_293F(4, 0);
+//  sub_293F(4, 0);
 
   resource_release(tile_res);
   free(level_map_large);

@@ -178,6 +178,9 @@ static void read_player_rec(struct player_rec *player)
   /* Read rank and affliction */
   player->rank = read_uint8();
   player->unknown_8C = read_uint8();
+
+  advance_reader(4);
+  player->unknown_91 = read_uint8();
   player->affliction = read_uint8();
 
   /* Read inventory items */
@@ -217,8 +220,8 @@ bool load_game_state()
   g_game_state.hour = read_uint8();
   g_game_state.minute = read_uint8();
 
-  g_game_state.unknown_10 = read_uint16();
-  g_game_state.unknown_12 = read_uint16();
+  g_game_state.x_pos = read_uint16();
+  g_game_state.y_pos = read_uint16();
 
   /* Read money */
   g_game_state.money = read_uint32();

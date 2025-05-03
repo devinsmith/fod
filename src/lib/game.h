@@ -73,6 +73,7 @@ struct player_rec {
 
   uint8_t unknown_8C; // 0x8C
 
+  uint8_t unknown_91; // 0x91 (player drunk?)
   uint8_t affliction; // bit encoded
   /*  00000001 - Poisoned
       00000010 - Irradiated
@@ -102,8 +103,9 @@ struct game_state {
   // 0-59 (minute of the hour)
   uint8_t minute; // 0x09
 
-  uint16_t unknown_10; // 0x0A-0x0B
-  uint16_t unknown_12; // 0x0C-0x0D
+  // Coordinates of the party on the map.
+  uint16_t x_pos; // 0x0A-0x0B
+  uint16_t y_pos; // 0x0C-0x0D
 
   uint32_t money; // 0x0E
 

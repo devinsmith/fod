@@ -30,7 +30,8 @@ static uint8_t rand_bytes[] = {
 // In the real game, this is called very often, when waiting for a key
 // to be pressed (in fact it's called whenever the key input buffer is empty).
 //
-// seg000:173D
+// FEH: seg000:173D
+// KEH: seg000:DEE7
 uint8_t game_random()
 {
   // mutate our random bytes by adding them on top of each other.
@@ -55,7 +56,8 @@ uint8_t game_random()
 }
 
 // Generates a random number in the range of val1 and val2
-// seg000:16FF
+// FEH: seg000:16FF
+// KEH: seg000:DEB1
 uint8_t game_random_range(uint16_t val1, uint16_t val2)
 {
   uint8_t ret = (uint8_t)val1;
