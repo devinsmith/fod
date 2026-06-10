@@ -142,7 +142,9 @@ static void read_player_rec(struct player_rec *player)
 
   /* Read player stats */
   player->profession = read_uint8();
-  advance_reader(1);
+  advance_reader(7);
+
+  // Gender starts at 0x50
   player->gender = read_uint8();
   player->unknown_51 = read_uint8();
 
