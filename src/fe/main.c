@@ -1627,17 +1627,17 @@ static void sub_3290(int char_num, const char *name)
 }
 
 // KEH: seg000:0x2AFC
-static void sub_2AFC(const char *str, int arg1)
+static void ui_region_print_centered_str(const char *str, int y_pos)
 {
-  char player_name[16];
+  char buffer[42];
 
-  snprintf(player_name, sizeof(player_name), "%s", str);
+  snprintf(buffer, sizeof(buffer), "%s", str);
   int max_char_len = active_region->rect.width / 4;
-  player_name[max_char_len] = '\0';
+  buffer[max_char_len] = '\0';
 
-  // Attempt to center
-  size_t player_name_len = strlen(player_name);
-  ui_region_print_str(player_name, (max_char_len - player_name_len) / 2, arg1);
+  // Print centered based on length.
+  size_t str_len = strlen(buffer);
+  ui_region_print_str(buffer, (max_char_len - str_len) / 2, y_pos);
 }
 
 // KEH: seg000:0x0A04
@@ -1654,7 +1654,7 @@ static void sub_0A04(int arg0)
     ui_active_region_clear();
 
     if (i < g_game_state.party_size) {
-      sub_2AFC(current_player->name, 0);
+      ui_region_print_centered_str(current_player->name, 0);
 
       if (current_player->affliction != 0) {
         // 0x0A57
