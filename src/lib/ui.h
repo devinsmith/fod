@@ -69,9 +69,13 @@ struct ui_region {
   struct ui_rect *data_1A; // offset 0x1A
 };
 
-void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
+void ui_region_queue_rect(const struct ui_rect *input);
+void ui_region_queue(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
+void ui_region_refresh(struct ui_rect *input);
+void ui_region_refresh_active();
 void ui_sub_034D();
 void ui_draw_80_line(const uint16_t *src, uint16_t *dest);
+void screen_draw(const unsigned char *bytes);
 
 // Font stuff
 void ui_load_fonts();

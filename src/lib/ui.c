@@ -24,6 +24,7 @@
 
 #include "tables.h"
 #include "ui.h"
+#include "vga.h"
 
 extern struct ui_unknown2 data_074F;
 extern unsigned char *scratch;
@@ -39,9 +40,17 @@ static bool inverse_flag = false;
 // DSEG:0x3C86
 static unsigned char *font_bytes;
 
+// FOD: DSEG:0x029C
+// KEH: DSEG:0x1A4C
+struct ui_region *active_region;
+
 static void ui_sub_048B();
 
-void ui_sub_00B0(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si)
+// FOD: 0x00B0
+// KEH: 0x077F
+// Adds a new region to an existing queue of regions.
+// These will be processed later on in ui_sub_048B
+void ui_region_queue(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si)
 {
   word_0CCC++;
 
@@ -282,4 +291,59 @@ void draw_border_chr(uint8_t chr_index, int i, int line_num)
   }
 }
 
+// FEH: seg000:0x14B3
+// KEH: seg000:0xD9F5
+void ui_region_queue_rect(const struct ui_rect *input)
+{
+  uint16_t ax = input->x_pos;  // 0
+  uint16_t di = input->width;  // A0
+  uint16_t cx = input->height; // C8
+  uint16_t si = input->y_pos;  // 0
 
+  // sub_05B0:00B0
+  ui_region_queue(ax, di, cx, si);
+}
+
+// FEH: seg000:0x14D5
+// KEH: seg000:0xDA17
+void ui_region_refresh(struct ui_rect *input)
+{
+  // This refreshes a fraction of the screen, but we can just flush the
+  // whole screen and let SDL handle it.
+  ui_region_queue_rect(input);
+
+  ui_sub_034D();
+
+  screen_draw(scratch);
+}
+
+// FOD: DSEG:0x1631
+// KEH: DSEG:0xDC28
+void ui_region_refresh_active()
+{
+  struct ui_region *si = active_region;
+
+  if (si->data_1A != NULL) {
+    ui_region_refresh(si->data_1A); // refresh sub-region
+  } else {
+    ui_region_refresh(&si->rect); // refresh entire region
+  }
+}
+
+void screen_draw(const unsigned char *bytes)
+{
+  const uint16_t *src = (const uint16_t *)bytes;
+  uint16_t *dest = (uint16_t *)vga_memory();
+
+  // Processes 16000 compressed pixel groups
+  // (16000 * 2 bytes for source -> 16000 * 4 bytes to destination)
+  // Every short (2 bytes) defines 4 bytes of the output.
+  for (int i = 0; i < 200; i++) {
+
+    ui_draw_80_line(src, dest);
+    src += 80;
+    dest += 160;
+  }
+
+  vga_update();
+}

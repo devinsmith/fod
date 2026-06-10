@@ -124,7 +124,7 @@ static int current_direction = 0;
 
 // FOD: DSEG:0x029C
 // KEH: DSEG:0x1A4C
-static struct ui_region *active_region;
+extern struct ui_region *active_region;
 
 // DSEG:0x029E
 static struct ui_rect data_029E = { 0, 0, 160, 200 };
@@ -380,8 +380,6 @@ static uint16_t word_1EA2 = 0;
 // KEH DSEG:0x1EA4
 static uint16_t map_tile_array[9 * 19];
 
-static void sub_14B3(struct ui_rect const *input);
-static void sub_14D5(struct ui_rect *input);
 static void draw_borders(int offset);
 static void sub_1548();
 static void ui_region_set_active(struct ui_region *arg1, bool clear);
@@ -391,24 +389,6 @@ static void ui_region_print_str(const char *str, int x_pos, int y_pos);
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
 static void draw_map_tile(uint16_t tile_id, int x, int y);
-
-static void screen_draw(const unsigned char *bytes)
-{
-  const uint16_t *src = (const uint16_t *)bytes;
-  uint16_t *dest = (uint16_t *)vga_memory();
-
-  // Processes 16000 compressed pixel groups
-  // (16000 * 2 bytes for source -> 16000 * 4 bytes to destination)
-  // Every short (2 bytes) defines 4 bytes of the output.
-  for (int i = 0; i < 200; i++) {
-
-    ui_draw_80_line(src, dest);
-    src += 80;
-    dest += 160;
-  }
-
-  vga_update();
-}
 
 static void do_title()
 {
@@ -608,19 +588,6 @@ static void sub_04EA(uint16_t arg1)
 
 }
 
-// FOD: DSEG:0x1631
-// KEH: DSEG:0xDC28
-static void sub_1631()
-{
-  struct ui_region *si = active_region;
-
-  if (si->data_1A != NULL) {
-    sub_14D5(si->data_1A);
-  } else {
-    sub_14D5(&si->rect);
-  }
-}
-
 static void sub_0010(const char *arg1, uint16_t arg2)
 {
   char output[42];
@@ -696,9 +663,9 @@ static void sub_618(int char_index, int arg2, int arg3)
   }
 
   if (arg3 == 0) {
-    sub_14B3(&active_region->rect);
+    ui_region_queue_rect(&active_region->rect);
   } else {
-    sub_1631();
+    ui_region_refresh_active();
   }
 
 
@@ -721,7 +688,7 @@ void sub_071B(uint16_t arg1, const char *arg2)
   sub_04EA(1);
 
   sub_0010(arg2, 0xB);
-  sub_1631();
+  ui_region_refresh_active();
 }
 
 // seg000:0x0751
@@ -737,9 +704,7 @@ static void draw_con(int chr_index)
   snprintf(con_value, sizeof(con_value), "Con:%d", con);
 
   ui_region_print_str(con_value, 6, 0xB);
-
-  sub_1631();
-
+  ui_region_refresh_active();
   ui_region_set_active(&unknown_2CA, false);
 }
 
@@ -813,7 +778,7 @@ static void show_attribute_points(int char_number)
   unknown_302.line_number = 8;
   ui_region_print_str(attr_points, 0x24, 0);
   unknown_302.line_number = 0;
-  sub_1631();
+  ui_region_refresh_active();
 
   ui_region_set_active(&unknown_2CA, false);
 }
@@ -927,7 +892,7 @@ static int choose_profession()
     }
   }
 
-  sub_1631();
+  ui_region_refresh_active();
 
   uint8_t key;
   do {
@@ -1098,7 +1063,7 @@ static int sub_D75(int current_char)
   unsigned int last_time = sys_ticks();
   while (1) {
     if (dirty) {
-      sub_1631();
+      ui_region_refresh_active();
       dirty = false;
     }
 
@@ -1208,7 +1173,7 @@ static int sub_D75(int current_char)
       g_game_state.players[current_char].name[namelen] = (char)name_end;
       ui_region_print_str(g_game_state.players[current_char].name, 3, current_char);
 
-      sub_1631();
+      ui_region_refresh_active();
     }
 
     if (!dirty) {
@@ -1257,7 +1222,7 @@ static int sub_1083(int char_num)
   sub_0010("Really remove this member?", 1);
   sub_0010("Y)es  N)o", 3);
 
-  sub_1631();
+  ui_region_refresh_active();
   uint8_t key = vga_waitkey();
   // 0x10C9
   if (key >= 'a' && key <= 'z') {
@@ -1294,7 +1259,7 @@ static void sub_1164(const char *str)
   snprintf(output, sizeof(output), "There's no one to %s!", str);
 
   sub_0010(output, 2);
-  sub_1631();
+  ui_region_refresh_active();
   vga_waitkey();
 }
 
@@ -1331,7 +1296,7 @@ int main(int argc, char *argv[])
     sub_1548();
 
     // 14D5 and screen_draw are similar
-    sub_14D5(&data_029E);
+    ui_region_refresh(&data_029E);
 
   //  int local_val = 0;
     ui_region_set_active(&unknown_302, false);
@@ -1344,7 +1309,7 @@ int main(int argc, char *argv[])
 
       ui_region_set_active(&unknown_2E6, false);
       ui_active_region_clear();
-      sub_1631();
+      ui_region_refresh_active();
 
       ui_region_set_active(&unknown_302, false);
       ui_active_region_clear();
@@ -1353,7 +1318,7 @@ int main(int argc, char *argv[])
 
       ui_region_print_str("A)dd member      R)emove member", 5, 3);
       ui_region_print_str("E)dit member     P)lay the game", 5, 4);
-      sub_1631();
+      ui_region_refresh_active();
 
       uint8_t key = vga_waitkey();
       // 0x12D1
@@ -1388,7 +1353,7 @@ int main(int argc, char *argv[])
           ui_active_region_clear();
           sub_0010("It's tough out there!", 1);
           sub_0010("You should take somebody with you.", 3);
-          sub_1631();
+          ui_region_refresh_active();
           vga_waitkey();
         } else {
           //save_players();
@@ -1424,7 +1389,7 @@ int main(int argc, char *argv[])
   }
 
   printf("Game start!\n");
-  sub_14D5(&data_029E);
+  ui_region_refresh(&data_029E);
 
   // 140E
   //
@@ -1435,32 +1400,6 @@ int main(int argc, char *argv[])
   vga_end();
 
   return 0;
-}
-
-// FEH: seg000:0x14B3
-// KEH: seg000:0xD9F5
-static void sub_14B3(const struct ui_rect *input)
-{
-  uint16_t ax = input->x_pos;  // 0
-  uint16_t di = input->width;  // A0
-  uint16_t cx = input->height; // C8
-  uint16_t si = input->y_pos;  // 0
-
-  // sub_05B0:00B0
-  ui_sub_00B0(ax, di, cx, si);
-}
-
-// FEH: seg000:0x14D5
-// KEH: seg000:0xDA17
-static void sub_14D5(struct ui_rect *input)
-{
-  // This refreshes a fraction of the screen, but we can just flush the
-  // whole screen and let SDL handle it.
-  sub_14B3(input);
-
-  ui_sub_034D();
-
-  screen_draw(scratch);
 }
 
 /* FOD: seg000:0x14FF */
@@ -1870,7 +1809,7 @@ static void draw_map_center_tile()
 
   draw_map_tile(map_tile_array[center], 9, 4);
 
-  sub_14D5(&middle_rect);
+  ui_region_refresh(&middle_rect);
 }
 
 // KEH: seg000:0x253F
@@ -1879,7 +1818,7 @@ static void sub_253F(int arg1, int arg2)
   ui_region_set_active(&message_region, false);
   ui_active_region_clear();
 
-  sub_1631();
+  ui_region_refresh_active();
 
   bool bVar7 = false;
 
