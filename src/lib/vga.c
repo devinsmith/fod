@@ -121,12 +121,12 @@ void vga_end()
   }
 }
 
-int vga_poll_events()
+bool vga_poll_events()
 {
   if (sys_ctx != NULL && sys_ctx->poll != NULL) {
     return sys_ctx->poll();
   }
-  return 0;
+  return false;
 }
 
 void sys_delay(unsigned int ms)

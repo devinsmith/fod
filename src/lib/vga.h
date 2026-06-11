@@ -1,7 +1,7 @@
 /*
  * Fountain of Dreams - Reverse Engineering Project
  *
- * Copyright (c) 2018-2020,2025 Devin Smith <devin@devinsmith.net>
+ * Copyright (c) 2018-2020,2025-2026 Devin Smith <devin@devinsmith.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #define VGA_INTERFACE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +34,7 @@ struct vga_driver {
   uint8_t (*waitkey)();
   uint8_t* (*memory)();
   uint8_t (*pollkey)(unsigned int ms);
-  int (*poll)();
+  bool (*poll)();
   void (*delay)(unsigned int ms);
   unsigned int (*ticks)();
 };
@@ -48,7 +49,7 @@ uint8_t vga_waitkey();
 void vga_end();
 void vga_addkey(int key);
 int vga_getkey2();
-int vga_poll_events();
+bool vga_poll_events();
 void sys_delay(unsigned int ms);
 unsigned int sys_ticks();
 

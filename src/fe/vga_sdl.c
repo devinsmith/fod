@@ -331,15 +331,15 @@ static int handle_key(SDL_Event *e)
   return 1;
 }
 
-static int poll_events()
+static bool poll_events()
 {
   SDL_Event e;
-  int should_exit = 0;
+  bool should_exit = false;
 
   while (SDL_PollEvent(&e) != 0) {
     switch (e.type) {
     case SDL_QUIT:
-      should_exit = 1;
+      should_exit = true;
       break;
     case SDL_KEYDOWN:
       handle_key(&e);
