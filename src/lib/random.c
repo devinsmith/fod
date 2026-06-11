@@ -18,7 +18,8 @@
 
 #include "random.h"
 
-// DSEG:0x027E
+// FEH: DSEG:0x027E
+// KEH: DSEG:0x1824
 static uint8_t rand_bytes[] = {
   0x64, 0x76, 0x85, 0x54, 0xF6,
   0x5C, 0x76, 0x1F, 0xE7, 0x12,
@@ -48,9 +49,14 @@ uint8_t game_random()
       carry = 0;
     }
     start = (uint8_t)tmp;
-    rand_bytes[i] = start + 1;
+    rand_bytes[i] = start;
   }
-  rand_bytes[15]++;
+
+  for (i = 15; i >= 0; i--) {
+    rand_bytes[i]++;
+    if (rand_bytes[i] == 0)
+      break;
+  }
 
   return rand_bytes[0];
 }
