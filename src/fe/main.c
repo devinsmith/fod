@@ -152,8 +152,11 @@ static struct ui_region unknown_2CA = {
   NULL  // 1A
 };
 
-// KEH: DSEG:0x1835
-const char *welcome_msg = "Welcome to the beautiful island of Florida!\n";
+// KEH: DSEG:0x1A4E
+// Is this the rect for the whole screen?
+static struct ui_rect whole_screen = {
+  0, 0, 160, 200
+};
 
 // KEH: DSEG:0x1AD8
 static struct ui_region message_region = {
@@ -419,7 +422,7 @@ static void sub_DD4C(void);
 static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
-static void sub_DA17(int arg0);
+static void sub_DA17(const struct ui_rect *rect);
 
 static void do_title()
 {
@@ -1736,13 +1739,14 @@ static void sub_D78()
 }
 
 // KEH: seg000:0xD9CF
-static void sub_D9CF()
+static void show_welcome_message()
 {
   active_region = &message_region;
 
   draw_borders(0x0);
 
-  print_wrapped_text(welcome_msg);
+  // Text is at KEH:DSEG:0x1835
+  print_wrapped_text("Welcome to the beautiful island of Florida!\n");
 }
 
 // KEH: seg000:0x87E5
@@ -2136,8 +2140,7 @@ static void sub_39FE(int arg1, int arg2)
   // Load byte_1D15A and use it to index into a table, pass to sub_8C
   sub_8C(0x1C);
 
-  // KEH: seg000:2836
-  sub_D9CF();
+  show_welcome_message();
 
   // KEH: seg000:2839-283F
   sub_0A04(0);
@@ -2151,8 +2154,8 @@ static void sub_39FE(int arg1, int arg2)
   // KEH: seg000:2848
   sub_DC46();
 
-  // KEH: seg000:284B-2852 - refresh screen with arg 0x1A4E
-  sub_DA17(0x1A4E);
+  // KEH: seg000:284B-2852 - refresh screen
+  sub_DA17(&whole_screen);
 
   // KEH: seg000:2855-2897 - Initialize loop variables
   word_1D126 = 0;
@@ -2407,8 +2410,10 @@ static void sub_8827(void)
 
 // KEH: seg000:0xDA17
 // Screen refresh with parameter
-static void sub_DA17(int arg0)
+static void sub_DA17(const struct ui_rect *r)
 {
+  ui_region_queue_rect(r);
+  ui_sub_034D();
+
   screen_draw(scratch);
-  (void)arg0;
 }
