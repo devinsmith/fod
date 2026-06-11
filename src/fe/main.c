@@ -392,8 +392,6 @@ static uint32_t dword_1EC04 = 0;
 static uint8_t byte_1ED26 = 0;
 // KEH DSEG:0x1E4BE
 static uint8_t byte_1E4BE = 0;
-// KEH DSEG:0x1E422 - quit flag
-static uint8_t byte_1E422 = 0;
 // KEH DSEG:0x1F01A
 static uint16_t word_1F01A = 0;
 
@@ -2172,10 +2170,15 @@ static void sub_39FE(int arg1, int arg2)
   dword_1EC04 = 0;
   byte_1ED26 = 0;
   byte_1E4BE = 0;
-  byte_1E422 = 0;
+  bool done = false;
 
   // KEH: seg000:2897 - Main game loop
-  while (!byte_1E422) {
+  while (!done) {
+    bool should_exit = vga_poll_events(); // Pump SDL events, fill key buffer.
+    if (should_exit) {
+      break;
+    }
+
     // KEH: seg000:2897 - wait_key
     vga_waitkey();
 
@@ -2258,11 +2261,11 @@ static void sub_39FE(int arg1, int arg2)
 
           if (key_pressed == '1') {
             // Quit without saving
-            byte_1E422 = 1;
+            done = true;
             var_4 = 1;
           } else if (key_pressed == '3') {
             // Quit with saving
-            byte_1E422 = 1;
+            done = true;
             // sub_87E5 + sub_8827 would save the game
             sub_8827();
             var_4 = 1;
