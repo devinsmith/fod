@@ -49,7 +49,8 @@ struct ui_unknown2 {
   struct ui_rect rect; // BX+C
 };
 
-// A UI region describes an area on the screen. A screen may have multiple regions.
+// A UI region describes an area on the screen. A screen may have multiple
+// regions.
 struct ui_region {
   uint16_t initial_x_cursor_pos; // 0x00
   uint16_t initial_y_cursor_pos; // 0x02
