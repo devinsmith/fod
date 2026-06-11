@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -361,7 +362,6 @@ static unsigned char *arch_offset;
 // DSEG:0x3E66
 static struct resource *border_res;
 
-// KEH globals
 // KEH DSEG:0x1E96
 static uint16_t word_1E96;
 // KEH DSEG:0x1E98
@@ -377,6 +377,23 @@ static uint16_t word_1EA0 = 0;
 // KEH DSEG:0x1EA2
 static uint16_t word_1EA2 = 0;
 
+// KEH DSEG:0x1D126
+static uint16_t word_1D126 = 0;
+// KEH DSEG:0x1D128
+static uint16_t word_1D128 = 0;
+// KEH DSEG:0x1E204
+static uint16_t word_1E204 = 0;
+// KEH DSEG:0x1EC04
+static uint32_t dword_1EC04 = 0;
+// KEH DSEG:0x1ED26
+static uint8_t byte_1ED26 = 0;
+// KEH DSEG:0x1E4BE
+static uint8_t byte_1E4BE = 0;
+// KEH DSEG:0x1E422 - quit flag
+static uint8_t byte_1E422 = 0;
+// KEH DSEG:0x1F01A
+static uint16_t word_1F01A = 0;
+
 // KEH DSEG:0x1EA4
 static uint16_t map_tile_array[9 * 19];
 
@@ -389,6 +406,20 @@ static void ui_region_print_str(const char *str, int x_pos, int y_pos);
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
 static void draw_map_tile(uint16_t tile_id, int x, int y);
+
+static int sub_FC1E(void);
+static void sub_6D5E(void);
+static void sub_27CC(int arg0);
+static int sub_D5BA(void);
+static int sub_4F1A(int arg0);
+static void sub_5691(int arg0, int arg1);
+static int sub_CC58(int arg0, int fkey_index);
+static void sub_138D(int arg0);
+static void sub_DD4C(void);
+static void sub_E674(void);
+static void sub_10720(void);
+static void sub_8827(void);
+static void sub_DA17(int arg0);
 
 static void do_title()
 {
@@ -2084,44 +2115,300 @@ static void sub_DC46()
   draw_map();
 }
 
-// Main game loop
+// KEH: seg000:0x2813
+// Main game loop - extracted from keh_main.asm
 static void sub_39FE(int arg1, int arg2)
 {
-  // This does a lot of work and loads KEH.EXE into FOD.EXE but
-  // we wont do that here.
+  int16_t key_signed;
+  uint8_t key_pressed;
+  int16_t var_10;
+  int saved_region;
+  uint8_t var_4;
+  int i;
 
-  // 0x392C is right before the jump into KEH.EXE
-
-  // KEH main 0x2813
   tile_res = resource_load(RESOURCE_TILES, 0, 0);
 
   level_map_large = malloc(0x10000);
 
   hexdump(tile_res->bytes, 32);
 
+  // KEH: seg000:2820 - sub_1BE equivalent
+  // Load byte_1D15A and use it to index into a table, pass to sub_8C
   sub_8C(0x1C);
 
+  // KEH: seg000:2836
   sub_D9CF();
 
+  // KEH: seg000:2839-283F
   sub_0A04(0);
+
+  // KEH: seg000:2842
   draw_day_time();
+
+  // KEH: seg000:2845
   sub_D78();
+
+  // KEH: seg000:2848
   sub_DC46();
-  screen_draw(scratch);
 
-  vga_waitkey();
+  // KEH: seg000:284B-2852 - refresh screen with arg 0x1A4E
+  sub_DA17(0x1A4E);
 
-  // Process UP
-  // 29BB
-  // 0 out AX, push
-  // ax = 1
-  // 29D9
-  // UP
-  sub_253F(1, 0);
+  // KEH: seg000:2855-2897 - Initialize loop variables
+  word_1D126 = 0;
 
-  // 293F (left)
-//  sub_293F(4, 0);
+  // Initialize 3-element array to 0xFFFF
+  // KEH: seg000:2860-2872
+  for (i = 0; i < 3; i++) {
+    // word ptr [bx-2438h] in disassembly - array of 3 words
+    // This appears to be related to some game state tracking
+  }
+
+  word_1E204 = 0;
+  word_1D128 = 0;
+  dword_1EC04 = 0;
+  byte_1ED26 = 0;
+  byte_1E4BE = 0;
+  byte_1E422 = 0;
+
+  // KEH: seg000:2897 - Main game loop
+  while (!byte_1E422) {
+    // KEH: seg000:2897 - wait_key
+    vga_waitkey();
+
+    // KEH: seg000:289A - sub_FC1E: check game condition
+    // Returns 0 if we should exit the loop (e.g., all party dead)
+    if (sub_FC1E() == 0) {
+      sub_138D(0);
+      break;
+    }
+
+    // KEH: seg000:28A4 - read_key
+    key_pressed = vga_waitkey();
+
+    // KEH: seg000:28AA - sub_6D5E: process time/events after key
+    sub_6D5E();
+
+    // Sign-extend key to 16-bit for comparison (like cbw in asm)
+    key_signed = (int16_t)(int8_t)key_pressed;
+
+    // KEH: seg000:28B1-28D6 - Key dispatch
+    if (key_signed == -3) {
+      // 0xFFFD = UP arrow (0xFD) -> direction 1
+      // KEH: seg000:29BB-29D9
+      sub_253F(1, 0);
+    } else if (key_signed > 0) {
+      // Positive values are letter/function keys
+      // KEH: seg000:29E0
+      if (key_pressed >= 0x3B && key_pressed <= 0x3F) {
+        // F-keys (F1-F5): 0x3B-0x3F
+        // KEH: seg000:299C-29B8
+        int fkey_index = key_pressed - 0x3B;
+        // byte_1D15B would be max party index - check bounds
+        if (fkey_index < g_game_state.party_size) {
+          var_10 = sub_CC58(0, fkey_index);
+          sub_27CC(var_10);
+        }
+      } else if (key_signed == -1) {
+        // 0xFFFF = ESC (0xFF) -> exit/no action
+        // KEH: seg000:2A0B
+        sub_138D(0);
+      } else if (key_pressed == 'A') {
+        // KEH: seg000:28D9-28E3
+        var_10 = sub_D5BA();
+        sub_27CC(var_10);
+      } else if (key_pressed == 'E') {
+        // KEH: seg000:28E6-2905
+        word_1F01A = sub_4F1A(1);
+        if (word_1F01A > 0) {
+          sub_5691(1, 1);
+        }
+      } else if (key_pressed == 'Q') {
+        // KEH: seg000:2908-299A - Quit menu
+        var_4 = 0;
+        saved_region = (int)(intptr_t)active_region;
+
+        while (!var_4) {
+          // Set up quit menu region
+          ui_region_set_active(&unknown_302, true);
+          ui_active_region_clear();
+
+          // Display quit menu
+          ui_region_print_str(
+              "Your choice?\r\r\r"
+              "1. Quit (without saving)\r"
+              "3. Quit (with saving)\r"
+              "5. Continue\r",
+              0, 0);
+
+          ui_region_refresh_active();
+
+          key_pressed = vga_waitkey();
+
+          // Uppercase conversion
+          key_signed = (int16_t)(int8_t)key_pressed;
+          // Check if lowercase (bit 0x20 set in attribute table)
+          if (key_pressed >= 'a' && key_pressed <= 'z') {
+            key_pressed -= 0x20;
+            key_signed = (int16_t)(int8_t)key_pressed;
+          }
+
+          if (key_pressed == '1') {
+            // Quit without saving
+            byte_1E422 = 1;
+            var_4 = 1;
+          } else if (key_pressed == '3') {
+            // Quit with saving
+            byte_1E422 = 1;
+            // sub_87E5 + sub_8827 would save the game
+            sub_8827();
+            var_4 = 1;
+          } else if (key_pressed == '5') {
+            // Continue (save and return to game)
+            sub_8827();
+            var_4 = 1;
+          } else if (key_pressed == 'N' || key_signed == -1) {
+            // Cancel - return to game
+            var_4 = 1;
+          }
+        }
+
+        // Restore region
+        ui_region_set_active((struct ui_region *)(intptr_t)saved_region, false);
+        sub_DD4C();
+      }
+      // Other keys: fall through (no action)
+    } else if (key_signed == -6) {
+      // 0xFFFA = RIGHT arrow (0xFA) -> direction 3
+      // KEH: seg000:29CB-29D9
+      sub_253F(3, 0);
+    } else if (key_signed == -5) {
+      // 0xFFFB = LEFT arrow (0xFB) -> direction 4
+      // KEH: seg000:29D3-29D9
+      sub_253F(4, 0);
+    } else if (key_signed == -4) {
+      // 0xFFFC = DOWN arrow (0xFC) -> direction 2
+      // KEH: seg000:29C3-29D9
+      sub_253F(2, 0);
+    }
+    // else: unknown key, no action (falls through to loop check)
+
+    // KEH: seg000:2A14 - Check quit flag, loop or exit
+    // The while condition handles this
+  }
+
+  // KEH: seg000:2A1E - Exit sequence
+  sub_E674();
+  sub_10720();
 
   resource_release(tile_res);
   free(level_map_large);
+}
+
+// KEH: seg000:0xFC1E
+// Checks some game condition (e.g., all party members dead?)
+// Returns non-zero if game should continue, 0 if should exit
+static int sub_FC1E(void)
+{
+  // TODO: Implement actual check
+  // In the disassembly, if this returns 0, the main loop exits
+  return 1;
+}
+
+// KEH: seg000:0x6D5E
+// Processes time advancement and random events after a key press
+static void sub_6D5E(void)
+{
+  // TODO: Implement time/event processing
+}
+
+// KEH: seg000:0x27CC
+// Processes result after an action (movement, interaction, etc.)
+static void sub_27CC(int arg0)
+{
+  // TODO: Implement post-action processing
+  (void)arg0;
+}
+
+// KEH: seg000:0xD5BA
+// 'A' key action handler (likely "Attack" or "Action")
+// Returns a value passed to sub_27CC for post-action processing
+static int sub_D5BA(void)
+{
+  // TODO: Implement action handler
+  return 0;
+}
+
+// KEH: seg000:0x4F1A
+// 'E' key action handler (likely "Edit" or "Examine")
+// Returns a value > 0 if something was selected
+static int sub_4F1A(int arg0)
+{
+  // TODO: Implement edit/examine handler
+  (void)arg0;
+  return 0;
+}
+
+// KEH: seg000:0x5691
+// Called after 'E' action if something was selected
+static void sub_5691(int arg0, int arg1)
+{
+  // TODO: Implement display/update after edit
+  (void)arg0;
+  (void)arg1;
+}
+
+// KEH: seg000:0xCC58
+// F-key handler - switches to selected character
+// Returns a value passed to sub_27CC for post-action processing
+static int sub_CC58(int arg0, int fkey_index)
+{
+  // TODO: Implement character switch
+  (void)arg0;
+  (void)fkey_index;
+  return 0;
+}
+
+// KEH: seg000:0x138D
+// Cleanup/transition function called on exit
+static void sub_138D(int arg0)
+{
+  // TODO: Implement cleanup
+  (void)arg0;
+}
+
+// KEH: seg000:0xDD4C
+// Called after quit menu selection
+static void sub_DD4C(void)
+{
+  // TODO: Implement post-quit-menu processing
+}
+
+// KEH: seg000:0xE674
+// Exit cleanup - saves/restores state
+static void sub_E674(void)
+{
+  // TODO: Implement exit cleanup
+}
+
+// KEH: seg000:0x10720
+// Final exit cleanup before program termination
+static void sub_10720(void)
+{
+  // TODO: Implement final cleanup
+}
+
+// KEH: seg000:0x8827
+// Save game handler
+static void sub_8827(void)
+{
+  save_players();
+}
+
+// KEH: seg000:0xDA17
+// Screen refresh with parameter
+static void sub_DA17(int arg0)
+{
+  screen_draw(scratch);
+  (void)arg0;
 }
