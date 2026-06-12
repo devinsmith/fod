@@ -33,7 +33,7 @@ struct vga_driver {
   void (*update)();
   uint8_t (*waitkey)();
   uint8_t* (*memory)();
-  uint8_t (*pollkey)(unsigned int ms);
+  bool (*pollkey)(unsigned int ms);
   bool (*poll)();
   void (*delay)(unsigned int ms);
   unsigned int (*ticks)();
@@ -44,7 +44,7 @@ void register_vga_driver(struct vga_driver *driver);
 int vga_initialize(int game_width, int game_height);
 uint8_t* vga_memory();
 void vga_update();
-uint8_t vga_pollkey(unsigned int ms);
+bool vga_pollkey(unsigned int ms);
 uint8_t vga_waitkey();
 void vga_end();
 void vga_addkey(int key);

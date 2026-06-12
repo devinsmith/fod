@@ -95,12 +95,12 @@ void vga_update()
   }
 }
 
-uint8_t vga_pollkey(unsigned int ms)
+bool vga_pollkey(unsigned int ms)
 {
   if (sys_ctx != NULL && sys_ctx->pollkey != NULL) {
     return sys_ctx->pollkey(ms);
   }
-  return 0;
+  return false;
 }
 
 uint8_t vga_waitkey()

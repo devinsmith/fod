@@ -257,11 +257,16 @@ static uint8_t translate_key(const SDL_Event *e)
 uint8_t waitkey()
 {
   SDL_Event event;
-  uint8_t key = 0;
-  bool done = false;
+  uint8_t key;
 
-  while (!done) {
+  // Check buffer first
+  key = vga_getkey2();
+  if (key != 0) {
+    return key;
+  }
 
+  // Buffer empty, wait for event
+  while (1) {
     SDL_WaitEvent(&event);
     switch (event.type) {
     case SDL_QUIT:
@@ -271,14 +276,11 @@ uint8_t waitkey()
     case SDL_KEYDOWN:
       key = translate_key(&event);
       if (key != 0) {
-        done = true;
+        return key;
       }
-
       break;
     }
   }
-
-  return key;
 }
 
 static uint8_t *
@@ -287,26 +289,9 @@ get_fb_mem()
   return surface->pixels;
 }
 
-static uint8_t pollkey(unsigned int ms)
+static bool pollkey(unsigned int ms)
 {
-  SDL_Event event;
-  uint8_t key = 0;
-
-//  if (SDL_WaitEventTimeout(&event, ms)) {
-
-  while (SDL_PollEvent(&event) != 0) {
-    switch (event.type) {
-    case SDL_QUIT:
-      exit(0);
-      break;
-
-    case SDL_KEYDOWN:
-      key = translate_key(&event);
-      break;
-    }
-  }
-
-  return key;
+  return vga_getkey2() != 0;
 }
 
 static int handle_key(SDL_Event *e)
