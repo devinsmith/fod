@@ -2179,8 +2179,112 @@ static void sub_39FE(int arg1, int arg2)
       break;
     }
 
-    // KEH: seg000:2897 - wait_key
-    vga_waitkey();
+    if (vga_pollkey(0)) {
+      key_pressed = vga_waitkey();
+      // Sign-extend key to 16-bit for comparison (like cbw in asm)
+      key_signed = (int16_t)(int8_t)key_pressed;
+
+      // KEH: seg000:28B1-28D6 - Key dispatch
+      if (key_signed == -3) {
+        // 0xFFFD = UP arrow (0xFD) -> direction 1
+        // KEH: seg000:29BB-29D9
+        sub_253F(1, 0);
+      } else if (key_signed > 0) {
+        // Positive values are letter/function keys
+        // KEH: seg000:29E0
+        if (key_pressed >= 0x3B && key_pressed <= 0x3F) {
+          // F-keys (F1-F5): 0x3B-0x3F
+          // KEH: seg000:299C-29B8
+          int fkey_index = key_pressed - 0x3B;
+          // byte_1D15B would be max party index - check bounds
+          if (fkey_index < g_game_state.party_size) {
+            var_10 = sub_CC58(0, fkey_index);
+            sub_27CC(var_10);
+          }
+        } else if (key_signed == -1) {
+          // 0xFFFF = ESC (0xFF) -> exit/no action
+          // KEH: seg000:2A0B
+          sub_138D(0);
+        } else if (key_pressed == 'A') {
+          // KEH: seg000:28D9-28E3
+          var_10 = sub_D5BA();
+          sub_27CC(var_10);
+        } else if (key_pressed == 'E') {
+          // KEH: seg000:28E6-2905
+          word_1F01A = sub_4F1A(1);
+          if (word_1F01A > 0) {
+            sub_5691(1, 1);
+          }
+        } else if (key_pressed == 'Q') {
+          // KEH: seg000:2908-299A - Quit menu
+          var_4 = 0;
+          saved_region = (int)(intptr_t)active_region;
+
+          while (!var_4) {
+            // Set up quit menu region
+            ui_region_set_active(&unknown_302, true);
+            ui_active_region_clear();
+
+            // Display quit menu
+            ui_region_print_str(
+                "Your choice?\r\r\r"
+                "1. Quit (without saving)\r"
+                "3. Quit (with saving)\r"
+                "5. Continue\r",
+                0, 0);
+
+            ui_region_refresh_active();
+
+            key_pressed = vga_waitkey();
+
+            // Uppercase conversion
+            key_signed = (int16_t)(int8_t)key_pressed;
+            // Check if lowercase (bit 0x20 set in attribute table)
+            if (key_pressed >= 'a' && key_pressed <= 'z') {
+              key_pressed -= 0x20;
+              key_signed = (int16_t)(int8_t)key_pressed;
+            }
+
+            if (key_pressed == '1') {
+              // Quit without saving
+              done = true;
+              var_4 = 1;
+            } else if (key_pressed == '3') {
+              // Quit with saving
+              done = true;
+              // sub_87E5 + sub_8827 would save the game
+              sub_8827();
+              var_4 = 1;
+            } else if (key_pressed == '5') {
+              // Continue (save and return to game)
+              sub_8827();
+              var_4 = 1;
+            } else if (key_pressed == 'N' || key_signed == -1) {
+              // Cancel - return to game
+              var_4 = 1;
+            }
+          }
+
+          // Restore region
+          ui_region_set_active((struct ui_region *)(intptr_t)saved_region, false);
+          sub_DD4C();
+        }
+        // Other keys: fall through (no action)
+      } else if (key_signed == -6) {
+        // 0xFFFA = RIGHT arrow (0xFA) -> direction 3
+        // KEH: seg000:29CB-29D9
+        sub_253F(3, 0);
+      } else if (key_signed == -5) {
+        // 0xFFFB = LEFT arrow (0xFB) -> direction 4
+        // KEH: seg000:29D3-29D9
+        sub_253F(4, 0);
+      } else if (key_signed == -4) {
+        // 0xFFFC = DOWN arrow (0xFC) -> direction 2
+        // KEH: seg000:29C3-29D9
+        sub_253F(2, 0);
+      }
+      // else: unknown key, no action (falls through to loop check)
+    }
 
     // KEH: seg000:289A - sub_FC1E: check game condition
     // Returns 0 if we should exit the loop (e.g., all party dead)
@@ -2195,112 +2299,7 @@ static void sub_39FE(int arg1, int arg2)
     // KEH: seg000:28AA - sub_6D5E: process time/events after key
     sub_6D5E();
 
-    // Sign-extend key to 16-bit for comparison (like cbw in asm)
-    key_signed = (int16_t)(int8_t)key_pressed;
-
-    // KEH: seg000:28B1-28D6 - Key dispatch
-    if (key_signed == -3) {
-      // 0xFFFD = UP arrow (0xFD) -> direction 1
-      // KEH: seg000:29BB-29D9
-      sub_253F(1, 0);
-    } else if (key_signed > 0) {
-      // Positive values are letter/function keys
-      // KEH: seg000:29E0
-      if (key_pressed >= 0x3B && key_pressed <= 0x3F) {
-        // F-keys (F1-F5): 0x3B-0x3F
-        // KEH: seg000:299C-29B8
-        int fkey_index = key_pressed - 0x3B;
-        // byte_1D15B would be max party index - check bounds
-        if (fkey_index < g_game_state.party_size) {
-          var_10 = sub_CC58(0, fkey_index);
-          sub_27CC(var_10);
-        }
-      } else if (key_signed == -1) {
-        // 0xFFFF = ESC (0xFF) -> exit/no action
-        // KEH: seg000:2A0B
-        sub_138D(0);
-      } else if (key_pressed == 'A') {
-        // KEH: seg000:28D9-28E3
-        var_10 = sub_D5BA();
-        sub_27CC(var_10);
-      } else if (key_pressed == 'E') {
-        // KEH: seg000:28E6-2905
-        word_1F01A = sub_4F1A(1);
-        if (word_1F01A > 0) {
-          sub_5691(1, 1);
-        }
-      } else if (key_pressed == 'Q') {
-        // KEH: seg000:2908-299A - Quit menu
-        var_4 = 0;
-        saved_region = (int)(intptr_t)active_region;
-
-        while (!var_4) {
-          // Set up quit menu region
-          ui_region_set_active(&unknown_302, true);
-          ui_active_region_clear();
-
-          // Display quit menu
-          ui_region_print_str(
-              "Your choice?\r\r\r"
-              "1. Quit (without saving)\r"
-              "3. Quit (with saving)\r"
-              "5. Continue\r",
-              0, 0);
-
-          ui_region_refresh_active();
-
-          key_pressed = vga_waitkey();
-
-          // Uppercase conversion
-          key_signed = (int16_t)(int8_t)key_pressed;
-          // Check if lowercase (bit 0x20 set in attribute table)
-          if (key_pressed >= 'a' && key_pressed <= 'z') {
-            key_pressed -= 0x20;
-            key_signed = (int16_t)(int8_t)key_pressed;
-          }
-
-          if (key_pressed == '1') {
-            // Quit without saving
-            done = true;
-            var_4 = 1;
-          } else if (key_pressed == '3') {
-            // Quit with saving
-            done = true;
-            // sub_87E5 + sub_8827 would save the game
-            sub_8827();
-            var_4 = 1;
-          } else if (key_pressed == '5') {
-            // Continue (save and return to game)
-            sub_8827();
-            var_4 = 1;
-          } else if (key_pressed == 'N' || key_signed == -1) {
-            // Cancel - return to game
-            var_4 = 1;
-          }
-        }
-
-        // Restore region
-        ui_region_set_active((struct ui_region *)(intptr_t)saved_region, false);
-        sub_DD4C();
-      }
-      // Other keys: fall through (no action)
-    } else if (key_signed == -6) {
-      // 0xFFFA = RIGHT arrow (0xFA) -> direction 3
-      // KEH: seg000:29CB-29D9
-      sub_253F(3, 0);
-    } else if (key_signed == -5) {
-      // 0xFFFB = LEFT arrow (0xFB) -> direction 4
-      // KEH: seg000:29D3-29D9
-      sub_253F(4, 0);
-    } else if (key_signed == -4) {
-      // 0xFFFC = DOWN arrow (0xFC) -> direction 2
-      // KEH: seg000:29C3-29D9
-      sub_253F(2, 0);
-    }
-    // else: unknown key, no action (falls through to loop check)
-
     // KEH: seg000:2A14 - Check quit flag, loop or exit
-    // The while condition handles this
   }
 
   // KEH: seg000:2A1E - Exit sequence
