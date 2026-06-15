@@ -158,7 +158,7 @@ void vga_addkey(int key)
   vga_keyb.count++;
 }
 
-int vga_getkey2()
+int vga_getkey()
 {
   int key;
 

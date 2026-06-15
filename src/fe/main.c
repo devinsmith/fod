@@ -2181,6 +2181,9 @@ static void sub_39FE(int arg1, int arg2)
 
     if (vga_pollkey(0)) {
       key_pressed = vga_waitkey();
+      if (key_pressed == 0) {
+        break;
+      }
       // Sign-extend key to 16-bit for comparison (like cbw in asm)
       key_signed = (int16_t)(int8_t)key_pressed;
 
@@ -2295,6 +2298,9 @@ static void sub_39FE(int arg1, int arg2)
 
     // KEH: seg000:28A4 - read_key
     key_pressed = vga_waitkey();
+    if (key_pressed == 0) {
+      break;
+    }
 
     // KEH: seg000:28AA - sub_6D5E: process time/events after key
     sub_6D5E();

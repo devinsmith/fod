@@ -48,7 +48,7 @@ bool vga_pollkey(unsigned int ms);
 uint8_t vga_waitkey();
 void vga_end();
 void vga_addkey(int key);
-int vga_getkey2();
+int vga_getkey();
 bool vga_poll_events();
 void sys_delay(unsigned int ms);
 unsigned int sys_ticks();
