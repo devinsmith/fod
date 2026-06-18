@@ -195,7 +195,7 @@ get_fb_mem()
 
 static bool pollkey(unsigned int ms)
 {
-  return vga_getkey() != 0;
+  return vga_peek_key();
 }
 
 static int handle_key(SDL_Event *e)

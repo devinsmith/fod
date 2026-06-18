@@ -49,6 +49,7 @@ uint8_t vga_waitkey();
 void vga_end();
 void vga_addkey(int key);
 int vga_getkey();
+bool vga_peek_key();
 bool vga_poll_events();
 void sys_delay(unsigned int ms);
 unsigned int sys_ticks();

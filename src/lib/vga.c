@@ -172,3 +172,9 @@ int vga_getkey()
   vga_keyb.tail = (vga_keyb.tail + 1) % nitems(vga_keyb.buffer);
   return key;
 }
+
+// Are there keys in the buffer?
+bool vga_peek_key()
+{
+  return vga_keyb.count == 0;
+}
