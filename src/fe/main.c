@@ -421,6 +421,7 @@ static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
 static void sub_DA17(const struct ui_rect *rect);
+static void print_movement_msg(int msg_index);
 
 static void do_title()
 {
@@ -1845,6 +1846,29 @@ static void draw_map_center_tile()
   ui_region_refresh(&middle_rect);
 }
 
+// Displays a boundary/blocked-movement message by index (1-based).
+// arg_0 == 0 does nothing.
+static const char *boundary_messages[] = {
+  "\rYou see miles of impassable ocean and you decide to turn back.\r",
+  "\rThere are roads around here somewhere!\r",
+  "\rTry using the road, friend.\r",
+  "\r            hic!\r",
+};
+
+// KEH: seg000:0xE376
+static void print_movement_msg(int msg_index)
+{
+  if (msg_index == 0) {
+    return;
+  }
+
+  if (msg_index < 1 || msg_index > (int)(sizeof(boundary_messages) / sizeof(boundary_messages[0]))) {
+    return;
+  }
+
+  ui_region_print_str(boundary_messages[msg_index - 1], -1, -1);
+}
+
 // KEH: seg000:0x253F
 static void sub_253F(int arg1, int arg2)
 {
@@ -1869,8 +1893,7 @@ static void sub_253F(int arg1, int arg2)
     if (rnd_val < 11) {
       // Move in a random direction.
       arg1 = game_random_range(1, 4);
-      printf("%s: TODO: sub_E376\n", __func__);
-      // sub_E376(4);
+      print_movement_msg(4);
     }
   }
 
@@ -1909,8 +1932,10 @@ static void sub_253F(int arg1, int arg2)
     // byte_DBC6 = 0;
     draw_map_center_tile();
 
-
-
+  } else {
+    print_movement_msg(level_map_large[0x0D]);
+    sub_138D(0);
+    return;
   }
 
   printf("%s:0x25F7 unhandled\n", __func__);
@@ -2188,7 +2213,7 @@ static void sub_39FE(int arg1, int arg2)
       key_signed = (int16_t)(int8_t)key_pressed;
 
       // KEH: seg000:28B1-28D6 - Key dispatch
-      if (key_signed == -3) {
+      if (key_pressed == 0xFD) {
         // 0xFFFD = UP arrow (0xFD) -> direction 1
         // KEH: seg000:29BB-29D9
         sub_253F(1, 0);
@@ -2296,16 +2321,8 @@ static void sub_39FE(int arg1, int arg2)
       break;
     }
 
-    // KEH: seg000:28A4 - read_key
-    key_pressed = vga_waitkey();
-    if (key_pressed == 0) {
-      break;
-    }
-
     // KEH: seg000:28AA - sub_6D5E: process time/events after key
     sub_6D5E();
-
-    // KEH: seg000:2A14 - Check quit flag, loop or exit
   }
 
   // KEH: seg000:2A1E - Exit sequence
