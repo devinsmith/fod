@@ -417,6 +417,11 @@ static void sub_5691(int arg0, int arg1);
 static int sub_CC58(int arg0, int fkey_index);
 static void sub_138D(int arg0);
 static void sub_DD4C(void);
+static void sub_1834(int arg0, int arg1, unsigned char *ptr, int arg3);
+static void set_party_position(int x, int y);
+static void sub_12E9(void);
+static void sub_1339(void);
+static void sub_7FA8(int x, int y);
 static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
@@ -1869,6 +1874,70 @@ static void print_movement_msg(int msg_index)
   ui_region_print_str(boundary_messages[msg_index - 1], -1, -1);
 }
 
+// KEH: seg000:0x2C0F
+// Returns 0 (blocked) or 1 (passable)
+static int is_walkable(int x, int y)
+{
+  if (y < 0 || y >= ((uint16_t *)level_map_large)[1])
+    return 0;
+  if (x < 0 || x >= ((uint16_t *)level_map_large)[0])
+    return 0;
+
+  uint16_t map_width = ((uint16_t *)level_map_large)[0];
+  int si = (y * map_width + x) << 3;
+  if (!(level_map_large[0x416 + si] & 1))
+    return 0;
+
+  int count = level_map_large[9];
+  for (int i = 0; i < count; i++) {
+    unsigned char *entry = ptr_D206 + (i * 0x68);
+    if (entry[0x5B] == (uint8_t)x && entry[0x5C] == (uint8_t)y)
+      return 0;
+  }
+
+  count = level_map_large[0xB];
+  for (int i = 0; i < count; i++) {
+    unsigned char *entry = ptr_D1DE + (i * 0x66);
+    if ((entry[9] & 0xF) != 0 && entry[2] == (uint8_t)x && entry[3] == (uint8_t)y)
+      return 0;
+  }
+
+  return 1;
+}
+
+// KEH: seg000:0x1834
+static void sub_1834(int arg0, int arg1, unsigned char *ptr, int arg3)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x251E
+static void set_party_position(int x, int y)
+{
+  g_game_state.x_pos = x;
+  g_game_state.y_pos = y;
+  word_1D128 = 0;
+  dword_1EC04 = 0;
+}
+
+// KEH: seg000:0x12E9
+static void sub_12E9(void)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x1339
+static void sub_1339(void)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x7FA8
+static void sub_7FA8(int x, int y)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
 // KEH: seg000:0x253F
 static void sub_253F(int arg1, int arg2)
 {
@@ -1932,14 +2001,68 @@ static void sub_253F(int arg1, int arg2)
     // byte_DBC6 = 0;
     draw_map_center_tile();
 
+    sub_1834(0, 1, level_map_player_pos + 6, 0);
+
+    // Recalculate level_map_player_pos for new position
+    uint16_t new_offset = ((uint16_t *)level_map_large)[0];
+    new_offset *= local_y;
+    new_offset += local_x;
+    new_offset = new_offset << 3;
+    new_offset += 0x414;
+    level_map_player_pos = level_map_large + new_offset;
+
+    // Check if position changed
+    bool position_changed = (saved_pos != level_map_player_pos);
+
+    if (!position_changed) {
+      // Position didn't change, skip movement
+      sub_138D(arg2);
+    } else {
+      // Position changed, perform movement
+      byte_D1E3 = local_x;
+      byte_D1E8 = local_y;
+
+      // Recalculate level_map_player_pos for new position
+      uint16_t final_offset = ((uint16_t *)level_map_large)[0];
+      final_offset *= local_y;
+      final_offset += local_x;
+      final_offset = final_offset << 3;
+      final_offset += 0x414;
+      level_map_player_pos = level_map_large + final_offset;
+
+      // Loop through ptr_D206 to find NPC at local_x, local_y
+      int npc_count = level_map_large[9];
+      for (int i = 0; i < npc_count; i++) {
+        unsigned char *entry = ptr_D206 + (i * 0x68);
+        if (entry[0x5B] == (uint8_t)local_x && entry[0x5C] == (uint8_t)local_y) {
+          entry[0x50] &= 0x7F;
+          sub_1834(i, 6, entry + 0x66, 0);
+          break;
+        }
+      }
+
+      // Check if tile is walkable
+      if (is_walkable(local_x, local_y)) {
+        set_party_position(local_x, local_y);
+        sub_DD4C();
+      }
+
+      sub_12E9();
+      sub_1834(0, 0, level_map_player_pos + 6, 0);
+
+      if (arg2 == 0) {
+        sub_1339();
+      }
+
+      sub_DD4C();
+    }
+
+    sub_7FA8(g_game_state.x_pos, g_game_state.y_pos);
   } else {
     print_movement_msg(level_map_large[0x0D]);
     sub_138D(0);
     return;
   }
-
-  printf("%s:0x25F7 unhandled\n", __func__);
-  exit(1);
 }
 
 
@@ -2406,10 +2529,9 @@ static void sub_138D(int arg0)
 }
 
 // KEH: seg000:0xDD4C
-// Called after quit menu selection
 static void sub_DD4C(void)
 {
-  // TODO: Implement post-quit-menu processing
+  printf("%s: unimplemented\n", __func__);
 }
 
 // KEH: seg000:0xE674
