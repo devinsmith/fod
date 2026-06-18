@@ -50,6 +50,9 @@ static uint8_t byte_00EA = 0;
 // Current map?
 static uint16_t word_00EC = 0xffff;
 
+// KEH: DSEG:BEC0
+static uint16_t word_BEC0 = 0;
+
 // KEH: DSEG:D1DE
 static unsigned char *ptr_D1DE = NULL;
 
@@ -69,7 +72,12 @@ static const char *level_map_file = NULL;
 static unsigned char *level_map_player_pos;
 
 static unsigned char level_map_bytes[256];
+
+// KEH: DSEG: 0xD9B4
+static unsigned char *dword_D9B4 = NULL;
+
 static unsigned char *level_map_large = NULL;
+
 // KEH: DSEG: 0xD9BC
 static const char *level_scr_file = NULL;
 static unsigned char level_scr_bytes[256];
@@ -380,6 +388,11 @@ static uint16_t word_1EA0 = 0;
 // KEH DSEG:0x1EA2
 static uint16_t word_1EA2 = 0;
 
+// KEH DSEG:0xD9D0
+static uint16_t word_D9D0 = 0;
+// KEH DSEG:0xDAE6
+static uint8_t byte_DAE6 = 0;
+
 // KEH DSEG:0x1D126
 static uint16_t word_1D126 = 0;
 // KEH DSEG:0x1D128
@@ -394,6 +407,9 @@ static uint8_t byte_1ED26 = 0;
 static uint8_t byte_1E4BE = 0;
 // KEH DSEG:0x1F01A
 static uint16_t word_1F01A = 0;
+
+// KEH DSEG:0xD1D8
+static uint16_t word_D1D8 = 0;
 
 // KEH DSEG:0x1EA4
 static uint16_t map_tile_array[9 * 19];
@@ -417,11 +433,17 @@ static void sub_5691(int arg0, int arg1);
 static int sub_CC58(int arg0, int fkey_index);
 static void sub_138D(int arg0);
 static void sub_DD4C(void);
-static void sub_1834(int arg0, int arg1, unsigned char *ptr, int arg3);
+static void sub_1834(unsigned char *ptr, int arg2, int arg3);
 static void set_party_position(int x, int y);
 static void sub_12E9(void);
 static void sub_1339(void);
 static void sub_7FA8(int x, int y);
+static void sub_113F(int arg0);
+static void sub_92D5(void);
+static void sub_2B93(int arg0);
+static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5);
+static void sub_B452(void);
+static void sub_1766(void);
 static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
@@ -1906,9 +1928,25 @@ static int is_walkable(int x, int y)
 }
 
 // KEH: seg000:0x1834
-static void sub_1834(int arg0, int arg1, unsigned char *ptr, int arg3)
+static void sub_1834(unsigned char *ptr, int arg2, int arg3)
 {
-  printf("%s: unimplemented\n", __func__);
+  word_D1D8 = arg2;
+  dword_D9B4 = ptr;
+  word_BEC0 = arg3;
+  word_D9D0 = 0;
+
+  while (word_D1D8 != 0xFFFF) {
+    if (word_D1D8 == 8)
+      break;
+
+    loc_98F4(ptr, word_D1D8, word_D9D0, word_BEC0, 0);
+
+    if (byte_DAE6 != 0 && word_D1D8 == 0) {
+      sub_B452();
+    }
+  }
+
+  sub_1766();
 }
 
 // KEH: seg000:0x251E
@@ -1923,7 +1961,19 @@ static void set_party_position(int x, int y)
 // KEH: seg000:0x12E9
 static void sub_12E9(void)
 {
-  printf("%s: unimplemented\n", __func__);
+  struct ui_region *saved_region = active_region;
+
+  game_random_range(1, 100);
+  sub_113F(0);
+
+  if (word_1D128 > 0) {
+    if ((word_1E204 % word_1D128) == 0) {
+      sub_92D5();
+    }
+  }
+
+  sub_2B93(0);
+  ui_region_set_active(saved_region, 0);
 }
 
 // KEH: seg000:0x1339
@@ -1934,6 +1984,64 @@ static void sub_1339(void)
 
 // KEH: seg000:0x7FA8
 static void sub_7FA8(int x, int y)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x113F
+static void sub_113F(int arg0)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x92D5
+static void sub_92D5(void)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x2B93
+static void sub_2B93(int arg0)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x98F4
+static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
+{
+  uint16_t local_bp_00A2 = (uint16_t)arg3;
+  uint16_t local_bp_5A = 0;
+  uint16_t local_bp_5C = 0;
+  uint16_t local_bp_011C = 0;
+  uint16_t local_bp_0112 = 0;
+  uint16_t local_bp_68 = 0;
+  uint16_t local_bp_0134 = 0;
+  uint16_t local_bp_011A = 0;
+  uint16_t local_bp_48 = 0;
+  uint16_t local_bp_00E8 = 0;
+  uint8_t local_bp_74 = 0;
+  uint8_t local_bp_00D2 = 0;
+  uint16_t local_bp_44 = 0;
+  uint16_t local_bp_6C = 0;
+
+  word_D1D8 = 0xFFFF;
+
+  uint16_t si = *(uint16_t *)ptr;
+  if (si == 0xFFFF) {
+    return;
+  }
+
+  printf("%s: CS:0x9946 unimplemented\n", __func__);
+}
+
+// KEH: seg000:0xB452
+static void sub_B452(void)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x1766
+static void sub_1766(void)
 {
   printf("%s: unimplemented\n", __func__);
 }
@@ -2001,7 +2109,7 @@ static void sub_253F(int arg1, int arg2)
     // byte_DBC6 = 0;
     draw_map_center_tile();
 
-    sub_1834(0, 1, level_map_player_pos + 6, 0);
+    sub_1834(level_map_player_pos + 6, 1, 0);
 
     // Recalculate level_map_player_pos for new position
     uint16_t new_offset = ((uint16_t *)level_map_large)[0];
@@ -2036,7 +2144,7 @@ static void sub_253F(int arg1, int arg2)
         unsigned char *entry = ptr_D206 + (i * 0x68);
         if (entry[0x5B] == (uint8_t)local_x && entry[0x5C] == (uint8_t)local_y) {
           entry[0x50] &= 0x7F;
-          sub_1834(i, 6, entry + 0x66, 0);
+          sub_1834(entry + 0x66, 6, 0);
           break;
         }
       }
@@ -2048,7 +2156,7 @@ static void sub_253F(int arg1, int arg2)
       }
 
       sub_12E9();
-      sub_1834(0, 0, level_map_player_pos + 6, 0);
+      sub_1834(level_map_player_pos + 6, 0, 0);
 
       if (arg2 == 0) {
         sub_1339();
@@ -2174,7 +2282,9 @@ static void draw_map()
 }
 
 // KEH: seg000:0xDC46
-static void sub_DC46()
+// Builds the tile buffer for the visible map around
+// the player.
+static void build_map_display()
 {
   uint16_t ax = ((uint16_t *)level_map_large)[2];
   ax = ax & 0x7FFF;
@@ -2298,7 +2408,7 @@ static void sub_39FE(int arg1, int arg2)
   sub_D78();
 
   // KEH: seg000:2848
-  sub_DC46();
+  build_map_display();
 
   // KEH: seg000:284B-2852 - refresh screen
   sub_DA17(&whole_screen);
