@@ -2090,11 +2090,13 @@ static void sub_253F(int arg1, int arg2)
   if (local_x >= 0 && local_x < ((uint16_t *)&level_map_large)[0] &&
       local_y >= 0 && local_y < ((uint16_t *)&level_map_large)[1]) {
 
+    // CSEG:0x262A
     byte_D1E3 = g_game_state.x_pos;
     byte_D1E8 = g_game_state.y_pos;
 
     // calculate location
-    uint16_t map_width = ((uint16_t *)&level_map_large)[0];
+    // Are the offsets always 0 and 1?
+    uint16_t map_width = level_map_large[0] | (level_map_large[1] << 8);
     map_width *= g_game_state.y_pos;
     map_width += g_game_state.x_pos;
 
