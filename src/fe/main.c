@@ -2043,11 +2043,18 @@ static void sub_B452(void)
 // KEH: seg000:0x1766
 static void sub_1766(void)
 {
-  printf("%s: unimplemented\n", __func__);
+  if (word_D1D8 == 8) {
+    printf("%s: 0x1777 unimplemented\n", __func__);
+  }
+
+  // 1825
+  if (byte_DAE6 != 0) {
+    printf("%s: 0x182C unimplemented\n", __func__);
+  }
 }
 
 // KEH: seg000:0x253F
-static void sub_253F(int arg1, int arg2)
+static void sub_253F(int direction, int arg2)
 {
   ui_region_set_active(&message_region, false);
   ui_active_region_clear();
@@ -2069,7 +2076,7 @@ static void sub_253F(int arg1, int arg2)
     uint8_t rnd_val = game_random_range(1, 100);
     if (rnd_val < 11) {
       // Move in a random direction.
-      arg1 = game_random_range(1, 4);
+      direction = game_random_range(1, 4);
       print_movement_msg(4);
     }
   }
@@ -2077,15 +2084,17 @@ static void sub_253F(int arg1, int arg2)
   int local_x = g_game_state.x_pos;
   int local_y = g_game_state.y_pos;
 
-  switch (arg1) {
+  switch (direction) {
   case 1: // up arrow
     local_y--;
     break;
+  case 4: // left arrow
+    local_x--;
   default:
     break;
   }
 
-  set_direction(arg1);
+  set_direction(direction);
 
   if (local_x >= 0 && local_x < ((uint16_t *)&level_map_large)[0] &&
       local_y >= 0 && local_y < ((uint16_t *)&level_map_large)[1]) {
@@ -2452,6 +2461,10 @@ static void sub_39FE(int arg1, int arg2)
         // 0xFFFD = UP arrow (0xFD) -> direction 1
         // KEH: seg000:29BB-29D9
         sub_253F(1, 0);
+      } else if (key_pressed == 0xFB) {
+        // 0xFFFB = LEFT arrow (0xFB) -> direction 4
+        // KEH: seg000:29D3-29D9
+        sub_253F(4, 0);
       } else if (key_signed > 0) {
         // Positive values are letter/function keys
         // KEH: seg000:29E0
@@ -2537,10 +2550,6 @@ static void sub_39FE(int arg1, int arg2)
         // 0xFFFA = RIGHT arrow (0xFA) -> direction 3
         // KEH: seg000:29CB-29D9
         sub_253F(3, 0);
-      } else if (key_signed == -5) {
-        // 0xFFFB = LEFT arrow (0xFB) -> direction 4
-        // KEH: seg000:29D3-29D9
-        sub_253F(4, 0);
       } else if (key_signed == -4) {
         // 0xFFFC = DOWN arrow (0xFC) -> direction 2
         // KEH: seg000:29C3-29D9
