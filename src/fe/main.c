@@ -447,7 +447,6 @@ static void sub_1766(void);
 static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
-static void sub_DA17(const struct ui_rect *rect);
 static void print_movement_msg(int msg_index);
 
 static void do_title()
@@ -2422,7 +2421,7 @@ static void sub_39FE(int arg1, int arg2)
   build_map_display();
 
   // KEH: seg000:284B-2852 - refresh screen
-  sub_DA17(&whole_screen);
+  ui_region_refresh(&whole_screen);
 
   // KEH: seg000:2855-2897 - Initialize loop variables
   word_1D126 = 0;
@@ -2676,12 +2675,3 @@ static void sub_8827(void)
   save_players();
 }
 
-// KEH: seg000:0xDA17
-// Screen refresh with parameter
-static void sub_DA17(const struct ui_rect *r)
-{
-  ui_region_queue_rect(r);
-  ui_sub_034D();
-
-  screen_draw(scratch);
-}
