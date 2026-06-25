@@ -166,6 +166,24 @@ static struct ui_rect whole_screen = {
   0, 0, 160, 200
 };
 
+// KEH: DSEG:0x1A5E
+static struct ui_rect data_1A5E = { 4, 24, 152, 144 };
+
+// KEH: DSEG:0x1B10
+static struct ui_region encounter_region = {
+  0x01,
+  0x15,
+  0x26,
+  0x17,
+  0x01,
+  0x15,
+  { 0x04, 0x04, 0x98, 0x98 },
+  0x00,
+  0x00,
+  0x00,
+  NULL
+};
+
 // KEH: DSEG:0x1AD8
 static struct ui_region message_region = {
   7,
@@ -408,6 +426,24 @@ static uint8_t byte_1E4BE = 0;
 // KEH DSEG:0x1F01A
 static uint16_t word_1F01A = 0;
 
+// KEH DSEG:0x1D138
+static uint16_t word_1D138 = 0;
+// KEH DSEG:0x1D13A
+static uint16_t word_1D13A = 0;
+// KEH DSEG:0x1EC1A - far pointer to encounter/item data (array of 6-byte entries)
+static unsigned char *ptr_1EC1A = NULL;
+// KEH DSEG:0x1E41A - base offset for item table lookups
+static uint16_t word_1E41A = 0;
+
+// KEH DSEG:0x2518 - table of pointers to player/entity data (indexed by player num)
+static uint16_t player_data_table[6];
+// KEH DSEG:0x1ACE - table of encounter sprite/layout values
+static uint16_t table_1ACE[6];
+// KEH DSEG:0x3240 - table mapping encounter result to dword_1EC1A index
+static uint16_t table_3240[100];
+// KEH DSEG:0xD9E6 - sprintf buffer
+static char buffer_D9E6[256];
+
 // KEH DSEG:0xD1D8
 static uint16_t word_D1D8 = 0;
 
@@ -424,8 +460,6 @@ static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
 static void draw_map_tile(uint16_t tile_id, int x, int y);
 
-static int sub_FC1E(void);
-static void sub_6D5E(void);
 static void sub_27CC(int arg0);
 static int sub_D5BA(void);
 static int sub_4F1A(int arg0);
@@ -448,6 +482,19 @@ static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
 static void print_movement_msg(int msg_index);
+static int sub_BB93(int arg0);
+static void sub_E2B8(uint16_t arg0, int arg1);
+static int16_t sub_7ED0(int x, int y);
+static int16_t sub_1682(uint16_t arg0, uint16_t arg1, uint16_t arg2,
+                        uint16_t *arg3, uint16_t arg4, uint16_t arg5);
+static int16_t sub_7F34(uint16_t arg0, int x, int y);
+static void sub_7B02(uint16_t arg0, uint16_t arg1, uint16_t arg2);
+static int sub_6D6B(uint16_t arg0);
+static void sub_6D96(uint16_t arg0);
+static void sub_D6AA(void *ptr, uint16_t arg1);
+static void sub_B29B(uint16_t arg0);
+static void sub_CB80(uint16_t arg0, uint16_t *arg1, uint16_t arg2,
+                     uint16_t arg3, uint16_t arg4);
 
 static void do_title()
 {
@@ -1981,10 +2028,240 @@ static void sub_1339(void)
   printf("%s: unimplemented\n", __func__);
 }
 
-// KEH: seg000:0x7FA8
-static void sub_7FA8(int x, int y)
+// KEH: seg000:0xBB93 - get encounter/entity index for current tile
+static int sub_BB93(int arg0)
+{
+  printf("%s: unimplemented (arg0=%d)\n", __func__, arg0);
+  return 0;
+}
+
+// KEH: seg000:0xE2B8 - animate/display encounter sprite
+static void sub_E2B8(uint16_t arg0, int arg1)
+{
+  printf("%s: unimplemented (arg0=0x%04X, arg1=%d)\n", __func__, arg0, arg1);
+}
+
+// KEH: seg000:0x7ED0 - process position/direction, returns > 0 to continue loop
+static int16_t sub_7ED0(int x, int y)
+{
+  printf("%s: unimplemented (x=%d, y=%d)\n", __func__, x, y);
+  return 0;
+}
+
+// KEH: seg000:0x1682 - process encounter interaction
+static int16_t sub_1682(uint16_t arg0, uint16_t arg1, uint16_t arg2,
+                         uint16_t *arg3, uint16_t arg4, uint16_t arg5)
 {
   printf("%s: unimplemented\n", __func__);
+  return -1;
+}
+
+// KEH: seg000:0x7F34 - process treasure/item reward step
+static int16_t sub_7F34(uint16_t arg0, int x, int y)
+{
+  printf("%s: unimplemented (arg0=%u, x=%d, y=%d)\n", __func__, arg0, x, y);
+  return 0;
+}
+
+// KEH: seg000:0x7B02 - display item/message
+static void sub_7B02(uint16_t arg0, uint16_t arg1, uint16_t arg2)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x6D6B - check item restriction
+static int sub_6D6B(uint16_t arg0)
+{
+  printf("%s: unimplemented (arg0=0x%04X)\n", __func__, arg0);
+  return 0;
+}
+
+// KEH: seg000:0x6D96 - handle restricted item
+static void sub_6D96(uint16_t arg0)
+{
+  printf("%s: unimplemented (arg0=0x%04X)\n", __func__, arg0);
+}
+
+// KEH: seg000:0xD6AA - add item to inventory
+static void sub_D6AA(void *ptr, uint16_t arg1)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0xB29B - display message
+static void sub_B29B(uint16_t arg0)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0xCB80 - menu/dialog handler
+static void sub_CB80(uint16_t arg0, uint16_t *arg1, uint16_t arg2,
+                     uint16_t arg3, uint16_t arg4)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x7FA8
+// Handles encounters/interactions at a map tile position.
+// If the tile has flag 0x80 set, processes encounter logic (enemies, treasure, etc.)
+// and refreshes the map display.
+static void sub_7FA8(int x, int y)
+{
+  uint16_t var_12;
+  uint8_t var_E;
+  uint8_t var_4;
+  uint16_t var_A;
+  uint16_t var_8;
+  int16_t var_6;
+  uint16_t var_14;
+  uint16_t var_10;
+  uint16_t var_16;
+
+  // Calculate tile entry offset from level_map_large
+  // offset = (y * map_width + x) * 8 + 0x414
+  uint16_t map_width = ((uint16_t *)level_map_large)[0];
+  uint16_t tile_offset = y * map_width + x;
+  tile_offset = tile_offset << 3;
+  tile_offset += 0x414;
+  level_map_player_pos = level_map_large + tile_offset;
+
+  // Check if this tile has the interaction flag (bit 7 of byte at offset +2)
+  if ((level_map_player_pos[2] & 0x80) == 0) {
+    return;
+  }
+
+  // Initialize locals
+  var_12 = 0;
+  var_E = 0;
+  var_4 = 0;
+
+  // Get encounter/entity index for this tile
+  var_A = sub_BB93(1);
+  var_14 = var_A;
+
+  // Look up player/entity data pointer and encounter layout value
+  {
+    uint16_t si = var_A * 2;
+    var_10 = player_data_table[var_A];
+    sub_E2B8(table_1ACE[var_A], 1);
+  }
+
+  // Set active region to encounter UI
+  ui_region_set_active(&encounter_region, true);
+
+  // Main encounter loop
+  while (1) {
+    // Check if interaction is complete
+    if (var_E != 0)
+      goto exit_loop;
+
+    // If encounter changed, re-lookup data and update animations
+    if (var_A != var_14) {
+      sub_E2B8(table_1ACE[var_14], 1);
+      sub_E2B8(table_1ACE[var_A], 1);
+      var_14 = var_A;
+      var_10 = player_data_table[var_A];
+    }
+
+    // Process interaction with the entity
+    var_8 = sub_1682(var_10, var_6, 0x1028, &var_12, 0x7E5B, 0);
+
+    if ((int16_t)var_8 < 0) {
+      // Negative result: special case
+      if (var_8 == 0xFFFF) {
+        var_E = 1;
+        goto loop_continue;
+      }
+      // Call menu/dialog handler
+      sub_CB80(var_8 + 0x46, &var_A, 1, 0, 1);
+      goto loop_continue;
+    }
+
+    // Positive result: look up item/treasure index
+    var_8 = table_3240[var_8];
+
+    // Calculate pointer to item data entry (each entry is 6 bytes)
+    unsigned char *item_data = ptr_1EC1A + ((uint32_t)var_8 * 6);
+
+    if (item_data[4] == 1) {
+      // Money reward: add to 32-bit counter
+      {
+        uint16_t money_add = *(uint16_t *)item_data;
+        uint32_t old_val = ((uint32_t)word_1D13A << 16) | word_1D138;
+        old_val += money_add;
+        word_1D138 = (uint16_t)old_val;
+        word_1D13A = (uint16_t)(old_val >> 16);
+      }
+
+      var_6 = sub_7F34(var_8, x, y);
+      if (var_6 == 0) {
+        var_E = 1;
+      }
+      goto loop_continue;
+    }
+
+    // Non-money reward (item)
+    var_16 = item_data[4];
+
+    // Display item/graphic
+    sub_7B02(var_10, word_1E41A + var_16 * 0x18 + 0x2A, 0);
+
+    // Check if item is restricted
+    if (sub_6D6B(var_16)) {
+      sub_6D96(var_16);
+      goto loop_continue;
+    }
+
+    // Check inventory space (counter at offset 0x52, max 0x20 items)
+    {
+      unsigned char *player_data = (unsigned char *)(intptr_t)var_10;
+
+      if (player_data[0x52] < 0x20) {
+        // Add item to inventory at offset 0x62 + count * 6
+        sub_D6AA(player_data + 0x62 + player_data[0x52] * 6, var_16);
+        player_data[0x52]++;
+
+        // Re-load item_data and decrement available count
+        item_data = ptr_1EC1A + ((uint32_t)var_8 * 6);
+        (*(uint16_t *)item_data)--;
+
+        if (*(uint16_t *)item_data == 0) {
+          // Out of this item, process next
+          var_6 = sub_7F34(var_8, x, y);
+          if (var_6 == 0) {
+            var_E = 1;
+          }
+        }
+        goto loop_continue;
+      }
+
+      // Inventory full - display message with entity name
+      sprintf(buffer_D9E6, "%s", (const char *)(intptr_t)var_10);
+      sub_B29B((uint16_t)(intptr_t)buffer_D9E6);
+    }
+
+loop_continue:
+    var_6 = sub_7ED0(x, y);
+    if (var_6 <= 0)
+      break;
+  }
+
+exit_loop:
+  // Clean up encounter display
+  sub_E2B8(table_1ACE[var_14], 1);
+
+  if (var_6 == 0) {
+    var_4 = 1;
+  }
+
+  // Restore message region and refresh map
+  ui_region_set_active(&message_region, false);
+  sub_DD4C();
+
+  // If encounter was completed, mark tile as cleared
+  if (var_4 != 0) {
+    sub_1834(level_map_player_pos + 6, 5, 0);
+  }
 }
 
 // KEH: seg000:0x113F
@@ -2087,8 +2364,15 @@ static void sub_253F(int direction, int arg2)
   case 1: // up arrow
     local_y--;
     break;
+  case 2: // down arrow
+    local_y++;
+    break;
+  case 3: // right arrow
+    local_x++;
+    break;
   case 4: // left arrow
     local_x--;
+    break;
   default:
     break;
   }
@@ -2460,10 +2744,18 @@ static void sub_39FE(int arg1, int arg2)
         // 0xFFFD = UP arrow (0xFD) -> direction 1
         // KEH: seg000:29BB-29D9
         sub_253F(1, 0);
+      } else if (key_pressed == 0xFA) {
+        // 0xFFFA = RIGHT arrow (0xFA) -> direction 3
+        // KEH: seg000:29CB-29D9
+        sub_253F(3, 0);
       } else if (key_pressed == 0xFB) {
         // 0xFFFB = LEFT arrow (0xFB) -> direction 4
         // KEH: seg000:29D3-29D9
         sub_253F(4, 0);
+      } else if (key_pressed == 0xFC) {
+        // 0xFFFC = DOWN arrow (0xFC) -> direction 2
+        // KEH: seg000:29C3-29D9
+        sub_253F(2, 0);
       } else if (key_signed > 0) {
         // Positive values are letter/function keys
         // KEH: seg000:29E0
@@ -2544,28 +2836,9 @@ static void sub_39FE(int arg1, int arg2)
           ui_region_set_active((struct ui_region *)(intptr_t)saved_region, false);
           sub_DD4C();
         }
-        // Other keys: fall through (no action)
-      } else if (key_signed == -6) {
-        // 0xFFFA = RIGHT arrow (0xFA) -> direction 3
-        // KEH: seg000:29CB-29D9
-        sub_253F(3, 0);
-      } else if (key_signed == -4) {
-        // 0xFFFC = DOWN arrow (0xFC) -> direction 2
-        // KEH: seg000:29C3-29D9
-        sub_253F(2, 0);
       }
       // else: unknown key, no action (falls through to loop check)
     }
-
-    // KEH: seg000:289A - sub_FC1E: check game condition
-    // Returns 0 if we should exit the loop (e.g., all party dead)
-    if (sub_FC1E() == 0) {
-      sub_138D(0);
-      break;
-    }
-
-    // KEH: seg000:28AA - sub_6D5E: process time/events after key
-    sub_6D5E();
   }
 
   // KEH: seg000:2A1E - Exit sequence
@@ -2576,28 +2849,12 @@ static void sub_39FE(int arg1, int arg2)
   free(level_map_large);
 }
 
-// KEH: seg000:0xFC1E
-// Checks some game condition (e.g., all party members dead?)
-// Returns non-zero if game should continue, 0 if should exit
-static int sub_FC1E(void)
-{
-  // TODO: Implement actual check
-  // In the disassembly, if this returns 0, the main loop exits
-  return 1;
-}
-
-// KEH: seg000:0x6D5E
-// Processes time advancement and random events after a key press
-static void sub_6D5E(void)
-{
-  // TODO: Implement time/event processing
-}
-
 // KEH: seg000:0x27CC
 // Processes result after an action (movement, interaction, etc.)
 static void sub_27CC(int arg0)
 {
   // TODO: Implement post-action processing
+  printf("%s: unimplemented\n", __func__);
   (void)arg0;
 }
 
@@ -2607,6 +2864,7 @@ static void sub_27CC(int arg0)
 static int sub_D5BA(void)
 {
   // TODO: Implement action handler
+  printf("%s: unimplemented\n", __func__);
   return 0;
 }
 
@@ -2617,6 +2875,7 @@ static int sub_4F1A(int arg0)
 {
   // TODO: Implement edit/examine handler
   (void)arg0;
+  printf("%s: unimplemented\n", __func__);
   return 0;
 }
 
@@ -2627,6 +2886,7 @@ static void sub_5691(int arg0, int arg1)
   // TODO: Implement display/update after edit
   (void)arg0;
   (void)arg1;
+  printf("%s: unimplemented\n", __func__);
 }
 
 // KEH: seg000:0xCC58
@@ -2637,6 +2897,7 @@ static int sub_CC58(int arg0, int fkey_index)
   // TODO: Implement character switch
   (void)arg0;
   (void)fkey_index;
+  printf("%s: unimplemented\n", __func__);
   return 0;
 }
 
@@ -2645,13 +2906,15 @@ static int sub_CC58(int arg0, int fkey_index)
 static void sub_138D(int arg0)
 {
   // TODO: Implement cleanup
+  printf("%s: unimplemented\n", __func__);
   (void)arg0;
 }
 
 // KEH: seg000:0xDD4C
 static void sub_DD4C(void)
 {
-  printf("%s: unimplemented\n", __func__);
+  build_map_display();
+  ui_region_refresh(&data_1A5E);
 }
 
 // KEH: seg000:0xE674
@@ -2659,6 +2922,7 @@ static void sub_DD4C(void)
 static void sub_E674(void)
 {
   // TODO: Implement exit cleanup
+  printf("%s: unimplemented\n", __func__);
 }
 
 // KEH: seg000:0x10720
@@ -2666,6 +2930,7 @@ static void sub_E674(void)
 static void sub_10720(void)
 {
   // TODO: Implement final cleanup
+  printf("%s: unimplemented\n", __func__);
 }
 
 // KEH: seg000:0x8827

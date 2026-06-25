@@ -306,6 +306,7 @@ void ui_region_queue_rect(const struct ui_rect *input)
 
 // FEH: seg000:0x14D5
 // KEH: seg000:0xDA17
+// Screen refresh with input rectangle.
 void ui_region_refresh(struct ui_rect *input)
 {
   // This refreshes a fraction of the screen, but we can just flush the
