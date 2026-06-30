@@ -76,6 +76,23 @@ static unsigned char level_map_bytes[256];
 // KEH: DSEG: 0xD9B4
 static unsigned char *dword_D9B4 = NULL;
 
+// Map header structure (overlays the start of level_map_large).
+// The map data is stored as: header (14 bytes) + padding + tile rows (each tile
+// is 8 bytes at offset 0x414).
+struct level_map_header {
+  uint16_t map_width;       // 0x00 - tiles wide
+  uint16_t map_height;      // 0x02 - tiles high
+  uint16_t filler_tile;     // 0x04 - tile used for out-of-bounds display
+  uint8_t  minute_inc;      // 0x06 - minute advancement per tick on overworld
+  uint8_t  unknown_07;      // 0x07
+  uint8_t  unknown_08;      // 0x08
+  uint8_t  npc_count;       // 0x09 - number of NPC entries (ptr_D206)
+  uint8_t  unknown_0A;      // 0x0A
+  uint8_t  creature_count;  // 0x0B - number of creature entries (ptr_D1DE)
+  uint8_t  unknown_0C;      // 0x0C
+  uint8_t  boundary_msg;    // 0x0D - movement-blocked message index
+} __attribute__((packed));
+
 static unsigned char *level_map_large = NULL;
 
 // KEH: DSEG: 0xD9BC
@@ -406,6 +423,9 @@ static uint16_t word_1EA0 = 0;
 // KEH DSEG:0x1EA2
 static uint16_t word_1EA2 = 0;
 
+// KEH DSEG:0xBEE8
+static uint16_t word_BEE8 = 0;
+
 // KEH DSEG:0xD9D0
 static uint16_t word_D9D0 = 0;
 // KEH DSEG:0xDAE6
@@ -413,10 +433,18 @@ static uint8_t byte_DAE6 = 0;
 
 // KEH DSEG:0x1D126
 static uint16_t word_1D126 = 0;
-// KEH DSEG:0x1D128
-static uint16_t word_1D128 = 0;
-// KEH DSEG:0x1E204
+// KEH DSEG:0x1D132 - hour (0-23)
+static uint8_t byte_1D132 = 0;
+// KEH DSEG:0x1D133 - minute accumulator (0-59)
+static uint8_t byte_1D133 = 0;
+// KEH DSEG:0x1D15B
+static uint8_t byte_1D15B = 0;
+// KEH DSEG:0x1D161 - day of week counter (0-6)
+static uint8_t byte_1D161 = 0;
+
+// KEH DSEG:0xCFC4 (called 1E204 in IDA)
 static uint16_t word_1E204 = 0;
+
 // KEH DSEG:0x1EC04
 static uint32_t dword_1EC04 = 0;
 // KEH DSEG:0x1ED26
@@ -475,6 +503,9 @@ static void sub_7FA8(int x, int y);
 static void sub_113F(int arg0);
 static void sub_92D5(void);
 static void sub_2B93(int arg0);
+static void sub_109D(int arg0);
+static void sub_8FFA(unsigned char *entity_ptr, int val);
+static void sub_7854(void);
 static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5);
 static void sub_B452(void);
 static void sub_1766(void);
@@ -2000,7 +2031,7 @@ static void set_party_position(int x, int y)
 {
   g_game_state.x_pos = x;
   g_game_state.y_pos = y;
-  word_1D128 = 0;
+  word_BEE8 = 0;
   dword_1EC04 = 0;
 }
 
@@ -2012,8 +2043,8 @@ static void sub_12E9(void)
   game_random_range(1, 100);
   sub_113F(0);
 
-  if (word_1D128 > 0) {
-    if ((word_1E204 % word_1D128) == 0) {
+  if (word_BEE8 > 0) {
+    if ((word_1E204 % word_BEE8) == 0) {
       sub_92D5();
     }
   }
@@ -2265,13 +2296,199 @@ exit_loop:
 }
 
 // KEH: seg000:0x113F
+// Processes encounter entities: handles special effects, health regeneration,
+// death/respawn, and counts living entities. Loops until at least one entity
+// has health > 0, calling sub_2B93 to spawn new waves when all are dead.
 static void sub_113F(int arg0)
 {
-  printf("%s: unimplemented\n", __func__);
+  uint16_t var_4;   // loop flag (1 = done)
+  uint16_t var_10;  // tick divisor: 5 if arg0!=0, else 10
+  uint16_t var_2;   // multiplier: 1 if arg0!=0, else map_header.minute_inc
+  int16_t var_E;    // health threshold for death check
+  uint16_t var_C;   // bit index (0-6) for special effects processing
+  uint16_t var_8;   // count of entities with health > 0
+  uint16_t var_6;   // current health value
+  unsigned char *entity; // pointer to entity data
+
+  // --- Initialization ---
+  var_4 = 0;
+
+  if (arg0 != 0) {
+    var_10 = 5;
+  } else {
+    var_10 = 10;
+  }
+
+  if (arg0 != 0) {
+    var_2 = 1;
+  } else {
+    var_2 = ((struct level_map_header *)level_map_large)->minute_inc;
+  }
+
+  // KEH: 0x12DB (do/while ?)
+  while (var_4 == 0) {
+    // KEH: 0x1176
+    sub_109D(arg0);
+
+    var_8 = 0;
+
+    // Iterate over all the characters.
+    // KEH: 0x1212
+    for (int i = 0; i < g_game_state.party_size; i++) {
+
+      // Check Luck (attribute 6) = 0x58
+      if (g_game_state.players[i].attributes[6] & 0x7F) {
+        // Handle luck?
+        printf("%s: luck? unimplemented 0x1233\n", __func__);
+#if 0
+        var_C = 0;
+        while (var_C < 7) {
+          if (entity[0x58] & (1 << var_C)) {
+            // Compute offset into hds_bytes: var_C * 0x16 + 0x3EC
+            uint16_t hds_offset = var_C * 0x16 + 0x3EC;
+
+            // divisibility check: word_1E204 % (hds_bytes[hds_offset] * var_2)
+            uint16_t divisor = (uint16_t)hds_bytes[hds_offset] * var_2;
+            if (divisor != 0 && (word_1E204 % divisor) == 0) {
+              uint16_t hds_val = hds_bytes[hds_offset + 1];
+              sub_8FFA(entity, hds_val);
+            }
+          }
+          var_C++;
+        }
+#endif
+      }
+
+      // KEH: 0x1294
+      // --- Health processing (only when word_1E204 is divisible by var_10) ---
+      if ((word_1E204 % var_10) == 0) {
+        printf("%s: health? unimplemented 0x1294\n", __func__);
+#if 0
+        // 0x12AE
+        var_6 = *(uint16_t *)&entity[0x44];
+
+        // Determine health threshold var_E
+        if (entity[0x54] == 0) {
+          var_E = -15;
+        } else {
+          if (entity[0x21] == 0) {
+            var_E = 0;
+          } else {
+            var_E = -15;
+          }
+        }
+
+        // When arg0 != 0: adjust health for entity[0x1B] bonus
+        if (arg0 != 0) {
+          if (entity[0x1B] > 15) {
+            var_6 += entity[0x1B] - 15;
+          }
+          var_E = 0;
+        }
+
+        // Compare health against threshold
+        if (var_6 > var_E) {
+          // Entity is alive - check if it can regenerate health
+          if (!(entity[0x58] & 0x7F)) {
+            if (entity[0x54] == 0 || entity[0x21] != 0) {
+              // Regenerate health: increment, cap at entity[0x46]
+              uint16_t health = *(uint16_t *)&entity[0x44];
+              health++;
+              if (health > *(uint16_t *)&entity[0x46]) {
+                health = *(uint16_t *)&entity[0x46];
+              }
+              *(uint16_t *)&entity[0x44] = health;
+
+              // If health just reached 1, reset to entity[0x122]
+              if (*(uint16_t *)&entity[0x44] == 1) {
+                *(uint16_t *)&entity[0x44] = *(uint16_t *)&entity[0x122];
+              }
+            }
+          }
+        } else {
+          // Entity is dead/depleted
+          sub_8FFA(entity, 1);
+        }
+#endif
+      }
+
+      // Count entities with health > 0
+      // 0x1203
+      if (g_game_state.players[i].condition > 0) {
+        var_8++;
+      }
+    }
+
+    // Check if any entities are still alive
+    if (var_8 != 0) {
+      var_4 = 1;  // Done - at least one entity alive
+    } else {
+      sub_2B93(arg0);  // Spawn next wave, continue loop
+    }
+  }
 }
 
 // KEH: seg000:0x92D5
 static void sub_92D5(void)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x109D
+// Advances the game clock by a number of minutes. Also increments the frame
+// counter (word_1E204). When arg0 == 0, redraws the date/time UI and calls
+// sub_7854 if the hour changed.
+static void sub_109D(int arg0)
+{
+  uint8_t minute_inc;
+
+  if (arg0 != 0) {
+    minute_inc = 1;
+  } else {
+    minute_inc = ((struct level_map_header *)level_map_large)->minute_inc;
+  }
+
+  word_1E204++;
+
+  uint8_t old_hour = byte_1D132;
+
+  // Add fractional minutes to accumulator
+  byte_1D133 += minute_inc % 60;
+
+  // Compute hours to add (from increment + overflow from minute accumulator)
+  uint8_t hours_to_add = minute_inc / 60;
+  hours_to_add += byte_1D133 / 60;
+
+  // Total hours, wrap at 24
+  uint8_t total_hours = old_hour + hours_to_add;
+  byte_1D132 = total_hours % 24;
+
+  // Normalize minute accumulator to 0-59
+  byte_1D133 = byte_1D133 % 60;
+
+  // Check if the hour wrapped (old hour was later in the day)
+  if (old_hour > byte_1D132) {
+    byte_1D161 = (byte_1D161 + 1) % 7;
+  }
+
+  if (arg0 == 0) {
+    draw_day_time();
+    ui_region_refresh(&datetime_region.rect);
+    if (old_hour != byte_1D132) {
+      sub_7854();
+    }
+  }
+}
+
+// KEH: seg000:0x8FFA
+static void sub_8FFA(unsigned char *entity_ptr, int val)
+{
+  printf("%s: unimplemented (entity_ptr=%p, val=%d)\n", __func__,
+         (void *)entity_ptr, val);
+}
+
+// KEH: seg000:0x7854
+static void sub_7854(void)
 {
   printf("%s: unimplemented\n", __func__);
 }
@@ -2718,7 +2935,7 @@ static void sub_39FE(int arg1, int arg2)
   }
 
   word_1E204 = 0;
-  word_1D128 = 0;
+  word_BEE8 = 0;
   dword_1EC04 = 0;
   byte_1ED26 = 0;
   byte_1E4BE = 0;

@@ -138,7 +138,7 @@ static void read_player_rec(struct player_rec *player)
   read_bytes(player->name, sizeof(player->name) - 1);
   player->name[12] = '\0';
 
-  advance_reader(2); // Skip 12 bytes
+  advance_reader(2); // Skip 2 bytes
 
   /* Read player stats */
   player->profession = read_uint8();
