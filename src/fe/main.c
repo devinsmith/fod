@@ -437,8 +437,6 @@ static uint16_t word_1D126 = 0;
 static uint8_t byte_1D132 = 0;
 // KEH DSEG:0x1D133 - minute accumulator (0-59)
 static uint8_t byte_1D133 = 0;
-// KEH DSEG:0x1D15B
-static uint8_t byte_1D15B = 0;
 // KEH DSEG:0x1D161 - day of week counter (0-6)
 static uint8_t byte_1D161 = 0;
 
@@ -502,6 +500,8 @@ static void sub_1339(void);
 static void sub_7FA8(int x, int y);
 static void sub_113F(int arg0);
 static void sub_92D5(void);
+static void sub_2B70(int arg0);
+static void sub_7E1(int arg0, int arg1, int arg2);
 static void sub_2B93(int arg0);
 static void sub_109D(int arg0);
 static void sub_8FFA(unsigned char *entity_ptr, int val);
@@ -2494,9 +2494,53 @@ static void sub_7854(void)
 }
 
 // KEH: seg000:0x2B93
+// Checks if all entities in the encounter are dead (condition <= -15).
+// If all are dead, sets conditions to -65 and spawns next wave when arg0 != 0,
+// then always calls sub_2B70 to handle death processing.
 static void sub_2B93(int arg0)
 {
-  printf("%s: unimplemented\n", __func__);
+  uint16_t var_2;  // count of entities with condition > -15
+
+  var_2 = 0;
+
+  // Count how many entities have condition > -15 (alive)
+  for (int i = 0; i < g_game_state.party_size; i++) {
+    struct player_rec *entity =
+        &g_game_state.players[player_data_table[i]];
+    if ((int16_t)entity->condition > (int16_t)0xFFF1) {
+      var_2++;
+    }
+  }
+
+  // If at least one entity is alive, return
+  if (var_2 != 0) {
+    return;
+  }
+
+  // All entities are dead
+  if (arg0 != 0) {
+    // Set all conditions to -65 (0xFFBF)
+    for (int i = 0; i < g_game_state.party_size; i++) {
+      struct player_rec *entity =
+          &g_game_state.players[player_data_table[i]];
+      entity->condition = 0xFFBF;
+    }
+    sub_7E1(0, 0, 1);
+  }
+
+  sub_2B70(arg0);
+}
+
+// KEH: seg000:0x2B70
+static void sub_2B70(int arg0)
+{
+  printf("%s: unimplemented (arg0=%d)\n", __func__, arg0);
+}
+
+// KEH: seg000:0x07E1
+static void sub_7E1(int arg0, int arg1, int arg2)
+{
+  printf("%s: unimplemented (%d, %d, %d)\n", __func__, arg0, arg1, arg2);
 }
 
 // KEH: seg000:0x98F4
