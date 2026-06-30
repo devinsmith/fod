@@ -125,6 +125,9 @@ extern struct game_state g_game_state;
 bool load_game_state();
 bool save_game_state();
 
+int get_player_condition_status(struct player_rec *player);
+int check_party_condition(int arg0);
+
 #ifdef __cplusplus
 }
 #endif

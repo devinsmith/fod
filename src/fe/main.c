@@ -513,7 +513,7 @@ static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
 static void print_movement_msg(int msg_index);
-static int sub_BB93(int arg0);
+static int sub_90F6(struct player_rec *player);
 static void sub_E2B8(uint16_t arg0, int arg1);
 static int16_t sub_7ED0(int x, int y);
 static int16_t sub_1682(uint16_t arg0, uint16_t arg1, uint16_t arg2,
@@ -2059,12 +2059,6 @@ static void sub_1339(void)
   printf("%s: unimplemented\n", __func__);
 }
 
-// KEH: seg000:0xBB93 - get encounter/entity index for current tile
-static int sub_BB93(int arg0)
-{
-  printf("%s: unimplemented (arg0=%d)\n", __func__, arg0);
-  return 0;
-}
 
 // KEH: seg000:0xE2B8 - animate/display encounter sprite
 static void sub_E2B8(uint16_t arg0, int arg1)
@@ -2167,7 +2161,7 @@ static void sub_7FA8(int x, int y)
   var_4 = 0;
 
   // Get encounter/entity index for this tile
-  var_A = sub_BB93(1);
+  var_A = check_party_condition(1);
   var_14 = var_A;
 
   // Look up player/entity data pointer and encounter layout value
@@ -2339,7 +2333,7 @@ static void sub_113F(int arg0)
       // Check Luck (attribute 6) = 0x58
       if (g_game_state.players[i].attributes[6] & 0x7F) {
         // Handle luck?
-        printf("%s: luck? unimplemented 0x1233\n", __func__);
+        printf("%s: luck? 0x%02X unimplemented 0x1233\n", __func__, g_game_state.players[i].attributes[6]);
 #if 0
         var_C = 0;
         while (var_C < 7) {

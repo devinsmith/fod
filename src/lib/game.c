@@ -355,3 +355,34 @@ bool save_game_state()
 
   return true;
 }
+
+// KEH: seg000:0x90F6
+// Categorizes a player's condition:
+//   0 = Healthy
+//   1-4 = Injured
+//   5 = Critical
+int get_player_condition_status(struct player_rec *player)
+{
+  int16_t cond = (int16_t)player->condition;
+
+  if (cond >= 1) {
+    return 0;
+  }
+  if (cond > -60) {
+    return (abs(cond) / 15) + 1;
+  }
+  return 5;
+}
+
+// KEH: seg000:0xBB93 - check party condition
+int check_party_condition(int arg0)
+{
+  int i;
+
+  for (i = 0; i < g_game_state.party_size; i++) {
+    if (get_player_condition_status(&g_game_state.players[i]) < arg0) {
+      return i;
+    }
+  }
+  return g_game_state.party_size;
+}
