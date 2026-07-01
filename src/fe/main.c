@@ -514,6 +514,10 @@ static void sub_10720(void);
 static void sub_8827(void);
 static void print_movement_msg(int msg_index);
 static int sub_90F6(struct player_rec *player);
+static int sub_54D6(void);
+static void sub_EF7(void);
+static void sub_E29(unsigned char *arg1, unsigned char *arg2,
+                    uint8_t arg3, uint8_t arg4, uint16_t arg5, uint8_t arg6);
 static void sub_E2B8(uint16_t arg0, int arg1);
 static int16_t sub_7ED0(int x, int y);
 static int16_t sub_1682(uint16_t arg0, uint16_t arg1, uint16_t arg2,
@@ -2053,8 +2057,94 @@ static void sub_12E9(void)
   ui_region_set_active(saved_region, 0);
 }
 
+// seg000:0x54D6
+// Sums attribute[10] from living (condition > 0) party members,
+// divides by 5, with a minimum result of 1.
+static int sub_54D6(void)
+{
+  int sum = 0;
+
+  for (int i = 0; i < g_game_state.party_size; i++) {
+    if ((int16_t)g_game_state.players[i].condition > 0) {
+      sum += g_game_state.players[i].attributes[10];
+    }
+  }
+
+  int result = sum / 5;
+  if (result == 0) {
+    result = 1;
+  }
+  return result;
+}
+
 // KEH: seg000:0x1339
 static void sub_1339(void)
+{
+  sub_EF7();
+  printf("%s: unimplemented\n", __func__);
+}
+
+
+// seg000:0xEF7
+// Processes NPC and creature "attack ticks" using the party threat level
+// computed by sub_54D6. Each NPC/creature has a counter that, when it
+// exceeds the threat level, triggers a call to sub_E29.
+static void sub_EF7(void)
+{
+  int threat = sub_54D6();
+
+  // Process NPC encounters (ptr_D206, entry size 0x68)
+  {
+    uint8_t npc_count = level_map_large[9];
+
+    for (int i = 0; i < npc_count; i++) {
+      unsigned char *entry = ptr_D206 + (i * 0x68);
+
+      if (entry[0x5D] < 0x79)
+        continue;
+      if (entry[0x60] == 0xFF)
+        continue;
+
+      uint16_t si = *(uint16_t *)&hds_bytes[0x3E8];
+      entry[0x64] += entry[si + 0x18];
+
+      while (entry[0x64] >= threat) {
+        sub_E29(&entry[0x5B], &entry[0x5C],
+                entry[0x5E], entry[0x5F],
+                *(uint16_t *)&entry[0x44], entry[0x65]);
+        entry[0x64] -= threat;
+      }
+    }
+  }
+
+  // Process creature encounters (ptr_D1DE, entry size 0x66)
+  {
+    uint8_t creature_count = level_map_large[0x0B];
+
+    for (int i = 0; i < creature_count; i++) {
+      unsigned char *entry = ptr_D1DE + (i * 0x66);
+
+      if ((entry[9] & 0x0F) == 0)
+        continue;
+      if ((entry[9] & 0xF0) != 0)
+        continue;
+
+      entry[0x0A] += entry[0x0B];
+
+      while (entry[0x0A] >= threat) {
+        sub_E29(&entry[2], &entry[3],
+                entry[4], entry[5],
+                1, entry[0x0C]);
+        entry[0x0A] -= threat;
+      }
+    }
+  }
+}
+
+
+// seg000:0xE29
+static void sub_E29(unsigned char *arg1, unsigned char *arg2,
+                    uint8_t arg3, uint8_t arg4, uint16_t arg5, uint8_t arg6)
 {
   printf("%s: unimplemented\n", __func__);
 }
@@ -2740,12 +2830,9 @@ static void draw_map_tile(uint16_t tile_id, int x, int y)
         tile_id, tile_id & 0xF800, x, y);
   }
 
+  // NPCs and other characters are rendered as sprite overlays on top of the
+  // tile map.
   if (tile_id >= 0x800) {
-    /*
-    printf("%s: 0xE0E4 unhandled, tile_id = 0x%04X 0x%04X %d %d\n", __func__,
-        tile_id, tile_id & 0xF800, x, y);
-        */
-
     // Calculate overlay.
     uint16_t mask = tile_id & 0xF800;
     uint16_t mask_flipped = (mask & 0xFF) << 8 | mask >> 8;
