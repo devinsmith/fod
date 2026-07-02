@@ -359,6 +359,21 @@ static struct ui_region unknown_31E = {
   &data_02A6 // 1A
 };
 
+// DSEG: 0x1CB4
+static struct ui_region region_1CB4 = {
+  0, // initial X cursor position - 0x00
+  0, // initial Y cursor position - 0x02
+  0x27, // max_x_cursor_position - 0x04
+  0x18, // max_y_cursor_pos - 0x06
+  0, // cursor_index_x - 0x08
+  0, // cursor_index_y - 0x0A
+  { 0, 0, 0xA0, 0xC8 }, // Rect offset 0x0C - 0x12
+  0, // line_number 0x14
+  0xDAB0, // data_16; (this is actually a function pointer) offset 0x16
+  0, // data_24 0x18
+  NULL // 0x1A
+};
+
 // DSEG:0x0424
 static unsigned char video_mode = 2;
 
@@ -404,9 +419,6 @@ static unsigned char hds_bytes[1180];
 
 // DSEG:0x3C84
 static unsigned char *arch_offset;
-
-// DSEG:0x3E66
-static struct resource *border_res;
 
 // KEH DSEG:0x1E96
 static uint16_t word_1E96;
@@ -476,7 +488,6 @@ static uint16_t word_D1D8 = 0;
 // KEH DSEG:0x1EA4
 static uint16_t map_tile_array[9 * 19];
 
-static void draw_borders(int offset);
 static void sub_1548();
 static void ui_region_set_active(struct ui_region *arg1, bool clear);
 static void ui_active_region_clear();
@@ -570,9 +581,9 @@ void game_mem_alloc()
 // seg000:02E5
 static void sub_02E5(bool saved_game)
 {
-  border_res = resource_load(RESOURCE_BORDERS, 0, 0);
-  if (border_res == NULL) {
-    fprintf(stderr, "Couldn't read borders, exiting!\n");
+  if (!ui_load_res()) {
+    // Count on ui_load_res to display an error as it may load
+    // multiple resources.
     exit(1);
   }
 
@@ -1543,29 +1554,17 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-/* FOD: seg000:0x14FF */
-static void draw_borders(int offset)
-{
-  unsigned char *p = border_res->bytes + offset;
-
-  // Draws border segments in 4x8 tiles.
-  // 40*4 = 160 (expanded to 320 in screen draw)
-  // 25*8 = 200
-  for (int j = 0; j < 25; j++) {
-    for (int i = 0; i < 40; i++) {
-      uint8_t al = *p++;
-      if (al != 0) {
-        // al = font index
-        draw_border_chr(al, i, j);
-      }
-    }
-  }
-}
 
 // seg000:0x1548
 static void sub_1548()
 {
   draw_borders(5000);
+}
+
+// KEH:seg000:0xDAB0
+static void sub_DAB0()
+{
+  draw_borders(1000);
 }
 
 // Sets the active region and optionally clears it.
@@ -1584,7 +1583,7 @@ static void ui_region_set_active(struct ui_region *arg1, bool clear)
 
   if (arg1->data_16 != 0) {
     // Call function pointer
-    printf("%s:0x1586 unhandled\n", __func__);
+    printf("%s:0x1586 unhandled 0x%04X\n", __func__, arg1->data_16);
   }
 }
 
@@ -3236,10 +3235,41 @@ static void sub_5691(int arg0, int arg1)
 // Returns a value passed to sub_27CC for post-action processing
 static int sub_CC58(int arg0, int fkey_index)
 {
+  uint8_t al;
+  uint8_t var2;
+  uint16_t var6;
+  uint8_t var_16;
+  struct ui_region *var_C;
+
   // TODO: Implement character switch
-  (void)arg0;
-  (void)fkey_index;
-  printf("%s: unimplemented\n", __func__);
+  printf("%s: unimplemented (%d, %d)\n", __func__, arg0, fkey_index);
+
+  var_16 = 0;
+
+  if (byte_DAE6 != 0) {
+    al = 1;
+  } else {
+    al = 0;
+  }
+
+  var2 = al;
+  var_C = active_region;
+  var6 = 0;
+
+  // 0xD0D1 - 0xCC8C
+//  while (var_16 == 0) {
+    // CC8C
+    uint16_t bx = arg0;
+    ui_region_set_active(&region_1CB4, true);
+
+
+    exit(1);
+
+//  }
+
+  // 0xD0DA
+
+
   return 0;
 }
 

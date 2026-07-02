@@ -80,13 +80,14 @@ void screen_draw(const unsigned char *bytes);
 
 // Font stuff
 void ui_load_fonts();
+bool ui_load_res();
 void ui_set_inverse(bool inverse);
 void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
-void draw_border_chr(uint8_t chr_index, int i, int line_num);
 
 // Clears out an area on the scratch buffer by setting
 // the contents to black (0).
 void ui_rect_clear(const struct ui_rect *r);
+void draw_borders(int offset);
 
 #ifdef __cplusplus
 }

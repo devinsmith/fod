@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "resource.h"
 #include "tables.h"
 #include "ui.h"
 #include "vga.h"
@@ -43,6 +44,9 @@ static unsigned char *font_bytes;
 // FOD: DSEG:0x029C
 // KEH: DSEG:0x1A4C
 struct ui_region *active_region;
+
+// DSEG:0x3E66
+static struct resource *border_res;
 
 static void ui_sub_048B();
 
@@ -266,7 +270,7 @@ void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
 
 // FOD: seg000:0x1778
 // KEH: seg000:0xE141
-void draw_border_chr(uint8_t chr_index, int i, int line_num)
+static void draw_border_chr(uint8_t chr_index, int i, int line_num)
 {
   uint16_t ax = line_num << 3; // multiply by 8 because a font sprite is 8 lines high.
   uint16_t di = get_160_offset(ax);
@@ -331,6 +335,18 @@ void ui_region_refresh_active()
   }
 }
 
+// Load UI specific resources
+bool ui_load_res()
+{
+  border_res = resource_load(RESOURCE_BORDERS, 0, 0);
+  if (border_res == NULL) {
+    fprintf(stderr, "Couldn't read borders, exiting!\n");
+    return false;
+  }
+
+  return true;
+}
+
 void screen_draw(const unsigned char *bytes)
 {
   const uint16_t *src = (const uint16_t *)bytes;
@@ -347,4 +363,24 @@ void screen_draw(const unsigned char *bytes)
   }
 
   vga_update();
+}
+
+// FOD: seg000:0x14FF
+// KEH: seg000:0xDA41
+void draw_borders(int offset)
+{
+  unsigned char *p = border_res->bytes + offset;
+
+  // Draws border segments in 4x8 tiles.
+  // 40*4 = 160 (expanded to 320 in screen draw)
+  // 25*8 = 200
+  for (int j = 0; j < 25; j++) {
+    for (int i = 0; i < 40; i++) {
+      uint8_t al = *p++;
+      if (al != 0) {
+        // al = font index
+        draw_border_chr(al, i, j);
+      }
+    }
+  }
 }
