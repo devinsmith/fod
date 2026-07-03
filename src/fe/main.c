@@ -34,6 +34,10 @@
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
 
+// Border drawing sub-routines.
+static void sub_DAAA();
+static void sub_DAB0();
+
 // DSEG:0x0076
 static uint16_t word_0076 = 0;
 
@@ -211,7 +215,7 @@ static struct ui_region message_region = {
   0x16,
   { 0x1C, 0xB0, 0x84, 0x18 },
   0x00,
-  0xDAAA, // Draw borders?
+  sub_DAAA, // Draw borders?
   0x00,
   NULL // rect offset 0x0C-0x12
 };
@@ -324,7 +328,7 @@ static struct ui_region unknown_2E6 = {
   1,      // 0A
   { 0x38, 8, 0x64, 0x60 }, // rect offset 0x0C-0x12
   0,      // 14
-  0,      // 16
+  NULL,      // 16
   0,      // 18
   NULL,   // 1A
 };
@@ -339,7 +343,7 @@ static struct ui_region unknown_302 = {
   0x0E,  // 0A
   { 0, 0x70, 0xA0, 0x30 }, // rect offset 0x0C-0x12
   0,     // 14
-  0,     // 16
+  NULL,     // 16
   0,     // 18
   NULL   // 1A
 };
@@ -354,7 +358,7 @@ static struct ui_region unknown_31E = {
   1,   // 0A
   { 4, 8, 0x30, 0x60 }, // Rect offset 0x0C - 0x12
   0,   // 14
-  0,   // 16
+  NULL,   // 16
   0,   // 18
   &data_02A6 // 1A
 };
@@ -369,7 +373,7 @@ static struct ui_region region_1CB4 = {
   0, // cursor_index_y - 0x0A
   { 0, 0, 0xA0, 0xC8 }, // Rect offset 0x0C - 0x12
   0, // line_number 0x14
-  0xDAB0, // data_16; (this is actually a function pointer) offset 0x16
+  sub_DAB0, // offset 16
   0, // data_24 0x18
   NULL // 0x1A
 };
@@ -1581,9 +1585,9 @@ static void ui_region_set_active(struct ui_region *arg1, bool clear)
   arg1->data_24 = 0;
   ui_active_region_clear();
 
-  if (arg1->data_16 != 0) {
+  if (arg1->func_ptr != NULL) {
     // Call function pointer
-    printf("%s:0x1586 unhandled 0x%04X\n", __func__, arg1->data_16);
+    arg1->func_ptr();
   }
 }
 
@@ -1844,12 +1848,17 @@ static void sub_D78()
   }
 }
 
+static void sub_DAAA()
+{
+  draw_borders(0);
+}
+
 // KEH: seg000:0xD9CF
 static void show_welcome_message()
 {
   active_region = &message_region;
 
-  draw_borders(0x0);
+  sub_DAAA();
 
   // Text is at KEH:DSEG:0x1835
   print_wrapped_text("Welcome to the beautiful island of Florida!\n");

@@ -65,7 +65,7 @@ struct ui_region {
   struct ui_rect rect; // offset 0x0C - 0x12
 
   uint16_t line_number; // offset 0x14
-  uint16_t data_16; // (this is actually a function pointer) offset 0x16
+  void (*func_ptr)(); // offset 0x16
   uint16_t data_24; // offset 0x18
   struct ui_rect *data_1A; // offset 0x1A
 };
