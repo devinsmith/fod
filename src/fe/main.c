@@ -505,8 +505,25 @@ static void sub_27CC(int arg0);
 static int sub_D5BA(void);
 static int sub_4F1A(int arg0);
 static void sub_5691(int arg0, int arg1);
-static int sub_CC58(int arg0, int fkey_index);
 static void sub_138D(int arg0);
+
+static void sub_C68D(uint16_t player_ptr, uint16_t flag);
+static uint16_t sub_C990(uint16_t player_ptr, uint16_t *scroll_offset,
+                          uint16_t *max_count);
+static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,
+                          uint16_t arg3);
+static uint16_t sub_C8ED(uint16_t arg0, uint16_t *counter, uint16_t arg2,
+                          uint16_t arg3);
+static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
+                         uint16_t arg3, uint16_t arg4);
+static uint8_t sub_CB58(uint16_t arg0);
+static uint8_t sub_CBDF(uint16_t arg0);
+static void sub_CA0B(uint16_t player_ptr);
+static uint8_t sub_CAE6(uint16_t value, uint16_t *var6, uint16_t mode,
+                         uint16_t flag);
+static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2);
+static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2);
+static int sub_CC58(int arg0, int fkey_index);
 static void sub_DD4C(void);
 static void sub_1834(unsigned char *ptr, int arg2, int arg3);
 static void set_party_position(int x, int y);
@@ -543,8 +560,6 @@ static int sub_6D6B(uint16_t arg0);
 static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
 static void sub_B29B(uint16_t arg0);
-static void sub_CB80(uint16_t arg0, uint16_t *arg1, uint16_t arg2,
-                     uint16_t arg3, uint16_t arg4);
 
 static void do_title()
 {
@@ -2217,13 +2232,6 @@ static void sub_B29B(uint16_t arg0)
   printf("%s: unimplemented\n", __func__);
 }
 
-// KEH: seg000:0xCB80 - menu/dialog handler
-static void sub_CB80(uint16_t arg0, uint16_t *arg1, uint16_t arg2,
-                     uint16_t arg3, uint16_t arg4)
-{
-  printf("%s: unimplemented\n", __func__);
-}
-
 // KEH: seg000:0x7FA8
 // Handles encounters/interactions at a map tile position.
 // If the tile has flag 0x80 set, processes encounter logic (enemies, treasure, etc.)
@@ -3239,47 +3247,343 @@ static void sub_5691(int arg0, int arg1)
   printf("%s: unimplemented\n", __func__);
 }
 
+// KEH: DSEG: indexed by character slot (word array)
+static uint16_t current_player_entities[6];
+
+static void sub_C68D(uint16_t player_ptr, uint16_t flag)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+static uint16_t sub_C990(uint16_t player_ptr, uint16_t *scroll_offset,
+                          uint16_t *max_count)
+{
+  printf("%s: unimplemented\n", __func__);
+  *max_count = 8;
+  return 8;
+}
+
+static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,
+                          uint16_t arg3)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
+static uint16_t sub_C8ED(uint16_t arg0, uint16_t *counter, uint16_t arg2,
+                          uint16_t arg3)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
+static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
+                         uint16_t arg3, uint16_t arg4)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
+static uint8_t sub_CB58(uint16_t arg0)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
+static uint8_t sub_CBDF(uint16_t arg0)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
+static void sub_CA0B(uint16_t player_ptr)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+static uint8_t sub_CAE6(uint16_t value, uint16_t *var6, uint16_t mode,
+                         uint16_t flag)
+{
+  printf("%s: unimplemented\n", __func__);
+  *var6 = mode;
+  return 0;
+}
+
+static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
+static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
 // KEH: seg000:0xCC58
-// F-key handler - switches to selected character
-// Returns a value passed to sub_27CC for post-action processing
+// F-key handler - character skill/action menu.
+// arg0 = menu page (always 0 from game loop)
+// fkey_index = which F-key was pressed (0=F1..4=F5)
+// Returns arg0 on action completion, or -1 on ESC/exit.
 static int sub_CC58(int arg0, int fkey_index)
 {
-  uint8_t al;
-  uint8_t var2;
-  uint16_t var6;
-  uint8_t var_16;
+  uint16_t var_20;
+  uint16_t var_1E;
+  uint16_t var_1C;
+  uint16_t var_1A;
+  uint16_t var_18;
+  uint8_t  var_16;
+  uint16_t var_12;
+  uint16_t var_E;
   struct ui_region *var_C;
+  uint16_t var_6;
+  uint8_t  var_4;
+  uint8_t  var_2;
+  int16_t  key_signed;
 
-  // TODO: Implement character switch
-  printf("%s: unimplemented (%d, %d)\n", __func__, arg0, fkey_index);
-
+  var_1E = 0;
   var_16 = 0;
 
-  if (byte_DAE6 != 0) {
-    al = 1;
-  } else {
-    al = 0;
-  }
+  var_2 = (fkey_index != 0 || byte_1ED26 != 0) ? 1 : 0;
 
-  var2 = al;
   var_C = active_region;
-  var6 = 0;
+  var_6 = 0;
 
-  // 0xD0D1 - 0xCC8C
-//  while (var_16 == 0) {
-    // CC8C
-    uint16_t bx = arg0;
+  while (var_16 == 0) {
+    uint16_t si = current_player_entities[arg0];
+    if (var_1E != si) {
+      var_1E = si;
+      var_18 = 0;
+      var_1C = 0;
+      var_1A = 0;
+    }
+
     ui_region_set_active(&region_1CB4, true);
 
+    sub_C68D(var_1E, (var_6 == 1) ? 1 : 0);
 
-    exit(1);
+    var_E = sub_C990(var_1E, &var_18, &var_12);
 
-//  }
+    sub_C84A(arg0, &var_1C, 0, (var_6 == 1) ? 1 : 0);
 
-  // 0xD0DA
+    sub_C8ED(arg0, &var_1A, 0, (var_6 == 2) ? 1 : 0);
 
+    ui_region_refresh(&whole_screen);
 
-  return 0;
+    if (var_6 == 0) {
+      var_E = sub_C990(var_1E, &var_18, &var_12);
+
+      var_4 = vga_waitkey();
+
+      if (var_4 == 0xFF) {
+        var_16 = 1;
+        continue;
+      }
+
+      ((unsigned char *)(uintptr_t)var_1E)[0x144] = 0x0A;
+
+      key_signed = (int16_t)(int8_t)var_4;
+
+      if (key_signed == 'A') {
+        goto handle_char_action;
+      } else if (key_signed > 'A') {
+        goto handle_key_gt_A;
+      } else {
+        goto handle_key_lt_A;
+      }
+
+handle_key_lt_A:
+      if (key_signed == (int16_t)0xFFFC) {
+        if ((int16_t)(var_12 - var_18) > (int16_t)var_E)
+          var_18 += 8;
+        var_E = sub_C990(var_1E, &var_18, &var_12);
+        continue;
+      }
+
+      if (key_signed <= (int16_t)0xFFFC) {
+        if (key_signed >= (int16_t)0xFFFA && key_signed <= (int16_t)0xFFFB) {
+          sub_CAE6(var_4, &var_6, 2, 1);
+          continue;
+        }
+        goto handle_generic_key;
+      }
+
+      if (key_signed == (int16_t)0xFFFD) {
+        if (var_18 >= 8)
+          var_18 -= 8;
+        var_E = sub_C990(var_1E, &var_18, &var_12);
+        continue;
+      }
+
+      if (key_signed >= (int16_t)0x3B && key_signed <= (int16_t)0x3F) {
+        sub_CB80(var_4, (uint16_t *)&arg0, 6, var_2, 1);
+        continue;
+      }
+
+      goto handle_generic_key;
+
+handle_key_gt_A:
+      {
+        int table_idx = key_signed - 'C';
+        if (table_idx < 0 || table_idx > 20)
+          goto handle_generic_key;
+
+        static const uint8_t key_targets[21] = {
+          0, 0, 1, 1, 1, 1, 0, 1, 1, 0,
+          1, 1, 1, 1, 1, 1, 0, 1, 1, 2, 0
+        };
+
+        int target = key_targets[table_idx];
+        if (target == 0) {
+          goto handle_char_action;
+        } else if (target == 2) {
+          if (((unsigned char *)(uintptr_t)var_1E)[0x58] != 0)
+            sub_CA0B(var_1E);
+          continue;
+        } else {
+          goto handle_generic_key;
+        }
+      }
+
+handle_char_action:
+      {
+        unsigned char *p = (unsigned char *)(uintptr_t)var_1E;
+        if (key_signed == 'D') {
+          p[0x145] = 2;
+        } else if (key_signed > 'D') {
+          if (key_signed == 'I')
+            p[0x145] = 1;
+          else if (key_signed == 'L')
+            p[0x145] = 6;
+          else if (key_signed == 'S')
+            p[0x145] = 0;
+          else if (key_signed == 'W')
+            p[0x145] = 3;
+          else
+            goto action_check;
+        } else {
+          if (key_signed == 'A')
+            p[0x145] = 4;
+          else if (key_signed == 'C')
+            p[0x145] = 5;
+          else
+            goto action_check;
+        }
+      }
+
+action_check:
+      if (sub_CB58(arg0)) {
+        sub_CBDF(arg0);
+        return arg0;
+      }
+      var_1E = 0;
+      continue;
+
+handle_generic_key:
+      if (var_4 >= 0x3B && var_4 <= 0x3F) {
+        sub_CB80(var_4, (uint16_t *)&arg0, 6, var_2, 1);
+        continue;
+      }
+
+      if (var_4 >= '0' && var_4 <= '9') {
+        uint16_t digit = var_4 - '0';
+        var_20 = digit;
+
+        if (digit == 0 || digit > var_E)
+          continue;
+
+        var_20 = table_3240[digit + var_18];
+
+        ((unsigned char *)(uintptr_t)var_1E)[0x145] = (uint8_t)var_20;
+
+        if (byte_1ED26 == 0) {
+          if (sub_1FB7(arg0, (uint8_t)var_20, fkey_index)) {
+            unsigned char *p =
+                (unsigned char *)(uintptr_t)var_1E;
+            if (fkey_index != 0) {
+              if (p[0x144] == 0x0D || p[0x144] == 0x0C)
+                return arg0;
+            }
+            if (p[0x144] == 6)
+              return arg0;
+            sub_CBDF(arg0);
+            return arg0;
+          }
+          continue;
+        }
+        return arg0;
+      }
+
+      continue;
+
+    } else if (var_6 == 1) {
+      uint16_t result1 = sub_C84A(arg0, &var_1C, 1, 1);
+      var_20 = result1;
+
+      if (sub_CB80(result1 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
+        continue;
+
+      if (sub_CAE6(var_20, &var_6, 0, 2))
+        continue;
+
+      if ((int16_t)var_20 < 0) {
+        if (var_20 == 0xFFFF)
+          var_16 = 1;
+        continue;
+      }
+
+      if (sub_CB58(arg0)) {
+        unsigned char *p = (unsigned char *)(uintptr_t)var_1E;
+        p[0x145] = (uint8_t)table_3240[var_20];
+
+        uint8_t val = p[0x145];
+        if (val == 0 || val == 0x0B || val == 4) {
+          if (byte_1ED26 != 0)
+            continue;
+
+          if (!sub_C052(arg0, 1, (fkey_index == 0) ? 1 : 0))
+            continue;
+
+          return arg0;
+        }
+
+        p[0x144] = 0x0A;
+        p[0x145] += 0x0C;
+
+        if (fkey_index == 0) {
+          sub_CBDF(arg0);
+          return arg0;
+        }
+
+        if (p[0x145] == 0x1A || p[0x145] == 0x19)
+          return arg0;
+
+        sub_CBDF(arg0);
+        return arg0;
+      }
+
+      continue;
+
+    } else if (var_6 == 2) {
+      uint16_t result2 = sub_C8ED(arg0, &var_1A, 1, 1);
+      var_20 = result2;
+
+      if (sub_CB80(result2 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
+        continue;
+
+      if (var_20 == 0xFFFF) {
+        var_16 = 1;
+        continue;
+      }
+
+      sub_CAE6(var_20, &var_6, 1, 0);
+      continue;
+    }
+  }
+
+  ui_region_set_active(var_C, false);
+  return -1;
 }
 
 // KEH: seg000:0x138D
