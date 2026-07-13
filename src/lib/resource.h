@@ -60,6 +60,15 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
  */
 void resource_release(struct resource *res);
 
+/**
+ * @brief Reads a file into buffer.
+ *
+ * @param file   The name of the file to read.
+ * @param buffer The buffer to read the file into.
+ * @param size   The number of bytes to read into the buffer.
+ */
+void read_file(const char *file, uint8_t *buffer, uint16_t size);
+
 #ifdef __cplusplus
 }
 #endif

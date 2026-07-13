@@ -503,8 +503,10 @@ static uint16_t player_data_table[6];
 static uint16_t table_1ACE[6];
 // KEH DSEG:0x3240 - table mapping encounter result to dword_1EC1A index
 static uint16_t table_3240[100];
-// KEH DSEG:0xD9E6 - sprintf buffer
-static char buffer_D9E6[256];
+
+// KEH DSEG:0xD9E6 - sprintf buffer (probably not actually 256 bytes) but
+// it isn't clear what the actual size was.
+static char str_buffer[256];
 
 // KEH DSEG:0xD1D8
 static uint16_t word_D1D8 = 0;
@@ -568,7 +570,6 @@ static void sub_E674(void);
 static void sub_10720(void);
 static void sub_8827(void);
 static void print_movement_msg(int msg_index);
-static int sub_90F6(struct player_rec *player);
 static int sub_54D6(void);
 static void sub_EF7(void);
 static void sub_E29(unsigned char *arg1, unsigned char *arg2,
@@ -582,7 +583,7 @@ static void sub_7B02(uint16_t arg0, uint16_t arg1, uint16_t arg2);
 static int sub_6D6B(uint16_t arg0);
 static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
-static void sub_B29B(uint16_t arg0);
+static void sub_B29B(const char *arg0);
 
 static void do_title()
 {
@@ -1914,14 +1915,6 @@ static void sub_87E5(int arg0)
   exit(1);
 }
 
-// KEH: seg000:0x0444
-static void sub_0444(const char *file, uint8_t *buffer, uint16_t size)
-{
-  FILE *fp = fopen(file, "rb");
-  fread(buffer, 1, size, fp);
-  fclose(fp);
-}
-
 // KEH: seg000:0x03BF
 static void sub_03BF(const char *file, uint8_t *data, uint8_t val, unsigned char *buffer, int val2)
 {
@@ -1961,9 +1954,9 @@ static void sub_8C(int arg0)
   level_scr_file = "fscr";
   level_ani_file = "fani";
 
-  sub_0444(level_map_file, level_map_bytes, 112);
-  sub_0444(level_scr_file, level_scr_bytes, 112);
-  sub_0444(level_ani_file, level_ani_bytes, 212);
+  read_file(level_map_file, level_map_bytes, 112);
+  read_file(level_scr_file, level_scr_bytes, 112);
+  read_file(level_ani_file, level_ani_bytes, 212);
 
   sub_03BF(level_map_file, level_map_large, arg0 - 1, level_map_bytes, 0);
   printf("Level map large:\n");
@@ -1972,6 +1965,8 @@ static void sub_8C(int arg0)
   uint16_t *es = (uint16_t *)level_map_large;
   uint16_t ax = es[0x404]; // guns and clutter?
   printf("0x%04X\n", ax);
+
+  printf("%s: Not entirely completed...\n", __func__);
 }
 
 // KEH: seg000:0xDFC6
@@ -2250,7 +2245,7 @@ static void sub_D6AA(void *ptr, uint16_t arg1)
 }
 
 // KEH: seg000:0xB29B - display message
-static void sub_B29B(uint16_t arg0)
+static void sub_B29B(const char *msg)
 {
   printf("%s: unimplemented\n", __func__);
 }
@@ -2295,7 +2290,6 @@ static void sub_7FA8(int x, int y)
 
   // Look up player/entity data pointer and encounter layout value
   {
-    uint16_t si = var_A * 2;
     var_10 = player_data_table[var_A];
     sub_E2B8(table_1ACE[var_A], 1);
   }
@@ -2390,8 +2384,8 @@ static void sub_7FA8(int x, int y)
       }
 
       // Inventory full - display message with entity name
-      sprintf(buffer_D9E6, "%s", (const char *)(intptr_t)var_10);
-      sub_B29B((uint16_t)(intptr_t)buffer_D9E6);
+      sprintf(str_buffer, "%s", (const char *)(intptr_t)var_10);
+      sub_B29B(str_buffer);
     }
 
 loop_continue:
@@ -2427,11 +2421,7 @@ static void sub_113F(int arg0)
   uint16_t var_4;   // loop flag (1 = done)
   uint16_t var_10;  // tick divisor: 5 if arg0!=0, else 10
   uint16_t var_2;   // multiplier: 1 if arg0!=0, else map_header.minute_inc
-  int16_t var_E;    // health threshold for death check
-  uint16_t var_C;   // bit index (0-6) for special effects processing
   uint16_t var_8;   // count of entities with health > 0
-  uint16_t var_6;   // current health value
-  unsigned char *entity; // pointer to entity data
 
   // --- Initialization ---
   var_4 = 0;
@@ -2669,21 +2659,6 @@ static void sub_7E1(int arg0, int arg1, int arg2)
 // KEH: seg000:0x98F4
 static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
 {
-  uint16_t local_bp_00A2 = (uint16_t)arg3;
-  uint16_t local_bp_5A = 0;
-  uint16_t local_bp_5C = 0;
-  uint16_t local_bp_011C = 0;
-  uint16_t local_bp_0112 = 0;
-  uint16_t local_bp_68 = 0;
-  uint16_t local_bp_0134 = 0;
-  uint16_t local_bp_011A = 0;
-  uint16_t local_bp_48 = 0;
-  uint16_t local_bp_00E8 = 0;
-  uint8_t local_bp_74 = 0;
-  uint8_t local_bp_00D2 = 0;
-  uint16_t local_bp_44 = 0;
-  uint16_t local_bp_6C = 0;
-
   word_D1D8 = 0xFFFF;
 
   uint16_t si = *(uint16_t *)ptr;
@@ -3324,7 +3299,7 @@ static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
   (void)flag;
   ui_region_set_active(&region_1B2C, false);
 
-  sprintf(buffer_D9E6, "%s", player_ptr->name);
+  snprintf(str_buffer, sizeof(str_buffer), "%s", player_ptr->name);
   if (flag) {
     byte_1978 = 0xFF;
   }
@@ -3353,19 +3328,19 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
   sub_C5F4(player_ptr, flag & 0xFF);
 
   if (arch_offset != NULL) {
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s",
+    snprintf(str_buffer, sizeof(str_buffer), "%s",
              arch_offset + (p[0x4E] * 128));
   } else {
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "Prof %d", p[0x4E]);
+    snprintf(str_buffer, sizeof(str_buffer), "Prof %d", p[0x4E]);
   }
-  ui_region_print_str(buffer_D9E6, 0, 1);
+  ui_region_print_str(str_buffer, 0, 1);
 
   sub_C64A(player_ptr, 0);
-  ui_region_print_str(buffer_D9E6, 0, 2);
+  ui_region_print_str(str_buffer, 0, 2);
 
   if (p[0x58] != 0) {
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "Lucky");
-    ui_region_print_str(buffer_D9E6, 0x10, 2);
+    snprintf(str_buffer, sizeof(str_buffer), "Lucky");
+    ui_region_print_str(str_buffer, 0x10, 2);
   }
 
   cond = (int16_t)*(uint16_t *)&p[0x44];
@@ -3378,35 +3353,35 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
   }
 
   if (var_4 == 0) {
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%d/%d",
+    snprintf(str_buffer, sizeof(str_buffer), "%d/%d",
              *(uint16_t *)&p[0x44], *(uint16_t *)&p[0x46]);
   } else {
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s %d",
+    snprintf(str_buffer, sizeof(str_buffer), "%s %d",
              condition_names[var_4], *(uint16_t *)&p[0x46]);
   }
-  ui_region_print_str(buffer_D9E6, 0, 3);
+  ui_region_print_str(str_buffer, 0, 3);
 
-  snprintf(buffer_D9E6, sizeof(buffer_D9E6), "AC %d", var_2);
-  ui_region_print_str(buffer_D9E6, 0, 4);
+  snprintf(str_buffer, sizeof(str_buffer), "AC %d", var_2);
+  ui_region_print_str(str_buffer, 0, 4);
 
   if (p[0x4A] == 0xFF) {
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "None");
+    snprintf(str_buffer, sizeof(str_buffer), "None");
   } else {
     int si = 6 * p[0x4A];
     uint16_t item_offset = word_1E41A + (0x18 * p[si + 0x62]) + 0x2A;
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s",
+    snprintf(str_buffer, sizeof(str_buffer), "%s",
              (const char *)(uintptr_t)item_offset);
   }
-  ui_region_print_str(buffer_D9E6, 0, 5);
+  ui_region_print_str(str_buffer, 0, 5);
 
   word_12D80 = 8;
   ui_region_print_str("Skill       Lvl", 6, 7);
   word_12D80 = 0;
 
   for (var_4 = 0; var_4 < 7; var_4++) {
-    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s %2d",
+    snprintf(str_buffer, sizeof(str_buffer), "%s %2d",
              skill_display[var_4].name, p[0x18 + var_4]);
-    ui_region_print_str(buffer_D9E6,
+    ui_region_print_str(str_buffer,
                         skill_display[var_4].x,
                         skill_display[var_4].y);
   }

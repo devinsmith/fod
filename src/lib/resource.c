@@ -208,3 +208,11 @@ void resource_release(struct resource *res)
   free(res);
 }
 
+// KEH: seg000:0x0444
+void read_file(const char *file, uint8_t *buffer, uint16_t size)
+{
+  FILE *fp = fopen(file, "rb");
+  fread(buffer, 1, size, fp);
+  fclose(fp);
+}
+
