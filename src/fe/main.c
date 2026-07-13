@@ -54,6 +54,9 @@ static uint8_t byte_00EA = 0;
 // Current map?
 static uint16_t word_00EC = 0xffff;
 
+// KEH: DSEG:1978
+static uint8_t byte_1978 = 0;
+
 // KEH: DSEG:BEC0
 static uint16_t word_BEC0 = 0;
 
@@ -378,6 +381,21 @@ static struct ui_region region_1CB4 = {
   NULL // 0x1A
 };
 
+// DSEG:0x1B2C - character status display region used by sub_C68D
+static struct ui_region region_1B2C = {
+  0,
+  0,
+  0x27,
+  0x18,
+  0,
+  0,
+  { 0, 0, 0x98, 0x98 },
+  0,
+  NULL,
+  0,
+  NULL
+};
+
 // DSEG:0x0424
 static unsigned char video_mode = 2;
 
@@ -476,6 +494,8 @@ static uint16_t word_1D13A = 0;
 static unsigned char *ptr_1EC1A = NULL;
 // KEH DSEG:0x1E41A - base offset for item table lookups
 static uint16_t word_1E41A = 0;
+// KEH DSEG:0x12D80 - UI flag (set to 8 during header print, then reset to 0)
+static uint16_t word_12D80 = 0;
 
 // KEH DSEG:0x2518 - table of pointers to player/entity data (indexed by player num)
 static uint16_t player_data_table[6];
@@ -507,8 +527,11 @@ static int sub_4F1A(int arg0);
 static void sub_5691(int arg0, int arg1);
 static void sub_138D(int arg0);
 
-static void sub_C68D(uint16_t player_ptr, uint16_t flag);
-static uint16_t sub_C990(uint16_t player_ptr, uint16_t *scroll_offset,
+static void sub_C68D(struct player_rec *player_ptr, uint16_t flag);
+static uint16_t sub_7D9B(struct player_rec *player_ptr);
+static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag);
+static void sub_C64A(struct player_rec *player_ptr, uint16_t arg2);
+static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count);
 static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,
                           uint16_t arg3);
@@ -518,7 +541,7 @@ static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
                          uint16_t arg3, uint16_t arg4);
 static uint8_t sub_CB58(uint16_t arg0);
 static uint8_t sub_CBDF(uint16_t arg0);
-static void sub_CA0B(uint16_t player_ptr);
+static void sub_CA0B(struct player_rec *player_ptr);
 static uint8_t sub_CAE6(uint16_t value, uint16_t *var6, uint16_t mode,
                          uint16_t flag);
 static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2);
@@ -1746,7 +1769,7 @@ static void sub_0A04(int arg0)
   for (int i = 0; i < 5; i++) {
 
     const struct player_rec *current_player = &g_game_state.players[i];
-    // byte_1978 = 0;
+    byte_1978 = 0;
 
     ui_region_set_active(player_regions[i], false);
     ui_active_region_clear();
@@ -3247,15 +3270,149 @@ static void sub_5691(int arg0, int arg1)
   printf("%s: unimplemented\n", __func__);
 }
 
-// KEH: DSEG: indexed by character slot (word array)
-static uint16_t current_player_entities[6];
+// KEH: DSEG:0x01D0 - condition status name table (string pointers)
+static const char *condition_names[] = {
+  NULL,
+  "Wounded",
+  "S. Wounded",
+  "Cr. Wounded",
+  "Near Death",
+  "Dead",
+};
 
-static void sub_C68D(uint16_t player_ptr, uint16_t flag)
+// KEH: DSEG:0x15F8/0x15F9/0x15FA - skill display tables
+// Each entry: { x_coord, y_coord, skill_name_string }
+static const struct {
+  uint8_t x;
+  uint8_t y;
+  const char *name;
+} skill_display[7] = {
+  { 1,  8,  "Str:" },
+  { 1,  9,  "I.Q.:" },
+  { 1,  10, "Dex:" },
+  { 1,  11, "W.P.:" },
+  { 1,  12, "A.P.:" },
+  { 1,  13, "Crg:" },
+  { 17, 8,  "Lck:" },
+};
+
+static uint16_t sub_7D9B(struct player_rec *player)
 {
+#if 0
+  int var_4 = 0;
+  int var_2 = 0;
+
+  // Look at equipted items.
+  while (var_4 < 3) {
+    int si = var_4;
+//    int bx = 
+
+    printf("%s: 0x7DBE unimplemented\n", __func__);
+
+  }
+#endif
+
+  // Something dealing with the player's profession
+
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
+static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
+{
+  (void)player_ptr;
+  (void)flag;
+  ui_region_set_active(&region_1B2C, false);
+
+  sprintf(buffer_D9E6, "%s", player_ptr->name);
+  if (flag) {
+    byte_1978 = 0xFF;
+  }
+
   printf("%s: unimplemented\n", __func__);
 }
 
-static uint16_t sub_C990(uint16_t player_ptr, uint16_t *scroll_offset,
+static void sub_C64A(struct player_rec *player_ptr, uint16_t arg2)
+{
+  (void)player_ptr;
+  (void)arg2;
+}
+
+static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
+{
+  uint16_t var_2;
+  uint16_t var_4;
+  int16_t cond;
+  unsigned char *p = (unsigned char *)(uintptr_t)player_ptr;
+
+  var_2 = sub_7D9B(player_ptr);
+
+  ui_region_set_active(&region_1B2C, false);
+  ui_active_region_clear();
+
+  sub_C5F4(player_ptr, flag & 0xFF);
+
+  if (arch_offset != NULL) {
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s",
+             arch_offset + (p[0x4E] * 128));
+  } else {
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "Prof %d", p[0x4E]);
+  }
+  ui_region_print_str(buffer_D9E6, 0, 1);
+
+  sub_C64A(player_ptr, 0);
+  ui_region_print_str(buffer_D9E6, 0, 2);
+
+  if (p[0x58] != 0) {
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "Lucky");
+    ui_region_print_str(buffer_D9E6, 0x10, 2);
+  }
+
+  cond = (int16_t)*(uint16_t *)&p[0x44];
+  if (cond >= 1) {
+    var_4 = 0;
+  } else if (cond > -60) {
+    var_4 = (abs((int)cond) / 15) + 1;
+  } else {
+    var_4 = 5;
+  }
+
+  if (var_4 == 0) {
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%d/%d",
+             *(uint16_t *)&p[0x44], *(uint16_t *)&p[0x46]);
+  } else {
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s %d",
+             condition_names[var_4], *(uint16_t *)&p[0x46]);
+  }
+  ui_region_print_str(buffer_D9E6, 0, 3);
+
+  snprintf(buffer_D9E6, sizeof(buffer_D9E6), "AC %d", var_2);
+  ui_region_print_str(buffer_D9E6, 0, 4);
+
+  if (p[0x4A] == 0xFF) {
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "None");
+  } else {
+    int si = 6 * p[0x4A];
+    uint16_t item_offset = word_1E41A + (0x18 * p[si + 0x62]) + 0x2A;
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s",
+             (const char *)(uintptr_t)item_offset);
+  }
+  ui_region_print_str(buffer_D9E6, 0, 5);
+
+  word_12D80 = 8;
+  ui_region_print_str("Skill       Lvl", 6, 7);
+  word_12D80 = 0;
+
+  for (var_4 = 0; var_4 < 7; var_4++) {
+    snprintf(buffer_D9E6, sizeof(buffer_D9E6), "%s %2d",
+             skill_display[var_4].name, p[0x18 + var_4]);
+    ui_region_print_str(buffer_D9E6,
+                        skill_display[var_4].x,
+                        skill_display[var_4].y);
+  }
+}
+
+static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count)
 {
   printf("%s: unimplemented\n", __func__);
@@ -3296,7 +3453,7 @@ static uint8_t sub_CBDF(uint16_t arg0)
   return 0;
 }
 
-static void sub_CA0B(uint16_t player_ptr)
+static void sub_CA0B(struct player_rec *player_ptr)
 {
   printf("%s: unimplemented\n", __func__);
 }
@@ -3329,7 +3486,7 @@ static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2)
 static int sub_CC58(int arg0, int fkey_index)
 {
   uint16_t var_20;
-  uint16_t var_1E;
+  struct player_rec *var_1E;
   uint16_t var_1C;
   uint16_t var_1A;
   uint16_t var_18;
@@ -3351,7 +3508,7 @@ static int sub_CC58(int arg0, int fkey_index)
   var_6 = 0;
 
   while (var_16 == 0) {
-    uint16_t si = current_player_entities[arg0];
+    struct player_rec *si = &g_game_state.players[arg0];
     if (var_1E != si) {
       var_1E = si;
       var_18 = 0;
