@@ -3033,7 +3033,6 @@ static void sub_39FE(int arg1, int arg2)
   uint8_t key_pressed;
   int16_t var_10;
   int saved_region;
-  uint8_t var_4;
   int i;
 
   tile_res = resource_load(RESOURCE_TILES, 0, 0);
@@ -3138,22 +3137,23 @@ static void sub_39FE(int arg1, int arg2)
           if (word_1F01A > 0) {
             sub_5691(1, 1);
           }
-        } else if (key_pressed == 'Q') {
+        } else if (key_pressed == 'Q' || key_pressed == 'q') {
           // KEH: seg000:2908-299A - Quit menu
-          var_4 = 0;
+          uint8_t var_4 = 0;
           saved_region = (int)(intptr_t)active_region;
 
           while (!var_4) {
             // Set up quit menu region
-            ui_region_set_active(&unknown_302, true);
+            ui_region_set_active(&encounter_region, true);
             ui_active_region_clear();
 
             // Display quit menu
             ui_region_print_str(
                 "Your choice?\r\r\r"
                 "1. Quit (without saving)\r"
-                "3. Quit (with saving)\r"
-                "5. Continue\r",
+                "3. Quit (save game)\r"
+                "5. Just save!\r\r"
+                "N)evermind",
                 0, 0);
 
             ui_region_refresh_active();
