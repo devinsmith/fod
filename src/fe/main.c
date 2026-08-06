@@ -99,6 +99,19 @@ struct attr_coordinates {
   const char *str;
 };
 
+struct unknown_C6A0 {
+  uint16_t count;
+};
+
+struct unknown_C6A0 data_C6A0 = {
+  0
+};
+
+// KEH: DSEG:0x00E6 - pointer to encounter placement array (12-byte entries).
+// The array layout: [2-byte count][12-byte entry 0][12-byte entry 1]...
+// In the disassembly this points to 0xC6A0 which always has a value of 0.
+static struct unknown_C6A0 *word_00E6 = &data_C6A0;
+
 // KEH: DSEG:0x00EA
 static uint8_t byte_00EA = 0;
 
@@ -165,9 +178,12 @@ static unsigned char *level_map_large = NULL;
 
 // KEH: DSEG: 0xD9BC
 static const char *level_scr_file = NULL;
+
 static unsigned char level_scr_bytes[256];
+
 // KEH: DSEG: 0xD9C8
 static const char *level_ani_file = NULL;
+
 static unsigned char level_ani_bytes[256];
 
 // DSEG:0x7A
@@ -1995,6 +2011,19 @@ static void sub_03BF(const char *file, uint8_t *data, uint8_t val, unsigned char
   }
 
   fclose(fp);
+}
+
+static void sub_104C4(int arg)
+{
+  if (word_00E6 == NULL) {
+    return;
+  }
+
+  uint16_t count = word_00E6->count;
+
+  if (count > 0) {
+    printf("%s: unimplemented, count = %d\n", __func__, count);
+  }
 }
 
 // KEH: seg000:0x8C
