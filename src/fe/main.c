@@ -38,6 +38,57 @@ static const int GAME_HEIGHT = 200;
 static void sub_DAAA();
 static void sub_DAB0();
 
+struct level_meta {
+  const char *disk_name;
+  const char *disk_id;
+  const char *map_file;
+  const char *script_file;
+  const char *ani_file;
+};
+
+// KEH: DSEG:0x0042
+static struct level_meta k1_level = {
+  "Disk 1",
+  "Disk1",
+  "kmap",
+  "kscr",
+  "kani"
+};
+
+// KEH: DSEG:0x005E
+static struct level_meta k2_level = {
+  "Disk 2",
+  "Disk2",
+  "kmap",
+  "kscr",
+  "kani"
+};
+
+// KEH: DSEG:0x007A
+static struct level_meta f3_level = {
+  "Disk 3",
+  "Disk3",
+  "fmap",
+  "fscr",
+  "fani"
+};
+
+// KEH: DSEG:0x0096
+static struct level_meta d4_level = {
+  "Disk 4",
+  "Disk4",
+  "dmap",
+  "dscr",
+  "dani"
+};
+
+static struct level_meta *levels[] = {
+  &k1_level,
+  &k2_level,
+  &f3_level,
+  &d4_level
+};
+
 // DSEG:0x0076
 static uint16_t word_0076 = 0;
 
@@ -48,11 +99,21 @@ struct attr_coordinates {
   const char *str;
 };
 
+// KEH: DSEG:0x00EA
 static uint8_t byte_00EA = 0;
 
-// KEH: DSEG:00EC
-// Current map?
-static uint16_t word_00EC = 0xffff;
+// KEH: DSEG:0x00EC
+// Cached map table index (from map_ids look-up)
+static uint16_t word_00EC = 0;
+
+// KEH: DSEG:0x0125 - Map table indicies (size unknown, at least 28 (0x1C) bytes ?)
+static const uint8_t map_ids[] = {
+  0, 2, 2, 2, 2,
+  3, 3, 3, 3, 3, 3, 3,
+  2, 3, 2, 3, 3, 3, 1,
+  1, 1, 1, 1, 1, 1, 1,
+  1, 1, 2
+};
 
 // KEH: DSEG:1978
 static uint8_t byte_1978 = 0;
