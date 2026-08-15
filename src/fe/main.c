@@ -134,6 +134,9 @@ static uint8_t byte_1978 = 0;
 // KEH: DSEG:BEC0
 static uint16_t word_BEC0 = 0;
 
+// KEH: DSEG: 0xCDAC
+static const char *level_phys_label = NULL;
+
 // KEH: DSEG:D1DE
 static unsigned char *ptr_D1DE = NULL;
 
@@ -146,6 +149,9 @@ static uint8_t byte_D1E8;
 // KEH: DSEG:D206
 static unsigned char *ptr_D206 = NULL;
 
+// KEH: DSEG:D9DA
+static unsigned char *ptr_D9DA = NULL;
+
 // KEH: DSEG: 0xD284
 static const char *level_map_file = NULL;
 
@@ -156,6 +162,12 @@ static unsigned char level_map_bytes[256];
 
 // KEH: DSEG: 0xD9B4
 static unsigned char *dword_D9B4 = NULL;
+
+// KEH: DSEG: 0xD9D8
+static uint16_t word_D9B8 = 0;
+
+// KEH: DSEG: 0xD9D4
+static uint16_t word_D9D4 = 0;
 
 // Map header structure (overlays the start of level_map_large).
 // The map data is stored as: header (14 bytes) + padding + tile rows (each tile
@@ -569,6 +581,7 @@ static uint16_t word_1D138 = 0;
 static uint16_t word_1D13A = 0;
 // KEH DSEG:0x1EC1A - far pointer to encounter/item data (array of 6-byte entries)
 static unsigned char *ptr_1EC1A = NULL;
+
 // KEH DSEG:0x1E41A - base offset for item table lookups
 static uint16_t word_1E41A = 0;
 // KEH DSEG:0x12D80 - UI flag (set to 8 during header print, then reset to 0)
@@ -587,6 +600,13 @@ static char str_buffer[256];
 
 // KEH DSEG:0xD1D8
 static uint16_t word_D1D8 = 0;
+
+// KEH DSEG:0x12C72 - base offset for data pointer calculation
+static uint16_t word_12C72 = 0;
+// KEH DSEG:0x12C74 - base segment for data pointer calculation
+static uint16_t word_12C74 = 0;
+// KEH DSEG:0x12BB9 - flag set after consume_key
+static uint8_t byte_12BB9 = 0;
 
 // KEH DSEG:0x1EA4
 static uint16_t map_tile_array[9 * 19];
@@ -661,6 +681,13 @@ static int sub_6D6B(uint16_t arg0);
 static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
 static void sub_B29B(const char *arg0);
+static void consume_key(void);
+static void get_character_ptr(int arg);
+static void sub_D8CD(int arg);
+static void sub_DF48(uint16_t *cursor, uint16_t *out, int arg2);
+static void sub_FFB2(uint32_t *accum, int32_t val);
+static void sub_FFD4(uint32_t *accum, uint32_t val);
+static void sub_22(int arg);
 
 static void do_title()
 {
@@ -1927,6 +1954,7 @@ static void sub_D19(int arg0, int arg2, int arg4, int arg6)
 static void sub_D78()
 {
   // We need to set these properly!
+  printf("%s: TODO: Review PTR settings below\n", __func__);
   ptr_D206 = level_map_large + 0xE34; // ?
   ptr_D1DE = level_map_large + 0xF6C; // ?
 
@@ -2027,36 +2055,71 @@ static void sub_104C4(int arg)
 }
 
 // KEH: seg000:0x8C
+// Loads and initializes map/area data for a given area index (arg0).
+// Caches the area index and map index to avoid redundant file loads.
+// Parses the map header to compute pointers for encounters, items, etc.
 static void sub_8C(int arg0)
 {
-  if (arg0 != byte_00EA) {
-    sub_87E5(byte_00EA);
-    byte_00EA = arg0;
+  if (arg0 == byte_00EA) {
+    return;
   }
 
-  // arg0 is a byte offset into DS:125 table.
+  sub_87E5(byte_00EA);
+  byte_00EA = arg0;
 
-  word_00EC = 2; // Current map?
+  uint16_t map_index = map_ids[arg0];
+  printf("%s: Loading map: %d\n", __func__, map_index);
 
-  uint16_t index = word_00EC * 10;
+  // If map index changed, load the map data
+  if (word_00EC != map_index) {
+    word_00EC = map_index;
 
-  level_map_file = "fmap";
-  level_scr_file = "fscr";
-  level_ani_file = "fani";
+    level_map_file = levels[map_index]->map_file;
+    level_scr_file = levels[map_index]->script_file;
+    level_ani_file = levels[map_index]->ani_file;
+    level_phys_label = levels[map_index]->disk_id;
 
-  read_file(level_map_file, level_map_bytes, 112);
-  read_file(level_scr_file, level_scr_bytes, 112);
-  read_file(level_ani_file, level_ani_bytes, 212);
+    read_file(level_map_file, level_map_bytes, 112);
+    read_file(level_scr_file, level_scr_bytes, 112);
+    read_file(level_ani_file, level_ani_bytes, 212);
+  }
 
+  // Load decompressed map data from level_map_file into level_map_large
+  // arg0_byte - 1 is the sub-index within the level_map_file file
   sub_03BF(level_map_file, level_map_large, arg0 - 1, level_map_bytes, 0);
   printf("Level map large:\n");
   hexdump(level_map_large, 32);
 
-  uint16_t *es = (uint16_t *)level_map_large;
-  uint16_t ax = es[0x404]; // guns and clutter?
-  printf("0x%04X\n", ax);
+  sub_104C4(arg0);
 
-  printf("%s: Not entirely completed...\n", __func__);
+  // Parse header relative offsets into absolute pointers within level_map_large.
+  // The map header at offset 0x404 has 5 uint16_t offsets, each added to the
+  // base of level_map_large to form a data pointer.
+  unsigned char *base = level_map_large;
+
+  // [0x404] encounter/event data inside level_map_large
+  word_D9B8 = *(uint16_t *)(base + 0x404);
+
+  // [0x406] used by sub_D8CD: array of 0x68-byte entries
+  ptr_D206 = level_map_large + *(uint16_t *)(base + 0x406);
+
+  // [0x408]
+  word_D9D4 = *(uint16_t *)(base + 0x408);
+
+  // [0x40A]
+  ptr_D1DE = level_map_large + *(uint16_t *)(base + 0x40A);
+
+  // [0x40C] encounter/item data
+  ptr_D9DA = level_map_large + *(uint16_t *)(base + 0x40C);
+
+  // Compute level_map_player_pos from party position
+  {
+    uint16_t map_width = *(uint16_t *)level_map_large;
+    uint16_t tile_index = (uint16_t)(g_game_state.y_pos * map_width + g_game_state.x_pos);
+    level_map_player_pos = level_map_large + (tile_index << 3) + 0x414;
+  }
+
+  sub_22(arg0);
 }
 
 // KEH: seg000:0xDFC6
@@ -2337,6 +2400,52 @@ static void sub_D6AA(void *ptr, uint16_t arg1)
 // KEH: seg000:0xB29B - display message
 static void sub_B29B(const char *msg)
 {
+  printf("%s: unimplemented\n", __func__);
+}
+
+static void consume_key(void)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+static void get_character_ptr(int arg)
+{
+  (void)arg;
+  printf("%s: unimplemented\n", __func__);
+}
+
+static void sub_D8CD(int arg)
+{
+  (void)arg;
+  printf("%s: unimplemented\n", __func__);
+}
+
+static void sub_DF48(uint16_t *cursor, uint16_t *out, int arg2)
+{
+  (void)cursor;
+  (void)out;
+  (void)arg2;
+  printf("%s: unimplemented\n", __func__);
+}
+
+static void sub_FFB2(uint32_t *accum, int32_t val)
+{
+  (void)accum;
+  (void)val;
+  printf("%s: unimplemented\n", __func__);
+}
+
+static void sub_FFD4(uint32_t *accum, uint32_t val)
+{
+  (void)accum;
+  (void)val;
+  printf("%s: unimplemented\n", __func__);
+}
+
+
+static void sub_22(int arg)
+{
+  (void)arg;
   printf("%s: unimplemented\n", __func__);
 }
 
@@ -2747,16 +2856,234 @@ static void sub_7E1(int arg0, int arg1, int arg2)
 }
 
 // KEH: seg000:0x98F4
+// Processes scripted data referenced by ptr for a given event type (arg2).
+// Performs arithmetic operations on a 32-bit accumulator.
 static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
 {
+  uint32_t accum;           // [bp-5Ch]:[bp-5Ah] - 32-bit accumulator
+  uint16_t accum_lo;        // [bp-5Ch]
+  uint16_t accum_hi;        // [bp-5Ah]
+  uint16_t var_11C;         // [bp-11Ch] - 16-bit operand
+  uint16_t var_112;         // [bp-112h]
+  uint16_t var_134;         // [bp-134h]
+  uint16_t var_11A;         // [bp-11Ah]
+  uint16_t var_48;          // [bp-48h]
+  uint16_t var_E8;          // [bp-0E8h]
+  uint8_t  var_74;          // [bp-74h]
+  uint8_t  exit_flag;       // [bp-0D2h] - loop exit flag
+  uint16_t var_44;          // [bp-44h]
+  uint16_t var_6C;          // [bp-6Ch]
+  uint8_t  var_132;         // [bp-132h]
+  uint8_t  var_E6;          // [bp-0E6h]
+  uint8_t  var_56;          // [bp-56h]
+  int      saved_arg3;      // [bp-0A2h] - copy of arg3
+  uint16_t cursor_off;      // [bp-118h] - cursor offset into data
+  uint16_t cursor_seg;      // [bp-116h] - cursor segment
+  uint16_t data_ptr_off;    // [bp-138h] - base data pointer offset
+  uint16_t data_ptr_seg;    // [bp-136h] - base data pointer segment
+  uint16_t out_0D0;         // [bp-0D0h] - output from sub_DF48
+  uint16_t opcode;          // [bp-0CEh] - opcode (must be <= 0x4B)
+  uint16_t sub_opcode;      // [bp-0CCh] - sub-opcode (must be <= 7)
+  uint16_t operand;         // [bp-0CAh] - operand value
+
   word_D1D8 = 0xFFFF;
 
-  uint16_t si = *(uint16_t *)ptr;
-  if (si == 0xFFFF) {
+  accum_lo = 0;
+  accum_hi = 0;
+  var_11C = 0;
+  var_112 = 0;
+  var_134 = 0;
+  var_11A = 0;
+  var_48 = 0;
+  var_E8 = 0;
+  var_74 = 0;
+  exit_flag = 0;
+  var_44 = 0;
+  var_6C = 0;
+
+  byte_12BB9 = 0;
+
+  saved_arg3 = arg3;
+
+  // Compute data pointer from index table
+  uint16_t index = *(uint16_t *)ptr;
+  if (index == 0xFFFF)
     return;
+
+  printf("%s: 0x9946 unimplemented (index=0x%04X)\n", __func__, index);
+
+#if 0
+//    uint16_t table_val = word_DBD2[index];
+    uint16_t table_val = dword_1EE12[index];
+    data_ptr_off = table_val + word_12C72;
+    data_ptr_seg = word_12C74;
+
+    // Test bit: if ((1 << arg2) not set at data pointer) return
+    // In flat memory this checks a uint16_t at the resolved data entry.
+    if (!(*(uint16_t *)((unsigned char *)(uintptr_t)(data_ptr_seg * 16 + data_ptr_off)) & (1 << arg2)))
+      return;
   }
 
-  printf("%s: CS:0x9946 unimplemented\n", __func__);
+  consume_key();
+  byte_12BB9 = 1;
+  get_character_ptr(saved_arg3);
+
+  if (byte_1ED26 == 0 && arg2 == 6) {
+    sub_D8CD(arg4);
+  }
+
+  if (byte_1ED26 != 0) {
+    saved_arg3 = check_party_condition(1);
+  }
+
+  var_132 = 0;
+  var_E6 = 0;
+  var_56 = 0;
+
+  if (arg2 == 4) {
+    var_132 = (uint8_t)arg5;
+  }
+
+  // Set cursor to data_ptr + 4
+  cursor_off = data_ptr_off + 4;
+  cursor_seg = data_ptr_seg;
+
+  // Main loop
+  while (1) {
+    if (exit_flag != 0)
+      break;
+
+    // Check cursor is within bounds
+    {
+      // data_end = *(uint16_t*)(data_ptr_off + 2) + data_ptr_off
+      uint16_t data_end = *(uint16_t *)((uint8_t *)(uintptr_t)(data_ptr_seg * 16 + data_ptr_off + 2)) + data_ptr_off;
+
+      if (cursor_off >= data_end)
+        break;
+    }
+
+    // Read next record
+    {
+      uint16_t cursor[2];
+      uint16_t out[3];
+      cursor[0] = cursor_off;
+      cursor[1] = cursor_seg;
+      sub_DF48(cursor, out, arg2);
+      cursor_off = cursor[0];
+      cursor_seg = cursor[1];
+      out_0D0 = out[0];
+      opcode = out[1];
+      sub_opcode = out[2];
+      operand = out[3]; // [bp-0CAh]
+    }
+
+    if (out_0D0 == (uint16_t)arg2)
+      continue;
+
+    if (opcode > 0x4B)
+      continue;
+
+    // Dispatch via opcode table
+    switch (opcode) {
+    case 0:
+      // jmp loc_9972 - return 0
+      return;
+
+    case 1:
+      // Arithmetic operation dispatch via sub_opcode
+      if (sub_opcode > 7)
+        continue;
+
+      switch (sub_opcode) {
+      case 0:
+        // Add 32-bit: accum += (int32_t)var_11C
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        accum += (int32_t)(uint16_t)var_11C;
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+
+      case 1:
+        // Add 16-bit: accum += (int32_t)operand
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        accum += (int32_t)(uint16_t)operand;
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+
+      case 2:
+        // Subtract 32-bit: accum -= (int32_t)var_11C
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        accum -= (int32_t)(uint16_t)var_11C;
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+
+      case 3:
+        // Subtract 16-bit: accum -= (int32_t)operand
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        accum -= (int32_t)(uint16_t)operand;
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+
+      case 4:
+        // Multiply: accum *= var_11C (skip if var_11C == 0)
+        if (var_11C == 0)
+          continue;
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        sub_FFB2(&accum, (int32_t)(uint16_t)var_11C);
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+
+      case 5:
+        // Multiply: accum *= operand (skip if operand == 0)
+        if (operand == 0)
+          continue;
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        sub_FFB2(&accum, (int32_t)(uint16_t)operand);
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+
+      case 6:
+        // Divide: accum /= var_11C
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        sub_FFD4(&accum, (uint32_t)(uint16_t)var_11C);
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+
+      case 7:
+        // Divide: accum /= operand
+        accum = ((uint32_t)accum_hi << 16) | accum_lo;
+        sub_FFD4(&accum, operand);
+        accum_lo = (uint16_t)accum;
+        accum_hi = (uint16_t)(accum >> 16);
+        break;
+      }
+      break;
+
+    default:
+      // Unhandled opcode - fall through to continue loop
+      break;
+    }
+  }
+
+  // loc_B242 / loc_B24A - common exit (word_D1D8 already set to 0xFFFF above)
+  (void)var_112;
+  (void)var_134;
+  (void)var_11A;
+  (void)var_48;
+  (void)var_E8;
+  (void)var_74;
+  (void)var_44;
+  (void)var_6C;
+  (void)var_132;
+  (void)var_E6;
+  (void)var_56;
+#endif
 }
 
 // KEH: seg000:0xB452
