@@ -69,6 +69,18 @@ void resource_release(struct resource *res);
  */
 void read_file(const char *file, uint8_t *buffer, uint16_t size);
 
+/**
+ * @brief Loads data from a file at a specific offset determined by a lookup table
+ *
+ * @param filename     Name of the file to read.
+ * @param dest_buffer  Destination buffer for the loaded data
+ * @param index        Index into the lookup table (arg_0 - 1 from caller)
+ * @param offset_table Pointer to table of (offset, size) pairs
+ * @param flag         If 1, uses alternate loading method (unimplemented)
+ */
+void read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
+    unsigned char *buffer, int flag);
+
 #ifdef __cplusplus
 }
 #endif

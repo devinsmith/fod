@@ -198,6 +198,11 @@ static const char *level_ani_file = NULL;
 
 static unsigned char level_ani_bytes[256];
 
+// KEH: DSEG: 0xDBC8
+static uint16_t word_DBC8 = 0;
+static uint16_t word_DBCA = 0;
+static uint16_t word_DBCC = 0;
+
 // DSEG:0x7A
 static const struct attr_coordinates attributes[] = {
   { 0x15, 0x02, "ST:" },
@@ -2020,27 +2025,6 @@ static void sub_87E5(int arg0)
   exit(1);
 }
 
-// KEH: seg000:0x03BF
-static void sub_03BF(const char *file, uint8_t *data, uint8_t val, unsigned char *buffer, int val2)
-{
-  FILE *fp = fopen(file, "rb");
-
-  uint16_t bx = val << 1;
-  uint16_t *si = (uint16_t *)buffer;
-  uint16_t ax = si[bx];
-  uint32_t dxax = ax << 4;
-
-  fseek(fp, dxax, SEEK_SET);
-  if (val2 == 1) {
-    printf("%s:0x03F9 unhandled\n", __func__);
-    exit(1);
-  } else {
-    fread(data, 1, si[(val * 2) + 1], fp);
-  }
-
-  fclose(fp);
-}
-
 static void sub_104C4(int arg)
 {
   if (word_00E6 == NULL) {
@@ -2086,7 +2070,7 @@ static void sub_8C(int arg0)
 
   // Load decompressed map data from level_map_file into level_map_large
   // arg0_byte - 1 is the sub-index within the level_map_file file
-  sub_03BF(level_map_file, level_map_large, arg0 - 1, level_map_bytes, 0);
+  read_indexed_file_data(level_map_file, level_map_large, arg0 - 1, level_map_bytes, 0);
   printf("Level map large:\n");
   hexdump(level_map_large, 32);
 
@@ -2445,8 +2429,18 @@ static void sub_FFD4(uint32_t *accum, uint32_t val)
 
 static void sub_22(int arg)
 {
-  (void)arg;
-  printf("%s: unimplemented\n", __func__);
+  printf("%s: (%d) not completed\n", __func__, arg);
+  word_DBC8 = 0xFFFF;
+  word_DBCA = 0xFFFF;
+  word_DBCC = 0xFFFF;
+
+  // We know read_indexed_file_data can only read a max of 64k.
+  unsigned char *scr_data = malloc(1 << 16);
+
+  read_indexed_file_data(level_scr_file, scr_data, arg - 1, level_scr_bytes, 0);
+  hexdump(scr_data, 32);
+
+  free(scr_data);
 }
 
 // KEH: seg000:0x7FA8

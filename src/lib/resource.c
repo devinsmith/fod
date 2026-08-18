@@ -216,3 +216,32 @@ void read_file(const char *file, uint8_t *buffer, uint16_t size)
   fclose(fp);
 }
 
+// KEH: seg000:0x03BF
+void read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
+    unsigned char *offset_table, int flag)
+{
+  FILE *fp = fopen(file, "rb");
+  if (fp == NULL) {
+    fprintf(stderr, "Failed to open: %s\n", file);
+    return;
+  }
+
+  uint16_t bx = val << 1;
+  uint16_t *si = (uint16_t *)offset_table;
+  uint16_t table_entry = si[bx];
+  uint32_t file_offset = table_entry << 4;
+  uint16_t data_size = si[bx + 1];
+
+  printf("%s: Loading %s (%d bytes) at 0x%04X offset\n", __func__, file,
+      data_size, file_offset);
+
+  fseek(fp, file_offset, SEEK_SET);
+  if (flag == 1) {
+    fprintf(stderr, "%s 0x03F9 unhandled (flag == 1 not implemented)\n", __func__);
+    exit(1);
+  } else {
+    fread(data, 1, data_size, fp);
+  }
+
+  fclose(fp);
+}
