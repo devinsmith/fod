@@ -25,8 +25,10 @@
  * @param dest Pointer to destination buffer
  * @param uncompressed_size Expected size of uncompressed data in bytes
  */
- // seg000:0x19DA
-void decompress(const unsigned char *src, unsigned char *dest, uint32_t uncompressed_size)
+ // FOD: seg000:0x19DA
+ // KEH: seg000:0xE5BD
+void decompress(const unsigned char *src, unsigned char *dest,
+    uint32_t uncompressed_size)
 {
   // This is a variant of LZSS with:
   // * A 4KB (4096 bytes) sliding window/dictionary

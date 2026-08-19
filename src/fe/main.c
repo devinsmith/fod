@@ -1,7 +1,7 @@
 /*
  * Fountain of Dreams - Reverse Engineering Project
  *
- * Copyright (c) 2025 Devin Smith <devin@devinsmith.net>
+ * Copyright (c) 2025-2026 Devin Smith <devin@devinsmith.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compress.h"
 #include "fileio.h"
 #include "game.h"
 #include "hexdump.h"
@@ -202,6 +203,12 @@ static unsigned char level_ani_bytes[256];
 static uint16_t word_DBC8 = 0;
 static uint16_t word_DBCA = 0;
 static uint16_t word_DBCC = 0;
+
+// KEH: DSEG: 0xDBD2
+static unsigned char *scr_decompressed = NULL;
+
+// KEH: DSEG: 0xDBD6
+static uint16_t word_DBD6;
 
 // DSEG:0x7A
 static const struct attr_coordinates attributes[] = {
@@ -1958,11 +1965,6 @@ static void sub_D19(int arg0, int arg2, int arg4, int arg6)
 // KEH: seg000:0xD78
 static void sub_D78()
 {
-  // We need to set these properly!
-  printf("%s: TODO: Review PTR settings below\n", __func__);
-  ptr_D206 = level_map_large + 0xE34; // ?
-  ptr_D1DE = level_map_large + 0xF6C; // ?
-
   int val1 = level_map_large[9];
   int val2 = level_map_large[0xb];
 
@@ -2429,7 +2431,6 @@ static void sub_FFD4(uint32_t *accum, uint32_t val)
 
 static void sub_22(int arg)
 {
-  printf("%s: (%d) not completed\n", __func__, arg);
   word_DBC8 = 0xFFFF;
   word_DBCA = 0xFFFF;
   word_DBCC = 0xFFFF;
@@ -2440,7 +2441,18 @@ static void sub_22(int arg)
   read_indexed_file_data(level_scr_file, scr_data, arg - 1, level_scr_bytes, 0);
   hexdump(scr_data, 32);
 
+  // First two bytes are length?
+  word_DBD6 = *((uint16_t *)scr_data);
+  printf("Total uncompressed size: %d\n", word_DBD6);
+
+  if (scr_decompressed != NULL) {
+    free(scr_decompressed);
+  }
+  scr_decompressed = malloc(word_DBD6);
+  decompress(scr_data + 4, scr_decompressed, word_DBD6);
   free(scr_data);
+
+  hexdump(scr_decompressed, 32);
 }
 
 // KEH: seg000:0x7FA8
