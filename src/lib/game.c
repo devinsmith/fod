@@ -170,6 +170,7 @@ static void read_player_rec(struct player_rec *player)
   player->condition = read_uint16();
   player->max_condition = read_uint16();
 
+  player->unknown_82 = read_uint8();
   player->unknown_83 = (int8_t)read_uint8();
 
   /* Read equipped items */

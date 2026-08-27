@@ -746,10 +746,6 @@ static void sub_02E5(bool saved_game)
     exit(1);
   }
 
-  if (saved_game) {
-    return;
-  }
-
   // archtype
   FILE *fp = fopen("archtype", "rb");
   if (fp == NULL) {
@@ -768,6 +764,10 @@ static void sub_02E5(bool saved_game)
   uint16_t arch4 = (arch_bytes[5] << 8) | arch_bytes[4];
   printf("arch[4] = 0x%04X\n", arch4);
   arch_offset = arch_bytes += arch4;
+
+  if (saved_game) {
+    return;
+  }
 
   fp = fopen("hdspct", "rb");
   if (fp == NULL) {
@@ -3696,30 +3696,32 @@ static const struct {
 
 static uint16_t sub_7D9B(struct player_rec *player)
 {
-#if 0
-  int var_4 = 0;
-  int var_2 = 0;
+  uint16_t sum = 0;
+
+  printf("%s: not completely implemented...\n", __func__);
 
   // Look at equipted items.
-  while (var_4 < 3) {
-    int si = var_4;
-//    int bx = 
+  for (int i = 0; i < 3; i++) {
+    uint8_t item_id = player->eq_items[i];
 
-    printf("%s: 0x7DBE unimplemented\n", __func__);
-
+    if (item_id != 0xFF) {
+      printf("%s: 0x7DBE unimplemented (item: 0x%02X)\n", __func__, item_id);
+      // Manipulates sum
+    }
   }
-#endif
 
-  // Something dealing with the player's profession
+  if (sum == 0) {
+    // 0x7DE1
+    // Deal with player's profession?
+    uint8_t prof_val = arch_offset[(player->profession << 7) + 0x7A];
+    return prof_val;
+  }
 
-  printf("%s: unimplemented\n", __func__);
-  return 0;
+  return sum;
 }
 
 static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
 {
-  (void)player_ptr;
-  (void)flag;
   ui_region_set_active(&region_1B2C, false);
 
   snprintf(str_buffer, sizeof(str_buffer), "%s", player_ptr->name);
@@ -3727,13 +3729,31 @@ static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
     byte_1978 = 0xFF;
   }
 
-  printf("%s: unimplemented\n", __func__);
+  // Calculate centered X position for the string
+  // Original: (strlen(str_buffer) - 0x19) negated then divided by 2
+  // This centers the string within a 0x19 (25) character wide region
+  size_t len = strlen(str_buffer);
+  int16_t x_pos;
+
+  if (len > 0x19) {
+    // If string is longer than 25 chars, position at 0 (left edge)
+    x_pos = 0;
+  } else {
+    // Center it: (25 - len) / 2
+    x_pos = (0x19 - (int16_t)len) / 2;
+  }
+
+  ui_region_print_str(str_buffer, x_pos, 0);
+
+  // Clear the flag
+  byte_1978 = 0;
 }
 
 static void sub_C64A(struct player_rec *player_ptr, uint16_t arg2)
 {
   (void)player_ptr;
   (void)arg2;
+  printf("%s: unimplemented\n", __func__);
 }
 
 static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
@@ -3750,12 +3770,8 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
 
   sub_C5F4(player_ptr, flag & 0xFF);
 
-  if (arch_offset != NULL) {
-    snprintf(str_buffer, sizeof(str_buffer), "%s",
-             arch_offset + (p[0x4E] * 128));
-  } else {
-    snprintf(str_buffer, sizeof(str_buffer), "Prof %d", p[0x4E]);
-  }
+  snprintf(str_buffer, sizeof(str_buffer), "Rank: %u", player_ptr->rank);
+
   ui_region_print_str(str_buffer, 0, 1);
 
   sub_C64A(player_ptr, 0);

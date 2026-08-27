@@ -35,10 +35,10 @@ struct item_rec {
 
 // Should be 332 bytes long.
 struct player_rec {
-  char name[13];
+  char name[13]; // 0x00-0x12
 
-  uint8_t profession; // 0x48
-  uint8_t gender; // 0x50
+  uint8_t profession; // 0x0E
+  uint8_t gender; // 0x10
   uint8_t unknown_51; // 0x51
 
   // 0x52 - 0x5C
@@ -63,6 +63,8 @@ struct player_rec {
   uint16_t condition;        // 0x44
   uint16_t max_condition;
 
+  // Padding bytes? (unknown)
+  uint8_t unknown_82;      // 0x82
   int8_t unknown_83;       // 0x83
 
   // Value of 0xFF = no item equipped
