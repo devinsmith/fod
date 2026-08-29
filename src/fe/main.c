@@ -482,7 +482,7 @@ static struct ui_region region_1CB4 = {
   NULL // 0x1A
 };
 
-// DSEG:0x1B2C - character status display region used by sub_C68D
+// KEH: DSEG:0x1B2C - character status display region used by sub_C68D
 static struct ui_region region_1B2C = {
   0,
   0,
@@ -641,7 +641,6 @@ static void sub_138D(int arg0);
 static void sub_C68D(struct player_rec *player_ptr, uint16_t flag);
 static uint16_t sub_7D9B(struct player_rec *player_ptr);
 static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag);
-static void sub_C64A(struct player_rec *player_ptr, uint16_t arg2);
 static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count);
 static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,
@@ -3749,11 +3748,14 @@ static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
   byte_1978 = 0;
 }
 
-static void sub_C64A(struct player_rec *player_ptr, uint16_t arg2)
+// KEH: DSEG: 0xC64A
+static void write_affliction(struct player_rec *player_ptr, uint16_t arg2)
 {
-  (void)player_ptr;
-  (void)arg2;
-  printf("%s: unimplemented\n", __func__);
+  printf("%s: TODO: Check affliction status (%d)\n", __func__, arg2);
+  if (player_ptr->affliction != 0) {
+    printf("%s: TODO: Player is afflicted (%d) (%d)\n", __func__, arg2, player_ptr->affliction);
+  }
+  snprintf(str_buffer, sizeof(str_buffer), "Cond: Unafflicted");
 }
 
 static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
@@ -3761,7 +3763,6 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
   uint16_t var_2;
   uint16_t var_4;
   int16_t cond;
-  unsigned char *p = (unsigned char *)(uintptr_t)player_ptr;
 
   var_2 = sub_7D9B(player_ptr);
 
@@ -3774,52 +3775,42 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
 
   ui_region_print_str(str_buffer, 0, 1);
 
-  sub_C64A(player_ptr, 0);
+  write_affliction(player_ptr, 0);
   ui_region_print_str(str_buffer, 0, 2);
 
-  if (p[0x58] != 0) {
-    snprintf(str_buffer, sizeof(str_buffer), "Lucky");
-    ui_region_print_str(str_buffer, 0x10, 2);
+  if (player_ptr->affliction != 0) {
+    ui_region_print_str("(V)iew", 0x10, 2);
   }
 
-  cond = (int16_t)*(uint16_t *)&p[0x44];
-  if (cond >= 1) {
-    var_4 = 0;
-  } else if (cond > -60) {
-    var_4 = (abs((int)cond) / 15) + 1;
-  } else {
-    var_4 = 5;
-  }
-
+  var_4 = get_player_condition_status(player_ptr);
   if (var_4 == 0) {
-    snprintf(str_buffer, sizeof(str_buffer), "%d/%d",
-             *(uint16_t *)&p[0x44], *(uint16_t *)&p[0x46]);
+    snprintf(str_buffer, sizeof(str_buffer), " Con: %3u  MaxCon:  %3u",
+        player_ptr->condition, player_ptr->max_condition);
   } else {
-    snprintf(str_buffer, sizeof(str_buffer), "%s %d",
-             condition_names[var_4], *(uint16_t *)&p[0x46]);
+    snprintf(str_buffer, sizeof(str_buffer), " Con: %3s  MaxCon:  %3u",
+             condition_names[var_4], player_ptr->max_condition);
   }
   ui_region_print_str(str_buffer, 0, 3);
 
-  snprintf(str_buffer, sizeof(str_buffer), "AC %d", var_2);
+  snprintf(str_buffer, sizeof(str_buffer), "  AC %3u", var_2);
   ui_region_print_str(str_buffer, 0, 4);
 
-  if (p[0x4A] == 0xFF) {
-    snprintf(str_buffer, sizeof(str_buffer), "None");
+  if (player_ptr->eq_items[0] == 0xFF) {
+    snprintf(str_buffer, sizeof(str_buffer), "Weap: Hands");
   } else {
-    int si = 6 * p[0x4A];
-    uint16_t item_offset = word_1E41A + (0x18 * p[si + 0x62]) + 0x2A;
-    snprintf(str_buffer, sizeof(str_buffer), "%s",
-             (const char *)(uintptr_t)item_offset);
+    // TODO: Figure out equipped item name (Weapon).
+    printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->eq_items[0]);
+    snprintf(str_buffer, sizeof(str_buffer), "Unk-TODO");
   }
   ui_region_print_str(str_buffer, 0, 5);
 
   word_12D80 = 8;
-  ui_region_print_str("Skill       Lvl", 6, 7);
+  ui_region_print_str("Attributes", 6, 7);
   word_12D80 = 0;
 
   for (var_4 = 0; var_4 < 7; var_4++) {
-    snprintf(str_buffer, sizeof(str_buffer), "%s %2d",
-             skill_display[var_4].name, p[0x18 + var_4]);
+    snprintf(str_buffer, sizeof(str_buffer), "%3s%2u",
+             skill_display[var_4].name, player_ptr->attributes[var_4]);
     ui_region_print_str(str_buffer,
                         skill_display[var_4].x,
                         skill_display[var_4].y);
