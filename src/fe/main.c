@@ -484,13 +484,13 @@ static struct ui_region region_1CB4 = {
 
 // KEH: DSEG:0x1B2C - character status display region used by sub_C68D
 static struct ui_region region_1B2C = {
-  0,
-  0,
-  0x27,
-  0x18,
-  0,
-  0,
-  { 0, 0, 0x98, 0x98 },
+  1, // Initial X cursor position
+  1, // Initial Y cursor position
+  0x17, // Max X cursor position
+  0x0D, // Max Y cursor position
+  1, // Cursor index x
+  1, // Cursor index y
+  { 4, 8, 0x5C, 0x68 },
   0,
   NULL,
   0,
@@ -1838,7 +1838,8 @@ static void plot_font_str(const char *str, int len)
   }
 }
 
-// seg000:0x168E
+// FOD: seg000:0x168E
+// KEH: 0xDE40
 // Prints a string within a region, at (x,y) coordinates
 // "Welcome", 2, 0xB
 static void ui_region_print_str(const char *str, int x_pos, int y_pos)
