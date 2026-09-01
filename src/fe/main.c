@@ -3714,20 +3714,18 @@ static const struct {
   uint8_t y;
   const char *name;
 } skill_display[7] = {
-  { 1,  8,  "Str:" },
-  { 1,  9,  "I.Q.:" },
-  { 1,  10, "Dex:" },
-  { 1,  11, "W.P.:" },
-  { 1,  12, "A.P.:" },
-  { 1,  13, "Crg:" },
-  { 17, 8,  "Lck:" },
+  { 1,  9,  "ST:" },
+  { 17, 9,  "IQ:" },
+  { 1,  10, "DX:" },
+  { 9,  10, "WP:" },
+  { 17, 10, "AP:" },
+  { 1,  11, "CH:" },
+  { 17, 11, "LK:" },
 };
 
 static uint16_t sub_7D9B(struct player_rec *player)
 {
   uint16_t sum = 0;
-
-  printf("%s: not completely implemented...\n", __func__);
 
   // Look at equipted items.
   for (int i = 0; i < 3; i++) {
