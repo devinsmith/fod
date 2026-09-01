@@ -1776,52 +1776,81 @@ static void reset_offsets()
 // out individually.
 static void print_wrapped_text(const char *str)
 {
-  int max_width = (active_region->max_x_cursor_pos - active_region->cursor_index_x) + 1;
   int len = (int)strlen(str);
-  int i = 0;
+  int max_x = active_region->max_x_cursor_pos;   /* [si+4] */
+  int cursor_x = active_region->cursor_index_x;  /* [si+8] */
 
-  while (i < len) {
-    // Skip any leading spaces or newlines
-    while (i < len && (str[i] == ' ' || str[i] == '\n')) {
-      i++;
-    }
+  int line_start = 0; /* 1E90 */
+  int next_start = 0; /* 1E92 */
+  int line_end   = 0; /* 1E94 */
+  int i = 0;           /* di */
 
-    if (i >= len) {
+  while (i <= len) {
+    char c = (i < len) ? str[i] : '\0';
+
+    if (c == '\0') {
+      /* jz short sub_DBF9 -> falls into sub_DBFD -> implicit return */
+      line_end = i;
+      if (line_end != line_start) {
+          plot_font_str(str + line_start, line_end - line_start);
+      }
       break;
     }
 
-    int line_start = i;
-    int line_len = 0;
-    int last_space = -1;
-
-    while (i < len && line_len < max_width) {
-      if (str[i] == '\n') {
-        // Explicit line break
-        reset_offsets();
-        break;
+    if (c == '\r') {
+      /* DBAC-DBB9: print pending line, reset, skip the '\r', restart */
+      line_end = i;
+      if (line_end != line_start) {
+          plot_font_str(str + line_start, line_end - line_start);
       }
-      if (str[i] == ' ') {
-        last_space = i;
-      }
-      i++;
-      line_len++;
-    }
-
-    if (i < len && str[i] != '\n' && last_space != -1) {
-      // backtrack to the last space if possible.
-      i = last_space + 1;
-      line_len = last_space - line_start;
-    }
-
-    plot_font_str(str + line_start, line_len);
-
-    if (i < len && str[i] == '\n') {
-      // Skip explicit line break
       reset_offsets();
+      i++;
+      line_start = next_start = line_end = i;
+      continue;
+    }
+
+    /* loc_DBBB: would adding this char exceed the available width? */
+    int chars_so_far = i - line_start; /* cx = di - word_130D0 */
+    if (cursor_x + chars_so_far > max_x) {
+      /* loc_DBDF: width overflow */
+      if (c == ' ') {
+        /* the overflow char is itself a space: break right here */
+        line_end = i;
+        i++;
+        next_start = i;
+      } else if (next_start == line_start) {
+        /*
+         * Safety fallback (deliberate deviation from the original):
+         * no space has been seen anywhere in this line, so the
+         * original would print nothing and reset di back to
+         * line_start forever. Instead, hard-break right here at
+         * max_width so we always make forward progress.
+         */
+        line_end = i;
+        next_start = i;
+      }
+      /* loc_DBED: print span (skipped if zero-length), then advance */
+      if (line_end != line_start) {
+        plot_font_str(str + line_start, line_end - line_start);
+      }
+      reset_offsets();
+      i = next_start;
+      line_start = next_start;
+      line_end = next_start;
+      continue;
+    }
+
+    /* fits within width: track spaces for later backtracking */
+    if (c == ' ') {
+      line_end = i;
+      i++;
+      next_start = i;
+    } else {
       i++;
     }
   }
 }
+
 
 // FOD: seg000:0x1614
 // KEH: seg000:0xDC0B
@@ -2012,7 +2041,7 @@ static void show_welcome_message()
   sub_DAAA();
 
   // Text is at KEH:DSEG:0x1835
-  print_wrapped_text("Welcome to the beautiful island of Florida!\n");
+  print_wrapped_text("Welcome to the beautiful island of Florida!\r");
 }
 
 // KEH: seg000:0x87E5
