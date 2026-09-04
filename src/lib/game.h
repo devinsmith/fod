@@ -28,9 +28,11 @@ extern "C" {
 
 struct item_rec {
   uint8_t item_id;
-
+  uint8_t unknown;
+  uint8_t str_index; // Index to string
   // usually extra properties are number of ammo for bullets, etc.
-  uint8_t props[5];
+  uint8_t props[2];
+  uint8_t flags; // extra flag properties.
 };
 
 // Should be 332 bytes long.
@@ -69,9 +71,10 @@ struct player_rec {
 
   // Value of 0xFF = no item equipped
   // other values are item IDs
-  uint8_t eq_items[4];
+  uint8_t weapon_id; // Item of of equipped weapon (0x84)
+  uint8_t eq_items[3]; // Other equipped items?
 
-  uint8_t rank;
+  uint8_t rank; // 0x88
 
   uint8_t unknown_8C; // 0x8C
 

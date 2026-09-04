@@ -129,14 +129,15 @@ static const uint8_t map_ids[] = {
   1, 1, 2
 };
 
-// KEH: DSEG:1978
-static uint8_t byte_1978 = 0;
-
 // KEH: DSEG:BEC0
 static uint16_t word_BEC0 = 0;
 
 // KEH: DSEG: 0xCDAC
 static const char *level_phys_label = NULL;
+
+// KEH: DSEG: 0xCDC0
+// We don't know how big this is.
+static uint16_t table_CDC0[32];
 
 // KEH: DSEG:D1DE
 static unsigned char *ptr_D1DE = NULL;
@@ -491,6 +492,21 @@ static struct ui_region region_1B2C = {
   1, // Cursor index x
   1, // Cursor index y
   { 4, 8, 0x5C, 0x68 },
+  0,
+  NULL,
+  0,
+  NULL
+};
+
+// KEH: DSEG: 0x1B64
+static struct ui_region region_1B64 = {
+  1, // Initial X cursor position
+  0x0E, // Initial Y cursor position.
+  0x17, // Max X cursor position
+  0x17, // Max Y cursor position.
+  1,    // Cursor index x
+  0x0E, // Cursor index y,
+  { 4, 0x70, 0x5C, 0x50 },
   0,
   NULL,
   0,
@@ -1915,7 +1931,7 @@ static void sub_0A04(int arg0)
   for (int i = 0; i < 5; i++) {
 
     const struct player_rec *current_player = &g_game_state.players[i];
-    byte_1978 = 0;
+    ui_set_inverse(false);
 
     ui_region_set_active(player_regions[i], false);
     ui_active_region_clear();
@@ -3753,7 +3769,7 @@ static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
 
   snprintf(str_buffer, sizeof(str_buffer), "%s", player_ptr->name);
   if (flag) {
-    byte_1978 = 0xFF;
+    ui_set_inverse(true);
   }
 
   // Calculate centered X position for the string
@@ -3773,7 +3789,7 @@ static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
   ui_region_print_str(str_buffer, x_pos, 0);
 
   // Clear the flag
-  byte_1978 = 0;
+  ui_set_inverse(false);
 }
 
 // KEH: DSEG: 0xC64A
@@ -3823,11 +3839,11 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
   snprintf(str_buffer, sizeof(str_buffer), "  AC %3u", var_2);
   ui_region_print_str(str_buffer, 0, 4);
 
-  if (player_ptr->eq_items[0] == 0xFF) {
+  if (player_ptr->weapon_id == 0xFF) {
     snprintf(str_buffer, sizeof(str_buffer), "Weap: Hands");
   } else {
     // TODO: Figure out equipped item name (Weapon).
-    printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->eq_items[0]);
+    printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->weapon_id);
     snprintf(str_buffer, sizeof(str_buffer), "Unk-TODO");
   }
   ui_region_print_str(str_buffer, 0, 5);
@@ -3845,12 +3861,96 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
   }
 }
 
+// KEH: seg001:0182
+static bool is_item_equipped(struct player_rec *player, uint16_t item_id)
+{
+  if (player->weapon_id == item_id) {
+    return true;
+  }
+
+  for (int i = 0; i < 3; i++) {
+    if (player->eq_items[i] == item_id) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// KEH: seg000:13E4
+static void sub_13E4(uint16_t row_number, uint16_t item_index, struct player_rec *player)
+{
+  char buf[46];
+  uint16_t item_id = table_CDC0[item_index];
+  bool is_equipped = is_item_equipped(player, item_id);
+  char marker = is_equipped ? '*': ' ';
+
+  snprintf(buf, sizeof(buf), "%d>%c", row_number, marker);
+  ui_region_print_str(buf, 0, row_number + 1);
+
+  /* 6-byte records starting at player_ptr+0x60 */
+  struct item_rec *item = &player->items[item_id];
+
+  if (item->flags & 1) {
+    ui_set_inverse(true);
+  }
+
+  printf("%s: Item str is %d\n", __func__, item->item_id);
+  /*
+  uint16_t icon_str = word_1E41A + (item->icon_type * 0x18) + 0x2A;
+                                    /* byte at +0x62 rel. to player_ptr */
+  ui_region_print_str("Hands", -1, -1);
+
+  ui_set_inverse(false);
+}
+
+// KEH: seg000:15CB
+static int sub_15CB(struct player_rec *player, uint16_t scroll_offset,
+    uint16_t max_count, const char *title, void (*cb)(uint16_t, uint16_t, struct player_rec *), bool highlight, bool refresh)
+{
+  uint16_t items_shown;
+  uint16_t i;
+
+  items_shown = (scroll_offset + 8 <= max_count) ? 8 : (max_count - scroll_offset);
+
+  ui_active_region_clear();
+
+  if (max_count > 8) {
+    // TODO add scrolling glyphs?
+
+  }
+
+  if (highlight) {
+    ui_set_inverse(true);
+  }
+  ui_region_print_str(title, 2, 0);
+  ui_set_inverse(false);
+
+  for (i = 0; i < items_shown; i++) {
+    cb(i + 1, scroll_offset + i, player);
+  }
+
+}
+
 static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count)
 {
+  ui_region_set_active(&region_1B64, false);
+  // Handle inventory?
   printf("%s: unimplemented\n", __func__);
-  *max_count = 8;
-  return 8;
+
+  // ?
+  for (int i = 0; i < player_ptr->unknown_8C; i++) {
+    table_CDC0[i] = i;
+  }
+  *max_count = player_ptr->unknown_8C;
+
+  /*
+      if (*scroll_offset == *max_count && *max_count > 0)
+        *scroll_offset -= 8;
+        */
+
+  return sub_15CB(player_ptr, *scroll_offset, *max_count, "Inventory Items", sub_13E4, false, 0);
 }
 
 static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,

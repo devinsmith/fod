@@ -34,7 +34,8 @@ static uint16_t word_0CCC = 0;
 static struct ui_unknown2 *ptr_0CCE = &data_074F;
 static struct ui_unknown2 *ptr_0CD0 = &data_074F;
 
-// DSEG:0x028F
+// FEH: DSEG:0x028F
+// KEH: DSEG:0x1978
 // Will contain 0x00 or 0xFF
 static bool inverse_flag = false;
 
@@ -218,7 +219,8 @@ void ui_set_inverse(bool inverse)
   inverse_flag = inverse;
 }
 
-// seg000:0x17F2
+// FOD: seg000:0x17F2
+// KEH: seg000:0xE308
 void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
 {
   bool do_xor = false;

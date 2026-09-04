@@ -125,10 +125,14 @@ static void jump_to_offset(size_t offset)
 static void read_item_rec(struct item_rec *item)
 {
   item->item_id = read_uint8();
+  item->unknown = read_uint8();
+  item->str_index = read_uint8();
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 2; i++) {
     item->props[i] = read_uint8();
   }
+
+  item->flags = read_uint8();
 }
 
 /* Function to read a player_rec from a file */
@@ -173,18 +177,23 @@ static void read_player_rec(struct player_rec *player)
   player->unknown_82 = read_uint8();
   player->unknown_83 = (int8_t)read_uint8();
 
+  player->weapon_id = read_uint8();
+
   /* Read equipped items */
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     player->eq_items[i] = read_uint8();
   }
 
   /* Read rank and affliction */
   player->rank = read_uint8();
+  advance_reader(3); // 0x89, 0x8A, 0x8B
   player->unknown_8C = read_uint8();
 
-  advance_reader(4);
+  advance_reader(4); // 0x8D, 0x8E, 0x8F, 0x90
   player->unknown_91 = read_uint8();
   player->affliction = read_uint8();
+
+  advance_reader(9); // 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B
 
   /* Read inventory items */
   for (int i = 0; i < 32; i++) {
