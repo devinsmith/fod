@@ -654,9 +654,9 @@ static int sub_4F1A(int arg0);
 static void sub_5691(int arg0, int arg1);
 static void sub_138D(int arg0);
 
-static void sub_C68D(struct player_rec *player_ptr, uint16_t flag);
+static void sub_C68D(struct player_rec *player_ptr, bool flag);
 static uint16_t sub_7D9B(struct player_rec *player_ptr);
-static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag);
+static void sub_C5F4(struct player_rec *player_ptr, bool flag);
 static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count);
 static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,
@@ -3763,7 +3763,7 @@ static uint16_t sub_7D9B(struct player_rec *player)
   return sum;
 }
 
-static void sub_C5F4(struct player_rec *player_ptr, uint16_t flag)
+static void sub_C5F4(struct player_rec *player_ptr, bool flag)
 {
   ui_region_set_active(&region_1B2C, false);
 
@@ -3802,7 +3802,7 @@ static void write_affliction(struct player_rec *player_ptr, uint16_t arg2)
   snprintf(str_buffer, sizeof(str_buffer), "Cond: Unafflicted");
 }
 
-static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
+static void sub_C68D(struct player_rec *player_ptr, bool flag)
 {
   uint16_t var_2;
   uint16_t var_4;
@@ -3813,7 +3813,7 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
   ui_region_set_active(&region_1B2C, false);
   ui_active_region_clear();
 
-  sub_C5F4(player_ptr, flag & 0xFF);
+  sub_C5F4(player_ptr, flag);
 
   snprintf(str_buffer, sizeof(str_buffer), "Rank: %u", player_ptr->rank);
 
@@ -3844,7 +3844,7 @@ static void sub_C68D(struct player_rec *player_ptr, uint16_t flag)
   } else {
     // TODO: Figure out equipped item name (Weapon).
     printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->weapon_id);
-    snprintf(str_buffer, sizeof(str_buffer), "Unk-TODO");
+    snprintf(str_buffer, sizeof(str_buffer), "Weap: %s", get_item_name(player_ptr->weapon_id));
   }
   ui_region_print_str(str_buffer, 0, 5);
 
@@ -3895,11 +3895,7 @@ static void sub_13E4(uint16_t row_number, uint16_t item_index, struct player_rec
     ui_set_inverse(true);
   }
 
-  printf("%s: Item str is %d\n", __func__, item->item_id);
-  /*
-  uint16_t icon_str = word_1E41A + (item->icon_type * 0x18) + 0x2A;
-                                    /* byte at +0x62 rel. to player_ptr */
-  ui_region_print_str("Hands", -1, -1);
+  ui_region_print_str(get_item_name(item->item_id), -1, -1);
 
   ui_set_inverse(false);
 }
@@ -3937,7 +3933,6 @@ static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
 {
   ui_region_set_active(&region_1B64, false);
   // Handle inventory?
-  printf("%s: unimplemented\n", __func__);
 
   // ?
   for (int i = 0; i < player_ptr->unknown_8C; i++) {
@@ -4051,7 +4046,13 @@ static int sub_CC58(int arg0, int fkey_index)
 
     ui_region_set_active(&region_1CB4, true);
 
-    sub_C68D(var_1E, (var_6 == 1) ? 1 : 0);
+//    sub_C68D(var_1E, (var_6 == 1) ? true : false);
+
+    // The second argument to this function probably should not be
+    // hardcoded as true. It controls whether the player's name should be
+    // highlighted, but we need to figure out how it gets set here. It is
+    // tied to var_6.
+    sub_C68D(var_1E, true);
 
     var_E = sub_C990(var_1E, &var_18, &var_12);
 

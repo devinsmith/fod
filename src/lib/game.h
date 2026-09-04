@@ -133,6 +133,8 @@ bool save_game_state();
 int get_player_condition_status(struct player_rec *player);
 int check_party_condition(int arg0);
 
+const char *get_item_name(int item_id);
+
 #ifdef __cplusplus
 }
 #endif
