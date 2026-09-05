@@ -20,6 +20,9 @@
 #define UI_H
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "game.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,14 +77,22 @@ void ui_region_queue_rect(const struct ui_rect *input);
 void ui_region_queue(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
 void ui_region_refresh(struct ui_rect *input);
 void ui_region_refresh_active();
+void ui_active_region_clear();
 void ui_sub_034D();
 void ui_draw_80_line(const uint16_t *src, uint16_t *dest);
 void screen_draw(const unsigned char *bytes);
+void ui_region_print_str(const char *str, int x_pos, int y_pos);
+int ui_draw_scroll_list_page(struct player_rec *player,
+    uint16_t scroll_offset,
+    uint16_t max_count, const char *title,
+    void (*cb)(uint16_t, uint16_t, struct player_rec *), bool highlight,
+    bool refresh);
 
 // Font stuff
 void ui_load_fonts();
 bool ui_load_res();
 void ui_set_inverse(bool inverse);
+void print_wrapped_text(const char *str);
 void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 
 // Clears out an area on the scratch buffer by setting

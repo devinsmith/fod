@@ -386,3 +386,175 @@ void draw_borders(int offset)
     }
   }
 }
+
+// Clears the rectangle associated with the active region
+// seg000:0x1593
+void ui_active_region_clear()
+{
+  // Get the rectangle from the active region
+  const struct ui_rect *si = &active_region->rect;
+  ui_rect_clear(si);
+}
+
+// KEH: seg000:15CB
+int ui_draw_scroll_list_page(struct player_rec *player,
+    uint16_t scroll_offset,
+    uint16_t max_count, const char *title,
+    void (*cb)(uint16_t, uint16_t, struct player_rec *), bool highlight,
+    bool refresh)
+{
+  uint16_t items_shown;
+  uint16_t i;
+
+  items_shown = (scroll_offset + 8 <= max_count) ? 8 : (max_count - scroll_offset);
+
+  ui_active_region_clear();
+
+  if (max_count > 8) {
+    // TODO add scrolling glyphs?
+  }
+
+  if (highlight) {
+    ui_set_inverse(true);
+  }
+  ui_region_print_str(title, 2, 0);
+  ui_set_inverse(false);
+
+  for (i = 0; i < items_shown; i++) {
+    cb(i + 1, scroll_offset + i, player);
+  }
+
+  return items_shown;
+}
+
+// FOD: seg000:0x168E
+// KEH: 0xDE40
+// Prints a string within a region, at (x,y) coordinates
+// "Welcome", 2, 0xB
+void ui_region_print_str(const char *str, int x_pos, int y_pos)
+{
+  struct ui_region *si = active_region;
+
+  if (x_pos != -1) {
+    si->cursor_index_x = x_pos + si->initial_x_cursor_pos;
+  }
+  // 0x16AC
+  if (y_pos != -1) {
+    si->cursor_index_y = y_pos + si->initial_y_cursor_pos;
+  }
+  // 0x16BC
+  print_wrapped_text(str);
+}
+
+// FOD: seg000:0x1614
+// KEH: seg000:0xDC0B
+static void plot_font_str(const char *str, int len)
+{
+  // di = str
+  // al = es:di
+  // cx = len
+  struct ui_region *si = active_region;
+
+  for (int i = 0; i < len; i++) {
+    plot_font_chr(str[i], si->cursor_index_x, si->line_number, si->cursor_index_y);
+    si->cursor_index_x++;
+  }
+}
+
+
+// KEH: seg000:0xDDFD
+static void reset_offsets()
+{
+  struct ui_region *si = active_region;
+
+  si->cursor_index_x = si->initial_x_cursor_pos;
+  si->cursor_index_y++;
+  if (si->cursor_index_y <= si->max_y_cursor_pos) {
+    return;
+  }
+
+  printf("%s:0xDE12 unhandled\n", __func__);
+  exit(0);
+}
+
+// FOD: seg000:0x159E
+// KEH: seg000:0xDB95
+// This routine prints strings within the active region
+// by actively looking for line breaks, spaces, etc. and printing them
+// out individually.
+void print_wrapped_text(const char *str)
+{
+  int len = (int)strlen(str);
+  int max_x = active_region->max_x_cursor_pos;   /* [si+4] */
+  int cursor_x = active_region->cursor_index_x;  /* [si+8] */
+
+  int line_start = 0; /* 1E90 */
+  int next_start = 0; /* 1E92 */
+  int line_end   = 0; /* 1E94 */
+  int i = 0;           /* di */
+
+  while (i <= len) {
+    char c = (i < len) ? str[i] : '\0';
+
+    if (c == '\0') {
+      /* jz short sub_DBF9 -> falls into sub_DBFD -> implicit return */
+      line_end = i;
+      if (line_end != line_start) {
+          plot_font_str(str + line_start, line_end - line_start);
+      }
+      break;
+    }
+
+    if (c == '\r') {
+      /* DBAC-DBB9: print pending line, reset, skip the '\r', restart */
+      line_end = i;
+      if (line_end != line_start) {
+          plot_font_str(str + line_start, line_end - line_start);
+      }
+      reset_offsets();
+      i++;
+      line_start = next_start = line_end = i;
+      continue;
+    }
+
+    /* loc_DBBB: would adding this char exceed the available width? */
+    int chars_so_far = i - line_start; /* cx = di - word_130D0 */
+    if (cursor_x + chars_so_far > max_x) {
+      /* loc_DBDF: width overflow */
+      if (c == ' ') {
+        /* the overflow char is itself a space: break right here */
+        line_end = i;
+        i++;
+        next_start = i;
+      } else if (next_start == line_start) {
+        /*
+         * Safety fallback (deliberate deviation from the original):
+         * no space has been seen anywhere in this line, so the
+         * original would print nothing and reset di back to
+         * line_start forever. Instead, hard-break right here at
+         * max_width so we always make forward progress.
+         */
+        line_end = i;
+        next_start = i;
+      }
+      /* loc_DBED: print span (skipped if zero-length), then advance */
+      if (line_end != line_start) {
+        plot_font_str(str + line_start, line_end - line_start);
+      }
+      reset_offsets();
+      i = next_start;
+      line_start = next_start;
+      line_end = next_start;
+      continue;
+    }
+
+    /* fits within width: track spaces for later backtracking */
+    if (c == ' ') {
+      line_end = i;
+      i++;
+      next_start = i;
+    } else {
+      i++;
+    }
+  }
+}
