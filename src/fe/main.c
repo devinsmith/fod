@@ -671,8 +671,7 @@ static uint16_t sub_7D9B(struct player_rec *player_ptr);
 static void sub_C5F4(struct player_rec *player_ptr, bool flag);
 static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count);
-static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,
-                          uint16_t arg3);
+static int sub_C84A(int arg0, uint16_t *counter, uint16_t arg2, uint16_t arg3);
 static uint16_t sub_C8ED(uint16_t arg0, uint16_t *counter, uint16_t arg2,
                           uint16_t arg3);
 static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
@@ -791,10 +790,6 @@ static void sub_02E5(bool saved_game)
   uint16_t arch4 = (arch_bytes[5] << 8) | arch_bytes[4];
   printf("arch[4] = 0x%04X\n", arch4);
   arch_offset = arch_bytes += arch4;
-
-  if (saved_game) {
-    return;
-  }
 
   fp = fopen("hdspct", "rb");
   if (fp == NULL) {
@@ -3792,11 +3787,54 @@ static uint16_t draw_inventory_list(struct player_rec *player_ptr, uint16_t *scr
       "Inventory Items", draw_inventory_row, false, 0);
 }
 
-static uint16_t sub_C84A(uint16_t arg0, uint16_t *counter, uint16_t arg2,
-                          uint16_t arg3)
+// KEH: seg000:C53E
+static void draw_skill_row(uint16_t row_number, uint16_t item_index, struct player_rec *player)
 {
-  printf("%s: unimplemented\n", __func__);
-  return 0;
+  char buf[42];
+  uint16_t skill_index = table_CDC0[item_index];
+
+  const char *skill_name = hds_bytes + 0x16 * skill_index + 0x126;
+
+  snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->active_skills[skill_index], skill_name);
+  ui_region_print_str(buf, 0, row_number + 1);
+}
+
+// KEH: seg000:C84A
+static int draw_active_skills(int player_num, uint16_t *counter, uint16_t arg2, uint16_t arg3)
+{
+  uint16_t var_2;
+
+  ui_region_set_active(&region_1B80, false);
+
+  struct player_rec *player /* var_6 */ = &g_game_state.players[player_num];
+
+  var_2 = 0;
+
+  // Build a list of active skill indexes.
+  // This shouldn't go more than 16, since player->active_skills is limited
+  // to 16 skills.
+  for (uint16_t i = 0; i < hds_bytes[2]; i++) {
+    if (player->active_skills[i] != 0) {
+      table_CDC0[var_2++] = i;
+    }
+  }
+
+  if (arg2 != 0) {
+//    return sub_1682(player, var_2, counter, "Active", draw_skill_row, true);
+    printf("%s: unimplemented CS:C8A6\n", __func__);
+    return 0;
+  }
+
+  ui_draw_scroll_list_page(
+        player,
+        *counter,
+        var_2,
+        "Active",
+        draw_skill_row,
+        arg3,
+        false);
+
+  return -1;
 }
 
 static uint16_t sub_C8ED(uint16_t arg0, uint16_t *counter, uint16_t arg2,
@@ -4053,7 +4091,7 @@ handle_generic_key:
       continue;
 
     } else if (var_6 == 1) {
-      uint16_t result1 = sub_C84A(arg0, &var_1C, 1, 1);
+      int result1 = sub_C84A(arg0, &var_1C, 1, 1);
       var_20 = result1;
 
       if (sub_CB80(result1 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
