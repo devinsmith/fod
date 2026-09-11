@@ -528,6 +528,21 @@ static struct ui_region region_1B80 = {
   NULL
 };
 
+// KEH: DSEG: 0x1B9C
+static struct ui_region region_1B9C = {
+  0x19,
+  0x0D,
+  0x26,
+  0x17,
+  0x19,
+  0x0D,
+  { 0x64, 0x68, 0x38, 0x58 },
+  0,
+  NULL,
+  0,
+  NULL
+};
+
 // DSEG:0x0424
 static unsigned char video_mode = 2;
 
@@ -3787,7 +3802,7 @@ static uint16_t draw_inventory_list(struct player_rec *player_ptr, uint16_t *scr
 }
 
 // KEH: seg000:C53E
-static void draw_skill_row(uint16_t row_number, uint16_t item_index, struct player_rec *player)
+static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, struct player_rec *player)
 {
   char buf[42];
   uint16_t skill_index = table_CDC0[item_index];
@@ -3795,6 +3810,18 @@ static void draw_skill_row(uint16_t row_number, uint16_t item_index, struct play
   const char *skill_name = hds_bytes + 0x16 * skill_index + 0x126;
 
   snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->active_skills[skill_index], skill_name);
+  ui_region_print_str(buf, 0, row_number + 1);
+}
+
+// KEH: seg000:C53E
+static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, struct player_rec *player)
+{
+  char buf[42];
+  uint16_t skill_index = table_CDC0[item_index];
+
+  const char *skill_name = hds_bytes + 0x16 * skill_index + 0x286;
+
+  snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->passive_skills[skill_index], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
 }
 
@@ -3829,18 +3856,50 @@ static int draw_active_skills(int player_num, uint16_t *counter, uint16_t arg2, 
         *counter,
         var_2,
         "Active",
-        draw_skill_row,
+        draw_active_skill_row,
         arg3,
         false);
 
   return -1;
 }
 
-static uint16_t sub_C8ED(uint16_t arg0, uint16_t *counter, uint16_t arg2,
+// KEH: seg000:C8ED
+static uint16_t draw_passive_skills(int player_num, uint16_t *counter, uint16_t arg2,
                           uint16_t arg3)
 {
-  printf("%s: unimplemented\n", __func__);
-  return 0;
+  uint16_t var_2;
+
+  ui_region_set_active(&region_1B9C, false);
+
+  struct player_rec *player /* var_6 */ = &g_game_state.players[player_num];
+
+  var_2 = 0;
+
+  // Build a list of passive skill indexes.
+  // This shouldn't go more than 16, since player->passive_skills is limited
+  // to 16 skills.
+  for (uint16_t i = 0; i < hds_bytes[4]; i++) {
+    if (player->passive_skills[i] != 0) {
+      table_CDC0[var_2++] = i;
+    }
+  }
+
+  if (arg2 != 0) {
+//    return sub_1682(player, var_2, counter, "Active", draw_skill_row, true);
+    printf("%s: unimplemented CS:C949\n", __func__);
+    return 0;
+  }
+
+  ui_draw_scroll_list_page(
+        player,
+        *counter,
+        var_2,
+        "Passive",
+        draw_passive_skill_row,
+        arg3,
+        false);
+
+  return -1;
 }
 
 static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
@@ -3938,8 +3997,7 @@ static int sub_CC58(int arg0, int fkey_index)
     var_E = draw_inventory_list(var_1E, &var_18, &var_12);
 
     draw_active_skills(arg0, &var_1C, 0, (var_6 == 1) ? 1 : 0);
-
-    sub_C8ED(arg0, &var_1A, 0, (var_6 == 2) ? 1 : 0);
+    draw_passive_skills(arg0, &var_1A, 0, (var_6 == 2) ? 1 : 0);
 
     ui_region_refresh(&whole_screen);
 
@@ -4138,7 +4196,7 @@ handle_generic_key:
       continue;
 
     } else if (var_6 == 2) {
-      uint16_t result2 = sub_C8ED(arg0, &var_1A, 1, 1);
+      uint16_t result2 = draw_passive_skills(arg0, &var_1A, 1, 1);
       var_20 = result2;
 
       if (sub_CB80(result2 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
