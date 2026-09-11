@@ -671,7 +671,6 @@ static uint16_t sub_7D9B(struct player_rec *player_ptr);
 static void sub_C5F4(struct player_rec *player_ptr, bool flag);
 static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count);
-static int sub_C84A(int arg0, uint16_t *counter, uint16_t arg2, uint16_t arg3);
 static uint16_t sub_C8ED(uint16_t arg0, uint16_t *counter, uint16_t arg2,
                           uint16_t arg3);
 static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
@@ -3938,7 +3937,7 @@ static int sub_CC58(int arg0, int fkey_index)
 
     var_E = draw_inventory_list(var_1E, &var_18, &var_12);
 
-    sub_C84A(arg0, &var_1C, 0, (var_6 == 1) ? 1 : 0);
+    draw_active_skills(arg0, &var_1C, 0, (var_6 == 1) ? 1 : 0);
 
     sub_C8ED(arg0, &var_1A, 0, (var_6 == 2) ? 1 : 0);
 
@@ -4091,7 +4090,7 @@ handle_generic_key:
       continue;
 
     } else if (var_6 == 1) {
-      int result1 = sub_C84A(arg0, &var_1C, 1, 1);
+      int result1 = draw_active_skills(arg0, &var_1C, 1, 1);
       var_20 = result1;
 
       if (sub_CB80(result1 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
