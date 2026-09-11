@@ -513,6 +513,21 @@ static struct ui_region region_1B64 = {
   NULL
 };
 
+// KEH: DSEG: 0x1B80
+static struct ui_region region_1B80 = {
+  0x19,
+  1,
+  0x26,
+  0x0B,
+  0x19,
+  0x01,
+  { 0x64, 0x08, 0x38, 0x58 },
+  0,
+  NULL,
+  0,
+  NULL
+};
+
 // DSEG:0x0424
 static unsigned char video_mode = 2;
 
@@ -697,10 +712,10 @@ static void sub_E29(unsigned char *arg1, unsigned char *arg2,
                     uint8_t arg3, uint8_t arg4, uint16_t arg5, uint8_t arg6);
 static void sub_E2B8(uint16_t arg0, int arg1);
 static int16_t sub_7ED0(int x, int y);
-static int16_t sub_1682(uint16_t arg0, uint16_t arg1, uint16_t arg2,
-                        uint16_t *arg3, uint16_t arg4, uint16_t arg5);
+static int16_t sub_1682(struct player_rec *player, uint16_t arg1, uint16_t arg2,
+                        uint16_t *arg3, uint16_t arg4, bool highlight);
 static int16_t sub_7F34(uint16_t arg0, int x, int y);
-static void sub_7B02(uint16_t arg0, uint16_t arg1, uint16_t arg2);
+static void sub_7B02(struct player_rec *player, uint16_t arg1, uint16_t arg2);
 static int sub_6D6B(uint16_t arg0);
 static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
@@ -2244,9 +2259,9 @@ static int16_t sub_7ED0(int x, int y)
   return 0;
 }
 
-// KEH: seg000:0x1682 - process encounter interaction
-static int16_t sub_1682(uint16_t arg0, uint16_t arg1, uint16_t arg2,
-                         uint16_t *arg3, uint16_t arg4, uint16_t arg5)
+// KEH: seg000:0x1682 - process interaction
+static int16_t sub_1682(struct player_rec *player, uint16_t arg1,
+    uint16_t arg2, uint16_t *arg3, uint16_t arg4, bool highlight)
 {
   printf("%s: unimplemented\n", __func__);
   return -1;
@@ -2260,7 +2275,7 @@ static int16_t sub_7F34(uint16_t arg0, int x, int y)
 }
 
 // KEH: seg000:0x7B02 - display item/message
-static void sub_7B02(uint16_t arg0, uint16_t arg1, uint16_t arg2)
+static void sub_7B02(struct player_rec *player, uint16_t arg1, uint16_t arg2)
 {
   printf("%s: unimplemented\n", __func__);
 }
@@ -2368,8 +2383,8 @@ static void sub_7FA8(int x, int y)
   uint16_t var_A;
   uint16_t var_8;
   int16_t var_6;
+  struct player_rec *player;
   uint16_t var_14;
-  uint16_t var_10;
   uint16_t var_16;
 
   // Calculate tile entry offset from level_map_large
@@ -2395,10 +2410,8 @@ static void sub_7FA8(int x, int y)
   var_14 = var_A;
 
   // Look up player/entity data pointer and encounter layout value
-  {
-    var_10 = player_data_table[var_A];
-    sub_E2B8(table_1ACE[var_A], 1);
-  }
+  player = &g_game_state.players[var_A];
+  sub_E2B8(table_1ACE[var_A], 1);
 
   // Set active region to encounter UI
   ui_region_set_active(&encounter_region, true);
@@ -2414,11 +2427,11 @@ static void sub_7FA8(int x, int y)
       sub_E2B8(table_1ACE[var_14], 1);
       sub_E2B8(table_1ACE[var_A], 1);
       var_14 = var_A;
-      var_10 = player_data_table[var_A];
+      player = &g_game_state.players[var_A];
     }
 
     // Process interaction with the entity
-    var_8 = sub_1682(var_10, var_6, 0x1028, &var_12, 0x7E5B, 0);
+    var_8 = sub_1682(player, var_6, 0x1028, &var_12, 0x7E5B, false);
 
     if ((int16_t)var_8 < 0) {
       // Negative result: special case
@@ -2458,7 +2471,7 @@ static void sub_7FA8(int x, int y)
     var_16 = item_data[4];
 
     // Display item/graphic
-    sub_7B02(var_10, word_1E41A + var_16 * 0x18 + 0x2A, 0);
+    sub_7B02(player, word_1E41A + var_16 * 0x18 + 0x2A, 0);
 
     // Check if item is restricted
     if (sub_6D6B(var_16)) {
@@ -2467,8 +2480,9 @@ static void sub_7FA8(int x, int y)
     }
 
     // Check inventory space (counter at offset 0x52, max 0x20 items)
+    // XXX: THIS IS NOT CORRECT!!
     {
-      unsigned char *player_data = (unsigned char *)(intptr_t)var_10;
+      unsigned char *player_data = (unsigned char *)(intptr_t)player;
 
       if (player_data[0x52] < 0x20) {
         // Add item to inventory at offset 0x62 + count * 6
@@ -2490,7 +2504,7 @@ static void sub_7FA8(int x, int y)
       }
 
       // Inventory full - display message with entity name
-      sprintf(str_buffer, "%s", (const char *)(intptr_t)var_10);
+      sprintf(str_buffer, "%s", (const char *)(intptr_t)player);
       sub_B29B(str_buffer);
     }
 
