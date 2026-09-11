@@ -686,8 +686,6 @@ static uint16_t sub_7D9B(struct player_rec *player_ptr);
 static void sub_C5F4(struct player_rec *player_ptr, bool flag);
 static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
                           uint16_t *max_count);
-static uint16_t sub_C8ED(uint16_t arg0, uint16_t *counter, uint16_t arg2,
-                          uint16_t arg3);
 static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
                          uint16_t arg3, uint16_t arg4);
 static uint8_t sub_CB58(uint16_t arg0);
@@ -2314,6 +2312,12 @@ static void sub_B29B(const char *msg)
   printf("%s: unimplemented\n", __func__);
 }
 
+// KEH: seg000:0xB2F0 - display message
+static void sub_B2F0(const char *msg, int arg2, int arg4)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
 static void consume_key(void)
 {
   printf("%s: unimplemented\n", __func__);
@@ -3467,7 +3471,7 @@ static void sub_39FE(int arg1, int arg2)
           int fkey_index = key_pressed - 0x3B;
           // byte_1D15B would be max party index - check bounds
           if (fkey_index < g_game_state.party_size) {
-            var_10 = sub_CC58(0, fkey_index);
+            var_10 = sub_CC58(fkey_index, 0);
             sub_27CC(var_10);
           }
         } else if (key_signed == -1) {
@@ -3674,7 +3678,6 @@ static void sub_C5F4(struct player_rec *player_ptr, bool flag)
 // KEH: DSEG: 0xC64A
 static void write_affliction(struct player_rec *player_ptr, uint16_t arg2)
 {
-  printf("%s: TODO: Check affliction status (%d)\n", __func__, arg2);
   if (player_ptr->affliction != 0) {
     printf("%s: TODO: Player is afflicted (%d) (%d)\n", __func__, arg2, player_ptr->affliction);
   }
@@ -3902,10 +3905,44 @@ static uint16_t draw_passive_skills(int player_num, uint16_t *counter, uint16_t 
   return -1;
 }
 
+static void sub_CB19(int player_num, uint16_t arg2)
+{
+  struct player_rec *current_player = &g_game_state.players[player_num];
+
+  snprintf(str_buffer, sizeof(str_buffer), "%s is incapacitated.", current_player->name);
+
+  if (arg2 == 0) {
+    sub_B29B(str_buffer);
+    return;
+  }
+
+  sub_B2F0(str_buffer, 0, 2);
+}
+
 static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
                          uint16_t arg3, uint16_t arg4)
 {
-  printf("%s: unimplemented\n", __func__);
+  if (key < 0x3B) {
+    return 0;
+  }
+
+  if (key >= (uint16_t)(g_game_state.party_size + 0x3B)) {
+    return 0;
+  }
+
+  int player_num = key - 0x3B;
+  struct player_rec *current_player = &g_game_state.players[player_num];
+  int condition_status = get_player_condition_status(current_player);
+  if (condition_status < arg2) {
+    if (arg3 != 0) {
+      return 0;
+    }
+
+    *arg0 = player_num;
+    return 1;
+  }
+
+  sub_CB19(player_num, arg4);
   return 0;
 }
 
@@ -4011,6 +4048,7 @@ static int sub_CC58(int arg0, int fkey_index)
         continue;
       }
 
+      // Writes to end of player record, ?
       ((unsigned char *)(uintptr_t)var_1E)[0x144] = 0x0A;
 
       key_signed = (int16_t)(int8_t)var_4;
