@@ -211,6 +211,12 @@ static unsigned char *scr_decompressed = NULL;
 // KEH: DSEG: 0xDBD6
 static uint16_t word_DBD6;
 
+// KEH: DSEG: 0xDDDC
+static uint16_t word_DDDC;
+
+// KEH: DSEG: 0xDDE0
+static uint16_t table_DDE0[32];
+
 // DSEG:0x7A
 static const struct attr_coordinates attributes[] = {
   { 0x15, 0x02, "ST:" },
@@ -2184,6 +2190,8 @@ static int sub_54D6(void)
 static void sub_1339(void)
 {
   sub_EF7();
+  sub_D78();
+  sub_4F1A(0);
   printf("%s: unimplemented\n", __func__);
 }
 
@@ -2582,10 +2590,10 @@ static void sub_113F(int arg0)
     // KEH: 0x1212
     for (int i = 0; i < g_game_state.party_size; i++) {
 
-      // Check Luck (attribute 6) = 0x58
-      if (g_game_state.players[i].attributes[6] & 0x7F) {
-        // Handle luck?
-        printf("%s: luck? 0x%02X unimplemented 0x1233\n", __func__, g_game_state.players[i].attributes[6]);
+      // Check affliction 0x58
+      if (g_game_state.players[i].affliction & 0x7F) {
+        // Handle affliction?
+        printf("%s: affliction? 0x%02X unimplemented 0x1233\n", __func__, g_game_state.players[i].affliction);
 #if 0
         var_C = 0;
         while (var_C < 7) {
@@ -3562,7 +3570,7 @@ static void sub_27CC(int arg0)
 {
   // TODO: Implement post-action processing
   printf("%s: unimplemented\n", __func__);
-  (void)arg0;
+  sub_B452();
 }
 
 // KEH: seg000:0xD5BA
@@ -3575,14 +3583,29 @@ static int sub_D5BA(void)
   return 0;
 }
 
+// KEH: seg001:03C9
+static void sub_103C9()
+{
+  printf("%s: unimplemented\n", __func__);
+  for (int i = 0; i < g_game_state.party_size; i++) {
+    if (g_game_state.players[i].weapon_id != 0xFF) {
+      printf("%s: unimplemented (handle weapon)\n", __func__);
+    }
+  }
+}
+
 // KEH: seg000:0x4F1A
-// 'E' key action handler (likely "Edit" or "Examine")
-// Returns a value > 0 if something was selected
 static int sub_4F1A(int arg0)
 {
-  // TODO: Implement edit/examine handler
-  (void)arg0;
-  printf("%s: unimplemented\n", __func__);
+  uint16_t var_24 = 0;
+  word_DDDC = 0;
+  uint16_t var_0E = 0;
+
+  table_DDE0[var_0E] = 0xFFFF;
+
+  sub_103C9();
+
+  printf("%s: unimplemented (%d)\n", __func__, arg0);
   return 0;
 }
 
