@@ -211,6 +211,9 @@ static unsigned char *scr_decompressed = NULL;
 // KEH: DSEG: 0xDBD6
 static uint16_t word_DBD6;
 
+// KEH: DSEG: 0xDDDA
+static uint16_t word_DDDA;
+
 // KEH: DSEG: 0xDDDC
 static uint16_t word_DDDC;
 
@@ -2186,13 +2189,39 @@ static int sub_54D6(void)
   return result;
 }
 
+// KEH: seg000:7685
+static int sub_7685()
+{
+  int var_2 = 0;
+
+  if (level_map_large[8] != 0) {
+    printf("%s unhandled, level_map 8, not 0\n", __func__);
+  }
+
+  return var_2;
+}
+
 // KEH: seg000:0x1339
 static void sub_1339(void)
 {
   sub_EF7();
   sub_D78();
-  sub_4F1A(0);
-  printf("%s: unimplemented\n", __func__);
+  word_DDDA = sub_4F1A(0);
+
+  if (word_DDDA == 0) {
+    if (sub_7685() != 0) {
+      printf("%s: unimplemented (0x1356)\n", __func__);
+    }
+    // 0x136F
+    word_DDDA = sub_4F1A(0);
+    if (word_DDDA == 0) {
+      return;
+    }
+  }
+
+  // Loc:137F
+
+  printf("%s: unimplemented 137F\n", __func__);
 }
 
 
@@ -3584,14 +3613,20 @@ static int sub_D5BA(void)
 }
 
 // KEH: seg001:03C9
-static void sub_103C9()
+static int sub_103C9()
 {
-  printf("%s: unimplemented\n", __func__);
+  // Clear out some table.
+  for (int i = 0; i < g_game_state.party_size; i++) {
+    // table_CFCA[i] = 0
+  }
+
   for (int i = 0; i < g_game_state.party_size; i++) {
     if (g_game_state.players[i].weapon_id != 0xFF) {
-      printf("%s: unimplemented (handle weapon)\n", __func__);
+      printf("%s: unimplemented (handle weapon?)\n", __func__);
     }
   }
+
+  return 1;
 }
 
 // KEH: seg000:0x4F1A
@@ -3599,14 +3634,50 @@ static int sub_4F1A(int arg0)
 {
   uint16_t var_24 = 0;
   word_DDDC = 0;
+  uint16_t var_0A = 0;
   uint16_t var_0E = 0;
 
   table_DDE0[var_0E] = 0xFFFF;
 
-  sub_103C9();
+  // Populate a table with empty strings.
+  // "            "
+  // This is done 3 times.
+  // CDB0 contains offset:segment, 3 times
 
-  printf("%s: unimplemented (%d)\n", __func__, arg0);
-  return 0;
+  var_0A = sub_103C9();
+  var_0E = 0;
+
+  // Jump to 0x5068
+  int num_npcs = level_map_large[9];
+  //hexdump(ptr_D206, 32);
+
+  // Check NPC interactions.
+  for (int i = 0; i < num_npcs; i++) {
+    // Each NPC is 0x68 bytes.
+    unsigned char *npc_entry = ptr_D206 + (i * 0x68);
+    if (npc_entry[0x5D] > 0x3C) {
+      printf("%s: unimplemented entry? (%d) Jump to loc_5094\n", __func__,
+          npc_entry[0x5D]);
+    }
+  }
+
+  // LOC: 50E4
+  int num_creatures = level_map_large[0xB];
+  //hexdump(ptr_D1DE, 32);
+  for (int i = 0; i < num_creatures; i++) {
+    // Each creature is 0x66 bytes.
+    unsigned char *creature_entry = ptr_D1DE + (i * 0x66);
+    if ((creature_entry[9] & 0xF) != 0) {
+      printf("%s: unimplemented creature entry? (%d) Jump to loc_52FE\n",
+          __func__,
+          creature_entry[9]);
+    }
+  }
+  if (var_24 > 1) {
+    printf("%s: unimplemented (%d) 0x5317\n", __func__, var_24);
+  }
+
+  return var_24;
 }
 
 // KEH: seg000:0x5691
