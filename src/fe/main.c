@@ -129,6 +129,9 @@ static const uint8_t map_ids[] = {
   1, 1, 2
 };
 
+// KEH: DSEG:1979
+static uint8_t byte_1979 = 0;
+
 // KEH: DSEG:BEC0
 static uint16_t word_BEC0 = 0;
 
@@ -741,7 +744,6 @@ static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
 static void sub_B29B(const char *arg0);
 static void consume_key(void);
-static void get_character_ptr(int arg);
 static void sub_D8CD(int arg);
 static void sub_DF48(uint16_t *cursor, uint16_t *out, int arg2);
 static void sub_FFB2(uint32_t *accum, int32_t val);
@@ -2360,12 +2362,6 @@ static void consume_key(void)
   printf("%s: unimplemented\n", __func__);
 }
 
-static void get_character_ptr(int arg)
-{
-  (void)arg;
-  printf("%s: unimplemented\n", __func__);
-}
-
 static void sub_D8CD(int arg)
 {
   (void)arg;
@@ -2532,6 +2528,7 @@ static void sub_7FA8(int x, int y)
     // Check inventory space (counter at offset 0x52, max 0x20 items)
     // XXX: THIS IS NOT CORRECT!!
     {
+      printf("%s: This code is a bit broken, needs review\n", __func__);
       unsigned char *player_data = (unsigned char *)(intptr_t)player;
 
       if (player_data[0x52] < 0x20) {
@@ -2831,50 +2828,9 @@ static void sub_7E1(int arg0, int arg1, int arg2)
 // Performs arithmetic operations on a 32-bit accumulator.
 static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
 {
-  uint32_t accum;           // [bp-5Ch]:[bp-5Ah] - 32-bit accumulator
-  uint16_t accum_lo;        // [bp-5Ch]
-  uint16_t accum_hi;        // [bp-5Ah]
-  uint16_t var_11C;         // [bp-11Ch] - 16-bit operand
-  uint16_t var_112;         // [bp-112h]
-  uint16_t var_134;         // [bp-134h]
-  uint16_t var_11A;         // [bp-11Ah]
-  uint16_t var_48;          // [bp-48h]
-  uint16_t var_E8;          // [bp-0E8h]
-  uint8_t  var_74;          // [bp-74h]
-  uint8_t  exit_flag;       // [bp-0D2h] - loop exit flag
-  uint16_t var_44;          // [bp-44h]
-  uint16_t var_6C;          // [bp-6Ch]
-  uint8_t  var_132;         // [bp-132h]
-  uint8_t  var_E6;          // [bp-0E6h]
-  uint8_t  var_56;          // [bp-56h]
-  int      saved_arg3;      // [bp-0A2h] - copy of arg3
-  uint16_t cursor_off;      // [bp-118h] - cursor offset into data
-  uint16_t cursor_seg;      // [bp-116h] - cursor segment
-  uint16_t data_ptr_off;    // [bp-138h] - base data pointer offset
-  uint16_t data_ptr_seg;    // [bp-136h] - base data pointer segment
-  uint16_t out_0D0;         // [bp-0D0h] - output from sub_DF48
-  uint16_t opcode;          // [bp-0CEh] - opcode (must be <= 0x4B)
-  uint16_t sub_opcode;      // [bp-0CCh] - sub-opcode (must be <= 7)
-  uint16_t operand;         // [bp-0CAh] - operand value
-
   word_D1D8 = 0xFFFF;
 
-  accum_lo = 0;
-  accum_hi = 0;
-  var_11C = 0;
-  var_112 = 0;
-  var_134 = 0;
-  var_11A = 0;
-  var_48 = 0;
-  var_E8 = 0;
-  var_74 = 0;
-  exit_flag = 0;
-  var_44 = 0;
-  var_6C = 0;
-
   byte_12BB9 = 0;
-
-  saved_arg3 = arg3;
 
   // Compute data pointer from index table
   uint16_t index = *(uint16_t *)ptr;
@@ -2887,6 +2843,34 @@ static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
   printf("%s: table_val 0x%04X\n", __func__, table_val);
 
   hexdump(scr_decompressed + table_val, 32);
+  uint16_t unknown = (scr_decompressed[table_val + 1] << 8) | scr_decompressed[table_val];
+
+  if ((unknown & 1) != 1) {
+    printf("%s: 0x9972 unimplemented (val=0x%04X)\n", __func__, unknown);
+    // Jump to B24A
+  }
+
+  // vga_pollkey?
+  byte_1979 = 1;
+
+  // Not sure what arg is passed here, but it's not 0.
+  struct player_rec *player = &g_game_state.players[0];
+  if (byte_DAE6 == 0) {
+    if (arg3 == 6) {
+      printf("%s: 0x9996 unimplemented (val=0x%04X)\n", __func__, unknown);
+
+    }
+  }
+  // 999F
+  if (byte_DAE6 != 0) {
+      printf("%s: 0x99A6 unimplemented (val=0x%04X)\n", __func__, unknown);
+  }
+  // 99B4
+  //
+  // 99CF
+  uint16_t unknown2 = (scr_decompressed[table_val + 5] << 8) | scr_decompressed[table_val + 4];
+  printf("%s: unknown2 = 0x%04X\n", __func__, unknown2);
+
 }
 
 // KEH: seg000:0xB452
