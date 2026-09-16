@@ -337,6 +337,21 @@ static struct ui_region message_region = {
   NULL // rect offset 0x0C-0x12
 };
 
+// KEH: DSEG:0x1C7C
+static struct ui_region full_screen_region = {
+  0,
+  0,
+  0x27,
+  0x18,
+  0,
+  0,
+  { 0, 0, 0xA0, 0xC8 },
+  0x00,
+  NULL,
+  0x0,
+  NULL
+};
+
 // KEH: DSEG:0x1C98
 static struct ui_region datetime_region = {
   0x01,
@@ -616,6 +631,9 @@ static uint16_t word_1EA0 = 0;
 // KEH DSEG:0x1EA2
 static uint16_t word_1EA2 = 0;
 
+// KEH DSEG:0xBEE6
+static uint16_t word_BEE6 = 0;
+
 // KEH DSEG:0xBEE8
 static uint16_t word_BEE8 = 0;
 
@@ -749,6 +767,7 @@ static void sub_DF48(uint16_t *cursor, uint16_t *out, int arg2);
 static void sub_FFB2(uint32_t *accum, int32_t val);
 static void sub_FFD4(uint32_t *accum, uint32_t val);
 static void sub_22(int arg);
+static void build_map_display();
 
 static void do_title()
 {
@@ -2123,10 +2142,10 @@ static int is_walkable(int x, int y)
 }
 
 // KEH: seg000:0x1834
-static void sub_1834(unsigned char *ptr, int arg2, int arg3)
+static void sub_1834(unsigned char *map_pos, int arg2, int arg3)
 {
   word_D1D8 = arg2;
-  dword_D9B4 = ptr;
+  dword_D9B4 = map_pos;
   word_BEC0 = arg3;
   word_D9D0 = 0;
 
@@ -2134,7 +2153,7 @@ static void sub_1834(unsigned char *ptr, int arg2, int arg3)
     if (word_D1D8 == 8)
       break;
 
-    loc_98F4(ptr, word_D1D8, word_D9D0, word_BEC0, 0);
+    loc_98F4(map_pos, word_D1D8, word_D9D0, word_BEC0, 0);
 
     if (byte_DAE6 != 0 && word_D1D8 == 0) {
       sub_B452();
@@ -2868,7 +2887,7 @@ static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
   // 99B4
   //
   // 99CF
-  uint16_t unknown2 = (scr_decompressed[table_val + 5] << 8) | scr_decompressed[table_val + 4];
+  uint16_t unknown2 = (scr_decompressed[table_val + 3] << 8) | scr_decompressed[table_val + 2];
   printf("%s: unknown2 = 0x%04X\n", __func__, unknown2);
 
 }
@@ -2876,7 +2895,17 @@ static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
 // KEH: seg000:0xB452
 static void sub_B452(void)
 {
-  printf("%s: unimplemented\n", __func__);
+  word_BEE6 = 0;
+  byte_DAE6 = 0;
+
+  ui_region_set_active(&full_screen_region, false);
+  ui_active_region_clear();
+  ui_region_set_active(&message_region, true);
+  sub_0A04(0);
+  sub_D78();
+  build_map_display();
+  draw_day_time();
+  ui_region_refresh(&whole_screen);
 }
 
 // KEH: seg000:0x1766
@@ -3720,7 +3749,7 @@ static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, stru
   char buf[42];
   uint16_t skill_index = table_CDC0[item_index];
 
-  const char *skill_name = hds_bytes + 0x16 * skill_index + 0x126;
+  const char *skill_name = (char *)hds_bytes + 0x16 * skill_index + 0x126;
 
   snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->active_skills[skill_index], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
@@ -3732,7 +3761,7 @@ static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, str
   char buf[42];
   uint16_t skill_index = table_CDC0[item_index];
 
-  const char *skill_name = hds_bytes + 0x16 * skill_index + 0x286;
+  const char *skill_name = (char *)hds_bytes + 0x16 * skill_index + 0x286;
 
   snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->passive_skills[skill_index], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
