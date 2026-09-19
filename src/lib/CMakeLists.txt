@@ -21,6 +21,7 @@ set(SOURCES bufio.c bufio.h
   resource.c resource.h
   sha1.c sha1.h
   tables.c tables.h
+  types.h
   ui.c ui.h
   vga.c vga.h)
 

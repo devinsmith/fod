@@ -29,6 +29,7 @@
 #include "random.h"
 #include "resource.h"
 #include "tables.h"
+#include "types.h"
 #include "ui.h"
 #include "vga.h"
 
@@ -763,7 +764,7 @@ static void sub_D6AA(void *ptr, uint16_t arg1);
 static void sub_B29B(const char *arg0);
 static void consume_key(void);
 static void sub_D8CD(int arg);
-static void sub_DF48(uint16_t *cursor, uint16_t *out, int arg2);
+static void sub_DF48(struct data_cursor *cursor, uint16_t *out, int arg2);
 static void sub_FFB2(uint32_t *accum, int32_t val);
 static void sub_FFD4(uint32_t *accum, uint32_t val);
 static void sub_22(int arg);
@@ -2387,11 +2388,26 @@ static void sub_D8CD(int arg)
   printf("%s: unimplemented\n", __func__);
 }
 
-static void sub_DF48(uint16_t *cursor, uint16_t *out, int arg2)
+// KEH: seg000:0xDF22
+// Read one byte at cursor, advance by one, zero-extend.
+static uint16_t cursor_read_u8(struct data_cursor *cursor)
 {
-  (void)cursor;
-  (void)out;
-  (void)arg2;
+  return cursor->base[cursor->offset++];
+}
+
+// KEH: seg000:0xDF36
+// Read little-endian word at cursor, advance by 2.
+static uint16_t cursor_read_u16(struct data_cursor *cursor)
+{
+  uint16_t v = *(uint16_t *)(cursor->base + cursor->offset);
+  cursor->offset += 2;
+  return v;
+}
+
+// KEH: seg000:0xDF48
+static void sub_DF48(struct data_cursor *cursor, uint16_t *out, int arg2)
+{
+  uint16_t raw = cursor_read_u8(cursor);
   printf("%s: unimplemented\n", __func__);
 }
 
@@ -2889,6 +2905,8 @@ static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
   // 99CF
   uint16_t unknown2 = (scr_decompressed[table_val + 3] << 8) | scr_decompressed[table_val + 2];
   printf("%s: unknown2 = 0x%04X\n", __func__, unknown2);
+
+  // 99EC
 
 }
 
