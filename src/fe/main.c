@@ -130,9 +130,6 @@ static const uint8_t map_ids[] = {
   1, 1, 2
 };
 
-// KEH: DSEG:1979
-static uint8_t byte_1979 = 0;
-
 // KEH: DSEG:BEC0
 static uint16_t word_BEC0 = 0;
 
@@ -210,7 +207,7 @@ static uint16_t word_DBCA = 0;
 static uint16_t word_DBCC = 0;
 
 // KEH: DSEG: 0xDBD2
-static unsigned char *scr_decompressed = NULL;
+unsigned char *scr_decompressed = NULL;
 
 // KEH: DSEG: 0xDBD6
 static uint16_t word_DBD6;
@@ -641,7 +638,7 @@ static uint16_t word_BEE8 = 0;
 // KEH DSEG:0xD9D0
 static uint16_t word_D9D0 = 0;
 // KEH DSEG:0xDAE6
-static uint8_t byte_DAE6 = 0;
+uint8_t byte_DAE6 = 0;
 
 // KEH DSEG:0x1D126
 static uint16_t word_1D126 = 0;
@@ -688,14 +685,12 @@ static uint16_t table_3240[100];
 static char str_buffer[256];
 
 // KEH DSEG:0xD1D8
-static uint16_t word_D1D8 = 0;
+uint16_t word_D1D8 = 0;
 
 // KEH DSEG:0x12C72 - base offset for data pointer calculation
 static uint16_t word_12C72 = 0;
 // KEH DSEG:0x12C74 - base segment for data pointer calculation
 static uint16_t word_12C74 = 0;
-// KEH DSEG:0x12BB9 - flag set after consume_key
-static uint8_t byte_12BB9 = 0;
 
 // KEH DSEG:0x1EA4
 static uint16_t map_tile_array[9 * 19];
@@ -741,7 +736,6 @@ static void sub_2B93(int arg0);
 static void sub_109D(int arg0);
 static void sub_8FFA(unsigned char *entity_ptr, int val);
 static void sub_7854(void);
-static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5);
 static void sub_B452(void);
 static void sub_1766(void);
 static void sub_E674(void);
@@ -2832,58 +2826,6 @@ static void sub_2B70(int arg0)
 static void sub_7E1(int arg0, int arg1, int arg2)
 {
   printf("%s: unimplemented (%d, %d, %d)\n", __func__, arg0, arg1, arg2);
-}
-
-// KEH: seg000:0x98F4
-// Processes scripted data referenced by ptr for a given event type (arg2).
-// Performs arithmetic operations on a 32-bit accumulator.
-static void loc_98F4(unsigned char *ptr, int arg2, int arg3, int arg4, int arg5)
-{
-  word_D1D8 = 0xFFFF;
-
-  byte_12BB9 = 0;
-
-  // Compute data pointer from index table
-  uint16_t index = *(uint16_t *)ptr;
-  if (index == 0xFFFF)
-    return;
-
-  printf("%s: 0x9946 unimplemented (index=0x%04X)\n", __func__, index);
-
-  uint16_t table_val = *((uint16_t *)scr_decompressed + index);
-  printf("%s: table_val 0x%04X\n", __func__, table_val);
-
-  hexdump(scr_decompressed + table_val, 32);
-  uint16_t unknown = (scr_decompressed[table_val + 1] << 8) | scr_decompressed[table_val];
-
-  if ((unknown & 1) != 1) {
-    printf("%s: 0x9972 unimplemented (val=0x%04X)\n", __func__, unknown);
-    // Jump to B24A
-  }
-
-  // vga_pollkey?
-  byte_1979 = 1;
-
-  // Not sure what arg is passed here, but it's not 0.
-  struct player_rec *player = &g_game_state.players[0];
-  if (byte_DAE6 == 0) {
-    if (arg3 == 6) {
-      printf("%s: 0x9996 unimplemented (val=0x%04X)\n", __func__, unknown);
-
-    }
-  }
-  // 999F
-  if (byte_DAE6 != 0) {
-      printf("%s: 0x99A6 unimplemented (val=0x%04X)\n", __func__, unknown);
-  }
-  // 99B4
-  //
-  // 99CF
-  uint16_t unknown2 = (scr_decompressed[table_val + 3] << 8) | scr_decompressed[table_val + 2];
-  printf("%s: unknown2 = 0x%04X\n", __func__, unknown2);
-
-  // 99EC
-
 }
 
 // KEH: seg000:0xB452

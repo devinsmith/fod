@@ -16,7 +16,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdio.h>
+
+#include "game.h"
+#include "hexdump.h"
 #include "script.h"
+
+// currently in main.c
+extern uint8_t byte_DAE6;
+extern uint16_t word_D1D8;
+extern unsigned char *scr_decompressed;
+
+// KEH: DSEG:1979
+static uint8_t byte_1979 = 0;
+
+// KEH DSEG:0x12BB9 - flag set after consume_key
+static uint8_t byte_12BB9 = 0;
 
 // Number of script opcodes is 76?
 
@@ -32,7 +47,7 @@ static const uint8_t skip_table[76] = {
 
 typedef enum { ARG_END = 0, ARG_U8, ARG_U16 } arg_type_t;
 
-// Argument list of each script operand containing types of number
+// Argument list of each script operand containing types and number
 // of arguments.
 static const uint8_t script_op_args[][6] = {
   /* 0 */  { ARG_END },
@@ -65,7 +80,7 @@ static uint16_t cursor_read_u16(struct data_cursor *cursor)
 }
 
 // KEH: seg000:0xDF48
-void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
+static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
 {
   uint16_t raw    = cursor_read_u8(cursor);
   uint16_t masked = raw & 0x0F;
@@ -87,4 +102,56 @@ void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
     uint8_t  width     = skip_table[selector];
     cursor->offset += width + 1;
   }
+}
+
+// KEH: seg000:0x98F4
+// Processes scripted data referenced by ptr for a given event/command type.
+void loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5)
+{
+  word_D1D8 = 0xFFFF;
+
+  byte_12BB9 = 0;
+
+  // Compute data pointer from index table
+  uint16_t index = *(uint16_t *)ptr;
+  if (index == 0xFFFF)
+    return;
+
+  printf("%s: 0x9946 unimplemented (index=0x%04X), cmd/event = %d\n",
+      __func__, index, cmd_type);
+
+  uint16_t table_val = *((uint16_t *)scr_decompressed + index);
+  printf("%s: table_val 0x%04X\n", __func__, table_val);
+
+  hexdump(scr_decompressed + table_val, 32);
+  uint16_t unknown = (scr_decompressed[table_val + 1] << 8) | scr_decompressed[table_val];
+
+  if ((unknown & 1) != 1) {
+    printf("%s: 0x9972 unimplemented (val=0x%04X)\n", __func__, unknown);
+    // Jump to B24A
+  }
+
+  // vga_pollkey?
+  byte_1979 = 1;
+
+  // Not sure what arg is passed here, but it's not 0.
+  struct player_rec *player = &g_game_state.players[0];
+  if (byte_DAE6 == 0) {
+    if (arg3 == 6) {
+      printf("%s: 0x9996 unimplemented (val=0x%04X)\n", __func__, unknown);
+
+    }
+  }
+  // 999F
+  if (byte_DAE6 != 0) {
+      printf("%s: 0x99A6 unimplemented (val=0x%04X)\n", __func__, unknown);
+  }
+  // 99B4
+  //
+  // 99CF
+  uint16_t unknown2 = (scr_decompressed[table_val + 3] << 8) | scr_decompressed[table_val + 2];
+  printf("%s: unknown2 = 0x%04X\n", __func__, unknown2);
+
+  // 99EC
+
 }

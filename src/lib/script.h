@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want);
+void loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5);
 
 #ifdef __cplusplus
 }
