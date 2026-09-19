@@ -19,6 +19,7 @@ set(SOURCES bufio.c bufio.h
   hexdump.c hexdump.h
   random.c random.h
   resource.c resource.h
+  script.c script.h
   sha1.c sha1.h
   tables.c tables.h
   types.h
