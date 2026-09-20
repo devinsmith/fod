@@ -30,6 +30,9 @@ extern unsigned char *scr_decompressed;
 // KEH: DSEG:1979
 static uint8_t byte_1979 = 0;
 
+// KEH: DSEG:0x1A32
+static uint16_t word_1A32 = 0;
+
 // KEH DSEG:0x12BB9 - flag set after consume_key
 static uint8_t byte_12BB9 = 0;
 
@@ -104,9 +107,12 @@ static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
   }
 }
 
+#define TOKEN_MAX_ARGS 5
+#define TOKEN_BUF_LEN  (2 + TOKEN_MAX_ARGS)   // type, op, then up to 5 args
+
 // KEH: seg000:0x98F4
 // Processes scripted data referenced by ptr for a given event/command type.
-void loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5)
+void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg5)
 {
   word_D1D8 = 0xFFFF;
 
@@ -123,6 +129,10 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5)
   uint16_t table_val = *((uint16_t *)scr_decompressed + index);
   printf("%s: table_val 0x%04X\n", __func__, table_val);
 
+  struct data_cursor cursor;
+  cursor.base   = scr_decompressed;
+  cursor.offset = table_val + word_1A32; // Is word_1A32 always 0?
+
   hexdump(scr_decompressed + table_val, 32);
   uint16_t unknown = (scr_decompressed[table_val + 1] << 8) | scr_decompressed[table_val];
 
@@ -134,13 +144,9 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5)
   // vga_pollkey?
   byte_1979 = 1;
 
-  // Not sure what arg is passed here, but it's not 0.
-  struct player_rec *player = &g_game_state.players[0];
-  if (byte_DAE6 == 0) {
-    if (arg3 == 6) {
-      printf("%s: 0x9996 unimplemented (val=0x%04X)\n", __func__, unknown);
-
-    }
+  struct player_rec *player = &g_game_state.players[party_idx];
+  if (byte_DAE6 == 0 && cmd_type == 6) {
+    printf("%s: 0x9996 unimplemented (val=0x%04X)\n", __func__, unknown);
   }
   // 999F
   if (byte_DAE6 != 0) {
@@ -154,4 +160,23 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5)
 
   // 99EC
 
+
+  struct data_cursor data_ptr = cursor;
+  data_ptr.offset += 4;
+
+  uint16_t token_buf[TOKEN_BUF_LEN] = { 0 };
+  // 9A01
+  sub_DF48(&data_ptr, token_buf, cmd_type);
+
+  uint16_t token_type = token_buf[0];
+  uint16_t token_op   = token_buf[1];
+
+  printf("%s: Token type: %d, op: %d\n", __func__, token_type, token_op);
+
+  switch (token_op) {
+  case 0x1F:
+    // technically this is a jump, and a jump back up to 0x99EC
+    //sub_A9C0();
+    break;
+  }
 }
