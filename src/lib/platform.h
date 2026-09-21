@@ -16,8 +16,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef VGA_INTERFACE_H
-#define VGA_INTERFACE_H
+#ifndef PLAT_INTERFACE_H
+#define PLAT_INTERFACE_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -54,11 +54,11 @@ bool vga_poll_events();
 void sys_delay(unsigned int ms);
 unsigned int sys_ticks();
 
-// Intended for use by various vga drivers.
-void video_setup();
+// Intended for use by various platforms drivers.
+void platform_setup();
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // VGA_INTERFACE_H
+#endif // PLAT_INTERFACE_H

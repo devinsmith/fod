@@ -21,7 +21,7 @@
 
 #include <SDL.h>
 
-#include "vga.h"
+#include "platform.h"
 
 #define WIN_WIDTH 640
 #define WIN_HEIGHT 400
@@ -295,7 +295,7 @@ struct vga_driver sdl_driver = {
   ticks
 };
 
-void video_setup()
+void platform_setup()
 {
   register_vga_driver(&sdl_driver);
 }

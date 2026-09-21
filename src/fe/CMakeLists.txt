@@ -13,7 +13,7 @@ if(ENABLE_SANITIZERS)
 endif()
 
 # C and C++ sources are freely mixed.
-set(SOURCES main.c vga_sdl.c)
+set(SOURCES main.c plat_sdl.c)
 
 add_executable(${TARGET_NAME} ${SOURCES})
 list(APPEND INC_DIRS ${SDL2_INCLUDE_DIRS})

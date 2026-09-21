@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "vga.h"
+#include "platform.h"
 
 #ifndef nitems
 #define nitems(_a) (sizeof((_a)) / sizeof((_a)[0]))

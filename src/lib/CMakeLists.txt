@@ -17,6 +17,7 @@ set(SOURCES bufio.c bufio.h
   fileio.c fileio.h
   game.c game.h
   hexdump.c hexdump.h
+  platform.c platform.h
   random.c random.h
   resource.c resource.h
   script.c script.h
@@ -24,8 +25,7 @@ set(SOURCES bufio.c bufio.h
   sha1.c sha1.h
   tables.c tables.h
   types.h
-  ui.c ui.h
-  vga.c vga.h)
+  ui.c ui.h)
 
 add_library(${TARGET_NAME} STATIC ${SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src)

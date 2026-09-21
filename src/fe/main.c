@@ -26,12 +26,12 @@
 #include "fileio.h"
 #include "game.h"
 #include "hexdump.h"
+#include "platform.h"
 #include "random.h"
 #include "resource.h"
 #include "script.h"
 #include "tables.h"
 #include "ui.h"
-#include "vga.h"
 
 static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
@@ -1648,7 +1648,7 @@ int main(int argc, char *argv[])
   sub_02E5(saved_game);
 
   // Register VGA driver.
-  video_setup();
+  platform_setup();
 
   if (vga_initialize(GAME_WIDTH, GAME_HEIGHT) != 0) {
     return 1;

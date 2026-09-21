@@ -22,10 +22,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "platform.h"
 #include "resource.h"
 #include "tables.h"
 #include "ui.h"
-#include "vga.h"
 
 extern struct ui_unknown2 data_074F;
 extern unsigned char *scratch;
