@@ -20,6 +20,7 @@ set(SOURCES bufio.c bufio.h
   random.c random.h
   resource.c resource.h
   script.c script.h
+  sfx.c sfx.h
   sha1.c sha1.h
   tables.c tables.h
   types.h
