@@ -28,9 +28,14 @@
 #define VGA_WIDTH 320
 #define VGA_HEIGHT 200
 
+// 48 khz
+#define SPK_RATE      48000
+
 static SDL_Window *main_window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Surface *surface = NULL;
+static SDL_AudioDeviceID audio_dev = 0;
+static SDL_atomic_t spk_atom;
 
 // Fountain of Dreams uses 16 colors in total, but the palette is arranged
 // so that the colors are duplicated every 16 entries. It's probably done this
@@ -56,8 +61,11 @@ static const unsigned char fod_vga_palette[16][3] = {
   { 0x3F, 0x3F, 0x3F }     // 0xF0 - 0xFF  (WHITE)
 };
 
-int
-display_start(int game_width, int game_height)
+static void SDLCALL spk_callback(void *ud, Uint8 *stream, int len)
+{
+}
+
+int sdl_start(int game_width, int game_height)
 {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
     fprintf(stderr, "SDL could not initialize. SDL Error: %s\n",
@@ -102,12 +110,30 @@ display_start(int game_width, int game_height)
     return -1;
   }
 
+  SDL_AudioSpec want;
+  SDL_zero(want);
+  want.freq     = SPK_RATE;
+  want.format   = AUDIO_F32SYS;
+  want.channels = 1;
+  want.samples  = 256;
+  want.callback = spk_callback;
+
+  audio_dev = SDL_OpenAudioDevice(NULL, 0, &want, NULL, 0);
+  if (audio_dev == 0) {
+    fprintf(stderr, "Failed to initialize audio. SDL Error: %s\n", SDL_GetError());
+    return -1;
+  }
+  SDL_PauseAudioDevice(audio_dev, 0);
+
   return 0;
 }
 
-void
-display_end(void)
+void sdl_end(void)
 {
+  if (audio_dev) {
+    SDL_CloseAudioDevice(audio_dev);
+  }
+
   if (surface != NULL) {
     SDL_FreeSurface(surface);
   }
@@ -119,6 +145,7 @@ display_end(void)
   if (main_window != NULL) {
     SDL_DestroyWindow(main_window);
   }
+
   SDL_Quit();
 }
 
@@ -204,34 +231,6 @@ static int handle_key(SDL_Event *e)
   if (key > 0) {
     vga_addkey(key);
   }
-#if 0
-  const SDL_KeyboardEvent *ke = &e->key;
-  const SDL_Keysym *ksym = &ke->keysym;
-  const uint16_t *scancode_table;
-  const int table_size = sizeof(normal_scancodes) / sizeof(normal_scancodes[0]);
-  SDL_Scancode scancode = ke->keysym.scancode;
-
-  if (ksym->mod & KMOD_SHIFT) {
-    scancode_table = shifted_scancodes;
-  } else if (ksym->mod & KMOD_ALT) {
-    scancode_table = alt_scancodes;
-  } else if (ksym->mod & KMOD_CTRL) {
-    scancode_table = ctrl_scancodes;
-  } else {
-    scancode_table = normal_scancodes;
-  }
-
-  if (scancode < 0 || scancode >= table_size) {
-    printf("Scancode %d out of table range (max %d)\n", scancode, table_size - 1);
-    return 1;
-  }
-
-  uint16_t key = scancode_table[scancode];
-  printf("Handling key: 0x%04X\n", key);
-  if (key > 0) {
-    vga_addkey(key);
-  }
-#endif
   return 1;
 }
 
@@ -282,10 +281,10 @@ static unsigned int ticks()
   return SDL_GetTicks();
 }
 
-struct vga_driver sdl_driver = {
+struct plat_driver sdl_driver = {
   "SDL", // 2.0
-  display_start,
-  display_end,
+  sdl_start,
+  sdl_end,
   display_update,
   waitkey,
   get_fb_mem,
@@ -297,5 +296,5 @@ struct vga_driver sdl_driver = {
 
 void platform_setup()
 {
-  register_vga_driver(&sdl_driver);
+  register_platform_driver(&sdl_driver);
 }

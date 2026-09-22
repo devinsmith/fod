@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-struct vga_driver {
+struct plat_driver {
   const char *driver_name;
   int (*initialize)(int game_width, int game_height);
   void (*end)();
@@ -39,7 +39,7 @@ struct vga_driver {
   unsigned int (*ticks)();
 };
 
-void register_vga_driver(struct vga_driver *driver);
+void register_platform_driver(struct plat_driver *driver);
 
 int vga_initialize(int game_width, int game_height);
 uint8_t* vga_memory();

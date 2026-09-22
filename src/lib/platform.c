@@ -25,7 +25,7 @@
 #define nitems(_a) (sizeof((_a)) / sizeof((_a)[0]))
 #endif /* nitems */
 
-static struct vga_driver *sys_ctx = NULL;
+static struct plat_driver *sys_ctx = NULL;
 
 #define VGA_WIDTH 320
 #define VGA_HEIGHT 200
@@ -63,7 +63,7 @@ get_fb_mem()
   return framebuffer;
 }
 
-void register_vga_driver(struct vga_driver *driver)
+void register_platform_driver(struct plat_driver *driver)
 {
   sys_ctx = driver;
 }
