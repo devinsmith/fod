@@ -16,6 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -28,8 +29,11 @@
 #define VGA_WIDTH 320
 #define VGA_HEIGHT 200
 
-// 48 khz
+#define PIT_HZ        1193182.0
 #define SPK_RATE      48000
+#define SPK_AMPLITUDE 0.20f
+#define SPK_MAX_HZ    20000.0
+#define SPK_GATE      0x10000     /* bit 16 = speaker on/off; bits 0..15 = PIT divisor */
 
 static SDL_Window *main_window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -61,8 +65,37 @@ static const unsigned char fod_vga_palette[16][3] = {
   { 0x3F, 0x3F, 0x3F }     // 0xF0 - 0xFF  (WHITE)
 };
 
+// Used for generating band-limited square wave sample-by-sample.
+static double tri(double x)
+{
+  x -= floor(x);
+  return x < 0.5 ? x : 1.0 - x;
+}
+
 static void SDLCALL spk_callback(void *ud, Uint8 *stream, int len)
 {
+  static double phase;        /* 0..1, persists across callbacks */
+  (void)ud;
+
+  int state  = SDL_AtomicGet(&spk_atom);
+  int div = state & 0xFFFF;
+  if (div == 0) div = 65536;                 /* PIT: count 0 means 65536 */
+  double hz = PIT_HZ / div;
+
+  if (!(state & SPK_GATE) || hz > SPK_MAX_HZ) {
+    // Emit silence.
+    SDL_memset(stream, 0, (size_t)len);
+    return;
+  }
+
+  float *out = (float *)stream;
+  int    n   = len / (int)sizeof(float);
+  double dp  = hz / SPK_RATE;
+  for (int i = 0; i < n; i++) {
+    double p1 = phase + dp;
+    out[i] = SPK_AMPLITUDE * (float)((tri(p1) - tri(phase)) / dp);
+    phase  = p1 - floor(p1);
+  }
 }
 
 int sdl_start(int game_width, int game_height)
@@ -82,7 +115,7 @@ int sdl_start(int game_width, int game_height)
     return -1;
   }
 
-  if ((renderer = SDL_CreateRenderer(main_window, -1, 0)) == NULL) {
+  if ((renderer = SDL_CreateRenderer(main_window, -1, SDL_RENDERER_PRESENTVSYNC)) == NULL) {
     fprintf(stderr, "Main renderer could not be created. SDL Error: %s\n",
       SDL_GetError());
     return -1;
@@ -152,6 +185,8 @@ void sdl_end(void)
 void
 display_update(void)
 {
+  SDL_PumpEvents();
+
   SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
@@ -281,6 +316,20 @@ static unsigned int ticks()
   return SDL_GetTicks();
 }
 
+static void sdl_speaker_set(bool enable)
+{
+  if (enable) {
+    SDL_AtomicSet(&spk_atom, SDL_AtomicGet(&spk_atom) | SPK_GATE);
+  } else {
+    SDL_AtomicSet(&spk_atom, SDL_AtomicGet(&spk_atom) & ~SPK_GATE);
+  }
+}
+
+static void sdl_speaker_tone(uint16_t divisor)
+{
+  SDL_AtomicSet(&spk_atom, (SDL_AtomicGet(&spk_atom) & SPK_GATE) | divisor);
+}
+
 struct plat_driver sdl_driver = {
   "SDL", // 2.0
   sdl_start,
@@ -291,7 +340,10 @@ struct plat_driver sdl_driver = {
   pollkey,
   poll_events,
   delay,
-  ticks
+  ticks,
+
+  sdl_speaker_set,
+  sdl_speaker_tone
 };
 
 void platform_setup()

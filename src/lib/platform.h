@@ -37,6 +37,13 @@ struct plat_driver {
   bool (*poll)();
   void (*delay)(unsigned int ms);
   unsigned int (*ticks)();
+
+  // Turns the speaker on or off.
+  void (*speaker_set)(bool enable);
+
+  // Divisor = PC-speaker PIT divisor from original
+  // sound data.
+  void (*tone)(uint16_t divisor);
 };
 
 void register_platform_driver(struct plat_driver *driver);
@@ -53,6 +60,9 @@ bool vga_peek_key();
 bool vga_poll_events();
 void sys_delay(unsigned int ms);
 unsigned int sys_ticks();
+
+void hw_speaker_set(bool enable);
+void hw_speaker_tone(uint16_t divisor);
 
 // Intended for use by various platforms drivers.
 void platform_setup();

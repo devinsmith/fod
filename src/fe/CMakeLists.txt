@@ -12,12 +12,33 @@ if(ENABLE_SANITIZERS)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${SANITIZER_FLAGS}")
 endif()
 
+include(CheckFunctionExists)
+if(NOT FLOOR_FUNCTION_EXISTS AND NOT NEED_LINKING_AGAINST_LIBM)
+  CHECK_FUNCTION_EXISTS(floor FLOOR_FUNCTION_EXISTS)
+  if(NOT FLOOR_FUNCTION_EXISTS)
+    unset(FLOOR_FUNCTION_EXISTS CACHE)
+    list(APPEND CMAKE_REQUIRED_LIBRARIES m)
+    CHECK_FUNCTION_EXISTS(floor FLOOR_FUNCTION_EXISTS)
+    if(FLOOR_FUNCTION_EXISTS)
+      set(NEED_LINKING_AGAINST_LIBM True CACHE BOOL "" FORCE)
+    else()
+      message(FATAL_ERROR "Failed making the floor() function available")
+    endif()
+  endif()
+endif()
+
+
 # C and C++ sources are freely mixed.
 set(SOURCES main.c plat_sdl.c)
 
 add_executable(${TARGET_NAME} ${SOURCES})
 list(APPEND INC_DIRS ${SDL2_INCLUDE_DIRS})
 list(APPEND LINK_LIBRARIES ${SDL2_LIBRARIES})
+
+if (NEED_LINKING_AGAINST_LIBM)
+  list(APPEND LINK_LIBRARIES m)
+endif()
+
 
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src/lib ${INC_DIRS})
 target_link_libraries(${TARGET_NAME} PRIVATE common ${LINK_LIBRARIES})

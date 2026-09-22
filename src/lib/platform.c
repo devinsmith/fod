@@ -178,3 +178,18 @@ bool vga_peek_key()
 {
   return vga_keyb.count == 0;
 }
+
+void hw_speaker_set(bool enable)
+{
+  if (sys_ctx != NULL && sys_ctx->speaker_set != NULL) {
+    sys_ctx->speaker_set(enable);
+  }
+}
+
+void hw_speaker_tone(uint16_t divisor)
+{
+  if (sys_ctx != NULL && sys_ctx->tone != NULL) {
+    sys_ctx->tone(divisor);
+  }
+}
+
