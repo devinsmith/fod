@@ -44,6 +44,8 @@ struct plat_driver {
   // Divisor = PC-speaker PIT divisor from original
   // sound data.
   void (*tone)(uint16_t divisor);
+
+  void (*pace)();
 };
 
 void register_platform_driver(struct plat_driver *driver);
@@ -63,6 +65,7 @@ unsigned int sys_ticks();
 
 void hw_speaker_set(bool enable);
 void hw_speaker_tone(uint16_t divisor);
+void hw_pace();
 
 // Intended for use by various platforms drivers.
 void platform_setup();

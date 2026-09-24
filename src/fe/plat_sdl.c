@@ -28,6 +28,7 @@
 #define WIN_HEIGHT 400
 #define VGA_WIDTH 320
 #define VGA_HEIGHT 200
+#define VGA_REFRESH_HZ 70.086   /* mode 13h; use 60.0 for a 640x480 mode */
 
 #define PIT_HZ        1193182.0
 #define SPK_RATE      48000
@@ -182,8 +183,31 @@ void sdl_end(void)
   SDL_Quit();
 }
 
-void
-display_update(void)
+static void sdl_pace()
+{
+    static Uint64 next = 0;
+  const Uint64 freq   = SDL_GetPerformanceFrequency();
+  const Uint64 period = (Uint64)((double)freq / VGA_REFRESH_HZ);
+
+  Uint64 now = SDL_GetPerformanceCounter();
+
+  /* First call, or we fell far behind: resync instead of bursting through
+   * frames to "catch up". */
+  if (next == 0 || now > next + 4 * period)
+      next = now;
+
+  next += period;
+
+  while ((now = SDL_GetPerformanceCounter()) < next) {
+      Uint64 remaining_ms = (next - now) * 1000 / freq;
+      if (remaining_ms > 1)
+          SDL_Delay((Uint32)(remaining_ms - 1));
+      /* last <1ms: busy-wait, SDL_Delay's OS granularity isn't accurate
+       * enough for the final stretch */
+  }
+}
+
+void display_update(void)
 {
   SDL_PumpEvents();
 
@@ -343,7 +367,9 @@ struct plat_driver sdl_driver = {
   ticks,
 
   sdl_speaker_set,
-  sdl_speaker_tone
+  sdl_speaker_tone,
+
+  sdl_pace
 };
 
 void platform_setup()

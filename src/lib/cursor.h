@@ -16,8 +16,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef CURSOR_H
+#define CURSOR_H
+
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,8 +30,11 @@ struct data_cursor {
   unsigned int offset;
 };
 
+uint16_t cursor_read_u8(struct data_cursor *cursor);
+uint16_t cursor_read_u16(struct data_cursor *cursor);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* TYPES_H */
+#endif /* CURSOR_H */

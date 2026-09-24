@@ -18,9 +18,11 @@
 
 #include <stdio.h>
 
+#include "cursor.h"
 #include "game.h"
 #include "hexdump.h"
 #include "script.h"
+#include "sfx.h"
 
 // currently in main.c
 extern uint8_t byte_DAE6;
@@ -65,22 +67,6 @@ static const uint8_t script_op_args[][6] = {
   /* 9 */  { ARG_U8, ARG_U8, ARG_U8, ARG_U16, ARG_END },
   /* 10 */ { ARG_U8, ARG_U8, ARG_U8, ARG_U16, ARG_U16, ARG_END },
 };
-
-// KEH: seg000:0xDF22
-// Read one byte at cursor, advance by one, zero-extend.
-static uint16_t cursor_read_u8(struct data_cursor *cursor)
-{
-  return cursor->base[cursor->offset++];
-}
-
-// KEH: seg000:0xDF36
-// Read little-endian word at cursor, advance by 2.
-static uint16_t cursor_read_u16(struct data_cursor *cursor)
-{
-  uint16_t v = *(uint16_t *)(cursor->base + cursor->offset);
-  cursor->offset += 2;
-  return v;
-}
 
 // KEH: seg000:0xDF48
 static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
@@ -177,6 +163,7 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
   case 0x1F:
     // technically this is a jump, and a jump back up to 0x99EC
     //sub_A9C0();
+    play_sound(0);
     break;
   }
 }

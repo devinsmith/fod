@@ -14,6 +14,7 @@ endif()
 # C and C++ sources are freely mixed.
 set(SOURCES bufio.c bufio.h
   compress.c compress.h
+  cursor.c cursor.h
   fileio.c fileio.h
   game.c game.h
   hexdump.c hexdump.h
@@ -24,7 +25,6 @@ set(SOURCES bufio.c bufio.h
   sfx.c sfx.h
   sha1.c sha1.h
   tables.c tables.h
-  types.h
   ui.c ui.h)
 
 add_library(${TARGET_NAME} STATIC ${SOURCES})

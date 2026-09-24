@@ -176,7 +176,7 @@ int vga_getkey()
 // Are there keys in the buffer?
 bool vga_peek_key()
 {
-  return vga_keyb.count == 0;
+  return vga_keyb.count != 0;
 }
 
 void hw_speaker_set(bool enable)
@@ -190,6 +190,13 @@ void hw_speaker_tone(uint16_t divisor)
 {
   if (sys_ctx != NULL && sys_ctx->tone != NULL) {
     sys_ctx->tone(divisor);
+  }
+}
+
+void hw_pace()
+{
+  if (sys_ctx != NULL && sys_ctx->pace != NULL) {
+    sys_ctx->pace();
   }
 }
 

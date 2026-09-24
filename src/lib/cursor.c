@@ -1,7 +1,7 @@
 /*
  * Fountain of Dreams - Reverse Engineering Project
  *
- * Copyright (c) 2025 Devin Smith <devin@devinsmith.net>
+ * Copyright (c) 2018-2020,2025-2026 Devin Smith <devin@devinsmith.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,19 +16,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef SFX_H
-#define SFX_H
+#include "cursor.h"
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void play_sound(int snd_num);
-
-#ifdef __cplusplus
+// KEH: seg000:0xDF22
+// Read one byte at cursor, advance by one, zero-extend.
+uint16_t cursor_read_u8(struct data_cursor *cursor)
+{
+  return cursor->base[cursor->offset++];
 }
-#endif
 
-#endif // SFX_H
+// KEH: seg000:0xDF36
+// Read little-endian word at cursor, advance by 2.
+uint16_t cursor_read_u16(struct data_cursor *cursor)
+{
+  uint16_t v = *(uint16_t *)(cursor->base + cursor->offset);
+  cursor->offset += 2;
+  return v;
+}
