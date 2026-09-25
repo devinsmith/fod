@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "cursor.h"
 #include "platform.h"
@@ -172,15 +173,9 @@ void play_sound(int snd_num)
     return;
   }
 
+  memset(&sfx, 0, sizeof(sfx));
+
   sfx.stream.base = samples[snd_num].bytes;
-  sfx.stream.offset = 0;
-  sfx.frames_left  = 0;
-  sfx.frames_len = 0;
-  sfx.repeats_left = 0;
-  sfx.div_base = 0;
-  sfx.div_cur = 0;
-  sfx.div_delta = 0;
-  sfx.div_delta2 = 0;
 
   hw_speaker_set(true);                            /* in/or 3/out 61h */
   hw_speaker_tone(PIT_INITIAL_DIVISOR);
