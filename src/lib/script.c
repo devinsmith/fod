@@ -17,17 +17,22 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "cursor.h"
 #include "game.h"
 #include "hexdump.h"
 #include "script.h"
 #include "sfx.h"
+#include "ui.h"
 
 // currently in main.c
 extern uint8_t byte_DAE6;
 extern uint16_t word_D1D8;
 extern unsigned char *scr_decompressed;
+
+// currently in ui.c
+extern struct ui_region *active_region;
 
 // KEH: DSEG:1979
 static uint8_t byte_1979 = 0;
@@ -68,6 +73,18 @@ static const uint8_t script_op_args[][6] = {
   /* 10 */ { ARG_U8, ARG_U8, ARG_U8, ARG_U16, ARG_U16, ARG_END },
 };
 
+// KEH: seg000:0xA79A
+static void sub_A79A(struct data_cursor *data)
+{
+  reset_offsets();
+  active_region->data_24 = 0;
+
+  int len = strlen((char *)data->base + data->offset);
+
+  ui_region_print_str((char *)data->base + data->offset, -1, -1);
+  ui_region_refresh_active();
+}
+
 // KEH: seg000:0xDF48
 static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
 {
@@ -87,8 +104,8 @@ static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
       *o++ = (*a == ARG_U8) ? cursor_read_u8(cursor) : cursor_read_u16(cursor);
     }
   } else {
-    uint8_t  selector = cursor->base[cursor->offset];
-    uint8_t  width     = skip_table[selector];
+    uint8_t selector = cursor->base[cursor->offset];
+    uint8_t width    = skip_table[selector];
     cursor->offset += width + 1;
   }
 }
@@ -150,20 +167,29 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
   struct data_cursor data_ptr = cursor;
   data_ptr.offset += 4;
 
-  uint16_t token_buf[TOKEN_BUF_LEN] = { 0 };
-  // 9A01
-  sub_DF48(&data_ptr, token_buf, cmd_type);
 
-  uint16_t token_type = token_buf[0];
-  uint16_t token_op   = token_buf[1];
+  while (1) {
+    uint16_t token_buf[TOKEN_BUF_LEN] = { 0 };
+    // 9A01
+    sub_DF48(&data_ptr, token_buf, cmd_type);
 
-  printf("%s: Token type: %d, op: %d\n", __func__, token_type, token_op);
+    uint16_t token_type = token_buf[0];
+    uint16_t token_op   = token_buf[1];
 
-  switch (token_op) {
-  case 0x1F:
-    // technically this is a jump, and a jump back up to 0x99EC
-    //sub_A9C0();
-    play_sound(0);
-    break;
+    printf("%s: Token type: %d, op: %d\n", __func__, token_type, token_op);
+
+    switch (token_op) {
+    case 0x17:
+      // A79A:
+      sub_A79A(&data_ptr);
+      break;
+    case 0x1F:
+      play_sound(token_buf[2]);
+      break;
+    default:
+      printf("%s: Unhandled token operation: 0x%02X\n", __func__, token_op);
+      return;
+      break;
+    }
   }
 }

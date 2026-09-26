@@ -461,9 +461,8 @@ static void plot_font_str(const char *str, int len)
   }
 }
 
-
 // KEH: seg000:0xDDFD
-static void reset_offsets()
+void reset_offsets()
 {
   struct ui_region *si = active_region;
 
