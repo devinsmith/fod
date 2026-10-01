@@ -73,19 +73,37 @@ static const uint8_t script_op_args[][6] = {
   /* 10 */ { ARG_U8, ARG_U8, ARG_U8, ARG_U16, ARG_U16, ARG_END },
 };
 
+// KEH: seg000:0x8F3E
+// Given a cursor pointing at the start of a packed table of null-terminated
+// strings, skip past `index` of them and return a char* to the start of
+// string.
+char *get_nth_string(struct data_cursor *cursor, uint16_t index)
+{
+  char *p = (char *)cursor->base + cursor->offset;
+
+  while (index != 0) {
+    // Find string end.
+    while (*p != '\0') {
+      p++;
+    }
+    p++;   // step past the null terminator, onto the next string
+    index--;
+  }
+
+  return p;
+}
+
 // KEH: seg000:0xA79A
-static void sub_A79A(struct data_cursor *data)
+static void sub_A79A(struct data_cursor *data, uint16_t index)
 {
   ui_region_newline_or_scroll();
   ui_region_newline_or_scroll();
   active_region->data_24 = 0;
 
-  int len = strlen((char *)data->base + data->offset);
+  char *str = get_nth_string(data, index);
 
-  ui_region_print_str((char *)data->base + data->offset, -1, -1);
+  ui_region_print_str(str, -1, -1);
   ui_region_refresh_active();
-
-  data->offset += len;
 }
 
 // KEH: seg000:0xDF48
@@ -129,11 +147,8 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
   if (index == 0xFFFF)
     return;
 
-  printf("%s: 0x9946 unimplemented (index=0x%04X), cmd/event = %d\n",
-      __func__, index, cmd_type);
-
   uint16_t table_val = *((uint16_t *)scr_decompressed + index);
-  printf("%s: table_val 0x%04X\n", __func__, table_val);
+  printf("%s: script offset: 0x%04X\n", __func__, table_val);
 
   struct data_cursor cursor;
   cursor.base   = scr_decompressed;
@@ -156,22 +171,20 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
   }
   // 999F
   if (byte_DAE6 != 0) {
-      printf("%s: 0x99A6 unimplemented (val=0x%04X)\n", __func__, unknown);
+    printf("%s: 0x99A6 unimplemented (val=0x%04X)\n", __func__, unknown);
   }
   // 99B4
   //
   // 99CF
-  uint16_t unknown2 = (scr_decompressed[table_val + 3] << 8) | scr_decompressed[table_val + 2];
-  printf("%s: unknown2 = 0x%04X\n", __func__, unknown2);
-
+  uint16_t script_op_len = (scr_decompressed[table_val + 3] << 8) | scr_decompressed[table_val + 2];
+  printf("%s: script_op_len = 0x%04X (%d bytes, including header)\n", __func__, script_op_len, script_op_len);
   // 99EC
-
-
   struct data_cursor data_ptr = cursor;
   data_ptr.offset += 4;
+  int end_offset = cursor.offset + script_op_len;
 
 
-  while (1) {
+  while (data_ptr.offset < end_offset) {
     uint16_t token_buf[TOKEN_BUF_LEN] = { 0 };
     // 9A01
     sub_DF48(&data_ptr, token_buf, cmd_type);
@@ -179,18 +192,17 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
     uint16_t token_type = token_buf[0];
     uint16_t token_op   = token_buf[1];
 
-    printf("%s: Token type: 0x%02X, op: 0x%02X\n", __func__, token_type, token_op);
-
     switch (token_op) {
     case 0x17:
       // A79A:
-      sub_A79A(&data_ptr);
+      sub_A79A(&data_ptr, token_buf[2]);
       break;
     case 0x1F:
       play_sound(token_buf[2]);
       break;
     default:
-      printf("%s: Unhandled token operation: 0x%02X\n", __func__, token_op);
+      // Check out 0xB1A7 for script op codes.
+      printf("%s: Unhandled token operation: 0x%02X (token_type: 0x%02X)\n", __func__, token_op, token_type);
       return;
       break;
     }
