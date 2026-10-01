@@ -136,10 +136,10 @@ void sys_delay(unsigned int ms)
   }
 }
 
-unsigned int sys_ticks()
+uint64_t sys_ticks()
 {
-  if (sys_ctx != NULL && sys_ctx->ticks != NULL) {
-    return sys_ctx->ticks();
+  if (sys_ctx != NULL && sys_ctx->ticks_ms != NULL) {
+    return sys_ctx->ticks_ms();
   }
   // Default?
   return 0x12345678;
@@ -200,3 +200,20 @@ void hw_pace()
   }
 }
 
+uint16_t sys_scroll_speed()
+{
+  if (sys_ctx != NULL && sys_ctx->get_scroll_speed != NULL) {
+    return sys_ctx->get_scroll_speed();
+  }
+
+  return 0;
+}
+
+uint16_t sys_poll_scroll_keys()
+{
+  if (sys_ctx != NULL && sys_ctx->poll_scroll_keys != NULL) {
+    return sys_ctx->poll_scroll_keys();
+  }
+
+  return 0;
+}

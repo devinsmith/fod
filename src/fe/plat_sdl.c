@@ -42,6 +42,12 @@ static SDL_Surface *surface = NULL;
 static SDL_AudioDeviceID audio_dev = 0;
 static SDL_atomic_t spk_atom;
 
+// KEH: DSEG:0x1A04
+// In the future, it may be better to control the scroll speed
+// via a config variable in order to simplify the platform abstraction
+// layer.
+static uint16_t scroll_speed = 0;
+
 // Fountain of Dreams uses 16 colors in total, but the palette is arranged
 // so that the colors are duplicated every 16 entries. It's probably done this
 // way for compression.
@@ -335,8 +341,9 @@ static void delay(unsigned int ms)
   SDL_Delay(ms);
 }
 
-static unsigned int ticks()
+static uint64_t ticks()
 {
+  // Under SDL2, this is 32-bit. In SDL3, this is 64-bit.
   return SDL_GetTicks();
 }
 
@@ -354,6 +361,32 @@ static void sdl_speaker_tone(uint16_t divisor)
   SDL_AtomicSet(&spk_atom, (SDL_AtomicGet(&spk_atom) & SPK_GATE) | divisor);
 }
 
+static uint16_t get_scroll_speed()
+{
+  return scroll_speed;
+}
+
+// ',' '<' = slower, '.' '>' = faster. Consumes at most one key per call,
+// like the original's single INT 21h/06h poll.
+static uint16_t poll_scroll_keys()
+{
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    if (e.type == SDL_QUIT) {
+      // let the main loop see it
+      SDL_PushEvent(&e);
+      return scroll_speed;
+    }
+    if (e.type != SDL_KEYDOWN) continue;
+
+    switch (e.key.keysym.sym) {
+    case SDLK_COMMA:  case SDLK_LESS:    if (scroll_speed > 1) scroll_speed--; break;
+    case SDLK_PERIOD: case SDLK_GREATER: if (scroll_speed < 8) scroll_speed++; break;
+    }
+  }
+  return scroll_speed;
+}
+
 struct plat_driver sdl_driver = {
   "SDL", // 2.0
   sdl_start,
@@ -369,7 +402,10 @@ struct plat_driver sdl_driver = {
   sdl_speaker_set,
   sdl_speaker_tone,
 
-  sdl_pace
+  sdl_pace,
+
+  get_scroll_speed,
+  poll_scroll_keys
 };
 
 void platform_setup()

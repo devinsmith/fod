@@ -76,13 +76,16 @@ static const uint8_t script_op_args[][6] = {
 // KEH: seg000:0xA79A
 static void sub_A79A(struct data_cursor *data)
 {
-  reset_offsets();
+  ui_region_newline_or_scroll();
+  ui_region_newline_or_scroll();
   active_region->data_24 = 0;
 
   int len = strlen((char *)data->base + data->offset);
 
   ui_region_print_str((char *)data->base + data->offset, -1, -1);
   ui_region_refresh_active();
+
+  data->offset += len;
 }
 
 // KEH: seg000:0xDF48
@@ -136,7 +139,7 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
   cursor.base   = scr_decompressed;
   cursor.offset = table_val + word_1A32; // Is word_1A32 always 0?
 
-  hexdump(scr_decompressed + table_val, 32);
+  hexdump(scr_decompressed + table_val, 64);
   uint16_t unknown = (scr_decompressed[table_val + 1] << 8) | scr_decompressed[table_val];
 
   if ((unknown & 1) != 1) {
@@ -176,7 +179,7 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
     uint16_t token_type = token_buf[0];
     uint16_t token_op   = token_buf[1];
 
-    printf("%s: Token type: %d, op: %d\n", __func__, token_type, token_op);
+    printf("%s: Token type: 0x%02X, op: 0x%02X\n", __func__, token_type, token_op);
 
     switch (token_op) {
     case 0x17:

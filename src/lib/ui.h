@@ -73,7 +73,7 @@ struct ui_region {
   struct ui_rect *data_1A; // offset 0x1A
 };
 
-void reset_offsets();
+void ui_region_newline_or_scroll();
 void ui_region_queue_rect(const struct ui_rect *input);
 void ui_region_queue(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
 void ui_region_refresh(struct ui_rect *input);

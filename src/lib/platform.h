@@ -36,7 +36,7 @@ struct plat_driver {
   bool (*pollkey)(unsigned int ms);
   bool (*poll)();
   void (*delay)(unsigned int ms);
-  unsigned int (*ticks)();
+  uint64_t (*ticks_ms)();
 
   // Turns the speaker on or off.
   void (*speaker_set)(bool enable);
@@ -46,6 +46,10 @@ struct plat_driver {
   void (*tone)(uint16_t divisor);
 
   void (*pace)();
+
+  // Retrieve scroll speed.
+  uint16_t (*get_scroll_speed)();
+  uint16_t (*poll_scroll_keys)();
 };
 
 void register_platform_driver(struct plat_driver *driver);
@@ -61,7 +65,13 @@ int vga_getkey();
 bool vga_peek_key();
 bool vga_poll_events();
 void sys_delay(unsigned int ms);
-unsigned int sys_ticks();
+uint64_t sys_ticks();
+
+// Retrieve scroll speed.
+uint16_t sys_scroll_speed();
+// Poll the system for key presses that would slow or speed up
+// the scrolling speed. Also returns the new scrolling speed.
+uint16_t sys_poll_scroll_keys();
 
 void hw_speaker_set(bool enable);
 void hw_speaker_tone(uint16_t divisor);

@@ -20,7 +20,7 @@
 
 #include "tables.h"
 
-// 0x5BF
+// FOD: 0x5BF KEH: 0xA0C1
 unsigned short lookup_160_table[200];
 // 0x42F
 unsigned short lookup_320_table[200];

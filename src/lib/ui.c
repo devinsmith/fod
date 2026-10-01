@@ -34,6 +34,9 @@ static uint16_t word_0CCC = 0;
 static struct ui_unknown2 *ptr_0CCE = &data_074F;
 static struct ui_unknown2 *ptr_0CD0 = &data_074F;
 
+// KEH: DSEG:0x1834
+static uint8_t byte_1834 = 0;
+
 // FEH: DSEG:0x028F
 // KEH: DSEG:0x1978
 // Will contain 0x00 or 0xFF
@@ -48,6 +51,11 @@ struct ui_region *active_region;
 
 // DSEG:0x3E66
 static struct resource *border_res;
+
+// KEH: DSEG:0x9E0A
+uint16_t scroll_delay_ms[8] = {
+  2400, 1000, 500, 1, 100, 15, 250, 5
+};
 
 static void ui_sub_048B();
 
@@ -461,8 +469,66 @@ static void plot_font_str(const char *str, int len)
   }
 }
 
+// KEH: seg000:0xE08C: BIOS tick count at 18.2065 Hz, low 16 bits only
+static uint16_t bios_ticks(void)
+{
+  return (uint16_t)(sys_ticks() * 1193182u / 65536000u);
+}
+
+// KEH: seg000:0x6B44
+static void animate_tiles(uint8_t force)
+{
+  uint16_t now = bios_ticks();
+  (void)now;
+  printf("%s:0x6B4E unhandled\n", __func__);
+}
+
+#define ROW_STRIDE 0xA0
+
+// KEH: seg000:0xE18D scrolls the region up 8 rows (one text line), animated.
+void ui_region_scroll_line(const struct ui_region *r)
+{
+  const struct ui_rect *rc = &r->rect;
+
+  size_t dst = get_160_offset(rc->y_pos) + rc->x_pos;
+  size_t src = dst;
+  uint16_t rows = rc->height;
+  uint16_t words = rc->width;
+  int steps;
+
+  int scroll_speed = sys_scroll_speed();
+
+  if (scroll_speed < 5) {
+    rows -= 1;  words >>= 1;  steps = 8;  src += 1 * ROW_STRIDE;
+  } else if (scroll_speed < 7) {
+    rows -= 2;                steps = 4;  src += 2 * ROW_STRIDE;
+  } else {
+    rows -= 4;  words <<= 1;  steps = 2;  src += 4 * ROW_STRIDE;
+  }
+
+  // E1DA
+  while (steps--) {
+    for (uint16_t row = 0; row < rows; row++) {
+      memmove(scratch + dst + (size_t)row * ROW_STRIDE,
+        scratch + src + (size_t)row * ROW_STRIDE, (size_t)words * 2);
+    }
+    memset(scratch + dst + (size_t)rows * ROW_STRIDE, 0, (size_t)words * 2);
+
+    const struct ui_rect *ar = &active_region->rect;
+    ui_region_queue(ar->x_pos, ar->width, ar->height, ar->y_pos);
+    ui_sub_034D();
+    if (scroll_speed != 0) {
+      // Delay loop (keep any tile animations ticking)
+      uint64_t end = sys_ticks() + scroll_delay_ms[scroll_speed - 1];
+      do { animate_tiles(0); sys_delay(1); } while (sys_ticks() < end);
+      // for slowing down or speeding up scolling.
+      scroll_speed = sys_poll_scroll_keys();
+    }
+  }
+}
+
 // KEH: seg000:0xDDFD
-void reset_offsets()
+void ui_region_newline_or_scroll()
 {
   struct ui_region *si = active_region;
 
@@ -472,8 +538,15 @@ void reset_offsets()
     return;
   }
 
-  printf("%s:0xDE12 unhandled\n", __func__);
-  exit(0);
+  si->cursor_index_y = si->max_y_cursor_pos;
+
+  if (byte_1834 != 0) {
+    printf("%s:0xDE20 unhandled\n", __func__);
+    exit(0);
+  }
+
+  // DE39
+  ui_region_scroll_line(si);
 }
 
 // FOD: seg000:0x159E
@@ -510,7 +583,7 @@ void print_wrapped_text(const char *str)
       if (line_end != line_start) {
           plot_font_str(str + line_start, line_end - line_start);
       }
-      reset_offsets();
+      ui_region_newline_or_scroll();
       i++;
       line_start = next_start = line_end = i;
       continue;
@@ -540,7 +613,7 @@ void print_wrapped_text(const char *str)
       if (line_end != line_start) {
         plot_font_str(str + line_start, line_end - line_start);
       }
-      reset_offsets();
+      ui_region_newline_or_scroll();
       i = next_start;
       line_start = next_start;
       line_end = next_start;
