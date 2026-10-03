@@ -136,7 +136,7 @@ static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
 
 // KEH: seg000:0x98F4
 // Processes scripted data referenced by ptr for a given event/command type.
-void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg5)
+int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg5)
 {
   word_D1D8 = 0xFFFF;
 
@@ -144,8 +144,9 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
 
   // Compute data pointer from index table
   uint16_t index = *(uint16_t *)ptr;
-  if (index == 0xFFFF)
-    return;
+  if (index == 0xFFFF) {
+    return 0;
+  }
 
   uint16_t table_val = *((uint16_t *)scr_decompressed + index);
   printf("%s: script offset: 0x%04X\n", __func__, table_val);
@@ -158,8 +159,7 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
   uint16_t unknown = (scr_decompressed[table_val + 1] << 8) | scr_decompressed[table_val];
 
   if ((unknown & 1) != 1) {
-    printf("%s: 0x9972 unimplemented (val=0x%04X)\n", __func__, unknown);
-    // Jump to B24A
+    return 0;
   }
 
   // vga_pollkey?
@@ -203,8 +203,10 @@ void loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg
     default:
       // Check out 0xB1A7 for script op codes.
       printf("%s: Unhandled token operation: 0x%02X (token_type: 0x%02X)\n", __func__, token_op, token_type);
-      return;
+      return 0;
       break;
     }
   }
+
+  return 1;
 }

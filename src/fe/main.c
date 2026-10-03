@@ -642,15 +642,9 @@ uint8_t byte_DAE6 = 0;
 
 // KEH DSEG:0x1D126
 static uint16_t word_1D126 = 0;
-// KEH DSEG:0x1D132 - hour (0-23)
-static uint8_t byte_1D132 = 0;
-// KEH DSEG:0x1D133 - minute accumulator (0-59)
-static uint8_t byte_1D133 = 0;
-// KEH DSEG:0x1D161 - day of week counter (0-6)
-static uint8_t byte_1D161 = 0;
 
-// KEH DSEG:0xCFC4 (called 1E204 in IDA)
-static uint16_t word_1E204 = 0;
+// KEH DSEG:0xCFC4
+static uint16_t word_CFC4 = 0;
 
 // KEH DSEG:0x1EC04
 static uint32_t dword_1EC04 = 0;
@@ -2175,7 +2169,7 @@ static void sub_12E9(void)
   sub_113F(0);
 
   if (word_BEE8 > 0) {
-    if ((word_1E204 % word_BEE8) == 0) {
+    if ((word_CFC4 % word_BEE8) == 0) {
       sub_92D5();
     }
   }
@@ -2632,9 +2626,9 @@ static void sub_113F(int arg0)
             // Compute offset into hds_bytes: var_C * 0x16 + 0x3EC
             uint16_t hds_offset = var_C * 0x16 + 0x3EC;
 
-            // divisibility check: word_1E204 % (hds_bytes[hds_offset] * var_2)
+            // divisibility check: word_CFC4 % (hds_bytes[hds_offset] * var_2)
             uint16_t divisor = (uint16_t)hds_bytes[hds_offset] * var_2;
-            if (divisor != 0 && (word_1E204 % divisor) == 0) {
+            if (divisor != 0 && (word_CFC4 % divisor) == 0) {
               uint16_t hds_val = hds_bytes[hds_offset + 1];
               sub_8FFA(entity, hds_val);
             }
@@ -2645,8 +2639,8 @@ static void sub_113F(int arg0)
       }
 
       // KEH: 0x1294
-      // --- Health processing (only when word_1E204 is divisible by var_10) ---
-      if ((word_1E204 % var_10) == 0) {
+      // --- Health processing (only when word_CFC4 is divisible by var_10) ---
+      if ((word_CFC4 % var_10) == 0) {
         printf("%s: health? unimplemented 0x1294\n", __func__);
 #if 0
         // 0x12AE
@@ -2721,7 +2715,7 @@ static void sub_92D5(void)
 
 // KEH: seg000:0x109D
 // Advances the game clock by a number of minutes. Also increments the frame
-// counter (word_1E204). When arg0 == 0, redraws the date/time UI and calls
+// counter (word_CFC4). When arg0 == 0, redraws the date/time UI and calls
 // sub_7854 if the hour changed.
 static void sub_109D(int arg0)
 {
@@ -2733,33 +2727,33 @@ static void sub_109D(int arg0)
     minute_inc = ((struct level_map_header *)level_map_large)->minute_inc;
   }
 
-  word_1E204++;
+  word_CFC4++;
 
-  uint8_t old_hour = byte_1D132;
+  uint8_t old_hour = g_game_state.hour;
 
   // Add fractional minutes to accumulator
-  byte_1D133 += minute_inc % 60;
+  g_game_state.minute += minute_inc % 60;
 
   // Compute hours to add (from increment + overflow from minute accumulator)
   uint8_t hours_to_add = minute_inc / 60;
-  hours_to_add += byte_1D133 / 60;
+  hours_to_add += g_game_state.minute / 60;
 
   // Total hours, wrap at 24
   uint8_t total_hours = old_hour + hours_to_add;
-  byte_1D132 = total_hours % 24;
+  g_game_state.hour = total_hours % 24;
 
   // Normalize minute accumulator to 0-59
-  byte_1D133 = byte_1D133 % 60;
+  g_game_state.minute = g_game_state.minute % 60;
 
   // Check if the hour wrapped (old hour was later in the day)
-  if (old_hour > byte_1D132) {
-    byte_1D161 = (byte_1D161 + 1) % 7;
+  if (old_hour > g_game_state.hour) {
+    g_game_state.day_of_week = (g_game_state.day_of_week + 1) % 7;
   }
 
   if (arg0 == 0) {
     draw_day_time();
     ui_region_refresh(&datetime_region.rect);
-    if (old_hour != byte_1D132) {
+    if (old_hour != g_game_state.hour) {
       sub_7854();
     }
   }
@@ -3241,7 +3235,7 @@ static void sub_39FE(int arg1, int arg2)
     // This appears to be related to some game state tracking
   }
 
-  word_1E204 = 0;
+  word_CFC4 = 0;
   word_BEE8 = 0;
   dword_1EC04 = 0;
   byte_1ED26 = 0;

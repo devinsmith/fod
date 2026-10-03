@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-void loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5);
+int loc_98F4(unsigned char *ptr, int cmd_type, int arg3, int arg4, int arg5);
 
 #ifdef __cplusplus
 }
