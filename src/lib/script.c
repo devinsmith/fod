@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "anim.h"
 #include "cursor.h"
 #include "game.h"
 #include "hexdump.h"
@@ -158,7 +159,8 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg5
   hexdump(scr_decompressed + table_val, 64);
   uint16_t unknown = (scr_decompressed[table_val + 1] << 8) | scr_decompressed[table_val];
 
-  if ((unknown & 1) != 1) {
+  uint16_t bitmask = 1 << (uint8_t)cmd_type;
+  if (!(unknown & bitmask)) {
     return 0;
   }
 
@@ -167,8 +169,9 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg5
 
   struct player_rec *player = &g_game_state.players[party_idx];
   if (byte_DAE6 == 0 && cmd_type == 6) {
-    printf("%s: 0x9996 unimplemented (val=0x%04X)\n", __func__, unknown);
+    sub_D8CD(arg4);
   }
+
   // 999F
   if (byte_DAE6 != 0) {
     printf("%s: 0x99A6 unimplemented (val=0x%04X)\n", __func__, unknown);

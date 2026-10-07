@@ -127,6 +127,9 @@ struct game_state {
 
 extern struct game_state g_game_state;
 
+extern uint16_t g_wanted_id[];
+extern uint16_t g_cached_id[];
+
 bool load_game_state();
 bool save_game_state();
 

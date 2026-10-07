@@ -1,7 +1,7 @@
 /*
  * Fountain of Dreams - Reverse Engineering Project
  *
- * Copyright (c) 2018-2020,2025 Devin Smith <devin@devinsmith.net>
+ * Copyright (c) 2018-2026 Devin Smith <devin@devinsmith.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -396,6 +396,7 @@ int check_party_condition(int arg0)
   }
   return g_game_state.party_size;
 }
+
 
 // This comes from "globals", 0x2A bytes in, Each item string can be 24 bytes
 static const char *item_names[] = {

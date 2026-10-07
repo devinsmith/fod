@@ -77,8 +77,9 @@ void read_file(const char *file, uint8_t *buffer, uint16_t size);
  * @param index        Index into the lookup table (arg_0 - 1 from caller)
  * @param offset_table Pointer to table of (offset, size) pairs
  * @param flag         If 1, uses alternate loading method (unimplemented)
+ * @return number of bytes read.
  */
-void read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
+int read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
     unsigned char *buffer, int flag);
 
 #ifdef __cplusplus

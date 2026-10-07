@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "anim.h"
 #include "compress.h"
 #include "fileio.h"
 #include "game.h"
@@ -150,7 +151,7 @@ static uint8_t byte_D1E3;
 static uint8_t byte_D1E8;
 
 // KEH: DSEG:D206
-static unsigned char *ptr_D206 = NULL;
+unsigned char *ptr_D206 = NULL;
 
 // KEH: DSEG:D9DA
 static unsigned char *ptr_D9DA = NULL;
@@ -196,16 +197,6 @@ static const char *level_scr_file = NULL;
 
 static unsigned char level_scr_bytes[256];
 
-// KEH: DSEG: 0xD9C8
-static const char *level_ani_file = NULL;
-
-static unsigned char level_ani_bytes[256];
-
-// KEH: DSEG: 0xDBC8
-static uint16_t word_DBC8 = 0;
-static uint16_t word_DBCA = 0;
-static uint16_t word_DBCC = 0;
-
 // KEH: DSEG: 0xDBD2
 unsigned char *scr_decompressed = NULL;
 
@@ -216,10 +207,7 @@ static uint16_t word_DBD6;
 static uint16_t word_DDDA;
 
 // KEH: DSEG: 0xDDDC
-static uint16_t word_DDDC;
-
-// KEH: DSEG: 0xDDE0
-static uint16_t table_DDE0[32];
+uint16_t g_anim_count; // how many anims wanted (0..3)
 
 // DSEG:0x7A
 static const struct attr_coordinates attributes[] = {
@@ -630,7 +618,7 @@ static uint16_t word_1EA0 = 0;
 static uint16_t word_1EA2 = 0;
 
 // KEH DSEG:0xBEE6
-static uint16_t word_BEE6 = 0;
+uint16_t word_BEE6 = 0;
 
 // KEH DSEG:0xBEE8
 static uint16_t word_BEE8 = 0;
@@ -751,7 +739,6 @@ static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
 static void sub_B29B(const char *arg0);
 static void consume_key(void);
-static void sub_D8CD(int arg);
 static void sub_FFB2(uint32_t *accum, int32_t val);
 static void sub_FFD4(uint32_t *accum, uint32_t val);
 static void sub_22(int arg);
@@ -2369,12 +2356,6 @@ static void consume_key(void)
   printf("%s: unimplemented\n", __func__);
 }
 
-static void sub_D8CD(int arg)
-{
-  (void)arg;
-  printf("%s: unimplemented\n", __func__);
-}
-
 static void sub_FFB2(uint32_t *accum, int32_t val)
 {
   (void)accum;
@@ -2392,9 +2373,9 @@ static void sub_FFD4(uint32_t *accum, uint32_t val)
 
 static void sub_22(int arg)
 {
-  word_DBC8 = 0xFFFF;
-  word_DBCA = 0xFFFF;
-  word_DBCC = 0xFFFF;
+  g_cached_id[0] = 0xFFFF;
+  g_cached_id[1] = 0xFFFF;
+  g_cached_id[2] = 0xFFFF;
 
   // We know read_indexed_file_data can only read a max of 64k.
   unsigned char *scr_data = malloc(1 << 16);
@@ -3408,11 +3389,11 @@ static int sub_103C9()
 static int sub_4F1A(int arg0)
 {
   uint16_t var_24 = 0;
-  word_DDDC = 0;
+  g_anim_count = 0;
   uint16_t var_0A = 0;
   uint16_t var_0E = 0;
 
-  table_DDE0[var_0E] = 0xFFFF;
+  g_wanted_id[var_0E] = 0xFFFF;
 
   // Populate a table with empty strings.
   // "            "

@@ -217,13 +217,13 @@ void read_file(const char *file, uint8_t *buffer, uint16_t size)
 }
 
 // KEH: seg000:0x03BF
-void read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
+int read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
     unsigned char *offset_table, int flag)
 {
   FILE *fp = fopen(file, "rb");
   if (fp == NULL) {
     fprintf(stderr, "Failed to open: %s\n", file);
-    return;
+    return 0;
   }
 
   uint16_t bx = val << 1;
@@ -244,4 +244,6 @@ void read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
   }
 
   fclose(fp);
+
+  return data_size;
 }
