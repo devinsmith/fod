@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "anim.h"
+#include "compress.h"
 #include "game.h"
 #include "hexdump.h"
 #include "resource.h"
@@ -70,7 +71,7 @@ struct anim_entry {
 struct anim_entry g_anim_entry[ANIM_SLOTS];
 
 // KEH: seg000:0x8880
-static void sub_8880(int stat, unsigned char *entry)
+static void sub_8880(int stat)
 {
   int bias = 0;
   int slot_free[ANIM_SLOTS];          /* var_8  (1 = free)               */
@@ -111,7 +112,7 @@ static void sub_8880(int stat, unsigned char *entry)
     int slot;
 
     // 0x8A1C
-    g_anim_entry[i].field_0 =  word_1E74[i + bias];
+    g_anim_entry[i].field_0 = word_1E74[i + bias];
 
     if (matched[i]) {
       slot = match_slot[i];
@@ -122,22 +123,24 @@ static void sub_8880(int stat, unsigned char *entry)
       for (slot = 0; slot < ANIM_SLOTS && !slot_free[slot]; slot++)
         ;
 
-       if (slot < ANIM_SLOTS) {
-         int bytes_read = read_indexed_file_data(level_ani_file, read_buf, id, level_ani_bytes, 0);
-         hexdump(read_buf, 32);
-#if 0
-         decompress(read_buf, g_anim_buf[slot]);
-         g_cached_id[slot] = id;
-         slot_free[slot]   = 0;
-#endif
+      if (slot < ANIM_SLOTS) {
+        read_indexed_file_data(level_ani_file, read_buf, id, level_ani_bytes, 0);
+        hexdump(read_buf, 32);
+
+        uint16_t low_bytes = *(uint16_t *)read_buf;
+        uint16_t high_bytes = *(uint16_t *)(read_buf+ 2);
+        uint32_t uncompressed_size = (high_bytes << 16) + low_bytes;
+        printf("%s: Animation uncompressed size: 0x%04X, %d bytes\n", __func__, uncompressed_size, uncompressed_size);
+        g_anim_buf[slot] = malloc(uncompressed_size);
+        decompress(read_buf + 4, g_anim_buf[slot], uncompressed_size);
+        g_cached_id[slot] = id;
+        slot_free[slot]   = 0;
       }
     }
-#if 0
     uint8_t *p = g_anim_buf[slot];
     g_anim_entry[i].data    = p;
     g_anim_entry[i].field_2 = (uint16_t)(p[1] | (p[2] << 8));
     g_anim_entry[i].active  = 1;
-#endif
   }
 
   word_BEE6 = stat ? 3 : 1;
@@ -155,17 +158,17 @@ static void sub_B360(int stat, unsigned char *entry)
   g_wanted_id[0] = stat;
 
   // Entry is copied to CDB0/B2, not sure if needed.
-  sub_8880(0, entry);
+  sub_8880(0);
   printf("%s: unimplemented\n", __func__);
 }
 
 // KEH: seg000:0xD8CD
-void sub_D8CD(int arg)
+void sub_D8CD(int npc_idx)
 {
   // Check if anyone is alive?
   int party_result = check_party_condition(1);
   // Sizeof npc is 0x68 bytes.
-  unsigned char *entry = ptr_D206 + (arg * 0x68);
+  unsigned char *entry = ptr_D206 + (npc_idx * 0x68);
   uint8_t stat = entry[0x63];
   printf("%s: unimplemented\n", __func__);
 

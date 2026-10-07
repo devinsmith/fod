@@ -137,7 +137,8 @@ static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
 
 // KEH: seg000:0x98F4
 // Processes scripted data referenced by ptr for a given event/command type.
-int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4, int arg5)
+int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
+    int arg5)
 {
   word_D1D8 = 0xFFFF;
 

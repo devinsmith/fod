@@ -705,7 +705,7 @@ static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2);
 static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2);
 static int sub_CC58(int arg0, int fkey_index);
 static void sub_DD4C(void);
-static void sub_1834(unsigned char *ptr, int arg2, int arg3);
+static void sub_1834(unsigned char *ptr, int arg2, int npc_num);
 static void set_party_position(int x, int y);
 static void sub_12E9(void);
 static void sub_1339(void);
@@ -2117,11 +2117,11 @@ static int is_walkable(int x, int y)
 }
 
 // KEH: seg000:0x1834
-static void sub_1834(unsigned char *map_pos, int arg2, int arg3)
+static void sub_1834(unsigned char *map_pos, int arg2, int npc_num)
 {
   word_D1D8 = arg2;
   dword_D9B4 = map_pos;
-  word_BEC0 = arg3;
+  word_BEC0 = npc_num;
   word_D9D0 = 0;
 
   while (word_D1D8 != 0xFFFF) {
@@ -2935,13 +2935,14 @@ static void sub_253F(int direction, int arg2)
       final_offset += 0x414;
       level_map_player_pos = level_map_large + final_offset;
 
+      // 0x26F3
       // Loop through ptr_D206 to find NPC at local_x, local_y
       int npc_count = level_map_large[9];
       for (int i = 0; i < npc_count; i++) {
         unsigned char *entry = ptr_D206 + (i * 0x68);
         if (entry[0x5B] == (uint8_t)local_x && entry[0x5C] == (uint8_t)local_y) {
           entry[0x50] &= 0x7F;
-          sub_1834(entry + 0x66, 6, 0);
+          sub_1834(entry + 0x66, 6, i);
           break;
         }
       }
