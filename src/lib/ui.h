@@ -73,16 +73,20 @@ struct ui_region {
   struct ui_rect *data_1A; // offset 0x1A
 };
 
+extern struct ui_region full_screen_region;
+
 void ui_region_newline_or_scroll();
 void ui_region_queue_rect(const struct ui_rect *input);
 void ui_region_queue(uint16_t ax, uint16_t di, uint16_t cx, uint16_t si);
 void ui_region_refresh(struct ui_rect *input);
 void ui_region_refresh_active();
+void ui_region_set_active(struct ui_region *arg1, bool clear);
 void ui_active_region_clear();
 void ui_sub_034D();
 void ui_draw_80_line(const uint16_t *src, uint16_t *dest);
 void screen_draw(const unsigned char *bytes);
 void ui_region_print_str(const char *str, int x_pos, int y_pos);
+void ui_print_positioned_str(const uint8_t *str);
 int ui_draw_scroll_list_page(struct player_rec *player,
     uint16_t scroll_offset,
     uint16_t max_count, const char *title,

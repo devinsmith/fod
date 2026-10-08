@@ -323,21 +323,6 @@ static struct ui_region message_region = {
   NULL // rect offset 0x0C-0x12
 };
 
-// KEH: DSEG:0x1C7C
-static struct ui_region full_screen_region = {
-  0,
-  0,
-  0x27,
-  0x18,
-  0,
-  0,
-  { 0, 0, 0xA0, 0xC8 },
-  0x00,
-  NULL,
-  0x0,
-  NULL
-};
-
 // KEH: DSEG:0x1C98
 static struct ui_region datetime_region = {
   0x01,
@@ -678,7 +663,6 @@ static uint16_t word_12C74 = 0;
 static uint16_t map_tile_array[9 * 19];
 
 static void sub_1548();
-static void ui_region_set_active(struct ui_region *arg1, bool clear);
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
 static void draw_map_tile(uint16_t tile_id, int x, int y);
@@ -1763,26 +1747,6 @@ static void sub_1548()
 static void sub_DAB0()
 {
   draw_borders(1000);
-}
-
-// Sets the active region and optionally clears it.
-// FOD:seg000:0x155E
-// KEH:seg000:0xDB18
-static void ui_region_set_active(struct ui_region *arg1, bool clear)
-{
-  active_region = arg1;
-
-  if (!clear) {
-    return;
-  }
-
-  arg1->data_24 = 0;
-  ui_active_region_clear();
-
-  if (arg1->func_ptr != NULL) {
-    // Call function pointer
-    arg1->func_ptr();
-  }
 }
 
 static void sub_3290(int char_num, const char *name)

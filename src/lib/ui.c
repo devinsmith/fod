@@ -52,9 +52,27 @@ struct ui_region *active_region;
 // DSEG:0x3E66
 static struct resource *border_res;
 
+// KEH: DSEG: 0xD1D4
+static uint16_t word_D1D4;
+
 // KEH: DSEG:0x9E0A
 uint16_t scroll_delay_ms[8] = {
   2400, 1000, 500, 1, 100, 15, 250, 5
+};
+
+// KEH: DSEG:0x1C7C
+struct ui_region full_screen_region = {
+  0,
+  0,
+  0x27,
+  0x18,
+  0,
+  0,
+  { 0, 0, 0xA0, 0xC8 },
+  0x00,
+  NULL,
+  0x0,
+  NULL
 };
 
 static void ui_sub_048B();
@@ -278,6 +296,38 @@ void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)
   }
 }
 
+#define STR_END   0xFF
+#define STR_BLANK 0x00
+#define FULL_SCREEN_TEXT_LINE_OFS 4
+
+// KEH: seg000:DDC5
+// Buffer: [x][y][chr]...[0xFF]; chr 0x00 = skip cell
+void ui_print_positioned_str(const uint8_t *str)
+{
+  struct ui_region *region = &full_screen_region;
+
+  uint16_t saved = region->line_number;
+  region->line_number = FULL_SCREEN_TEXT_LINE_OFS;
+
+  region->cursor_index_x = str[0];
+  region->cursor_index_y = str[1];
+  str += 2;
+
+  while (*str != STR_END) {
+    if (*str != STR_BLANK) {
+      plot_font_chr(*str,
+        region->cursor_index_x,   // i
+        region->line_number,      // line_num
+        region->cursor_index_y);  // base
+    }
+    region->cursor_index_x++;
+    word_D1D4++;
+    str++;
+  }
+
+  region->line_number = saved;
+}
+
 // FOD: seg000:0x1778
 // KEH: seg000:0xE141
 static void draw_border_chr(uint8_t chr_index, int i, int line_num)
@@ -433,6 +483,26 @@ int ui_draw_scroll_list_page(struct player_rec *player,
   }
 
   return items_shown;
+}
+
+// Sets the active region and optionally clears it.
+// FOD:seg000:0x155E
+// KEH:seg000:0xDB18
+void ui_region_set_active(struct ui_region *arg1, bool clear)
+{
+  active_region = arg1;
+
+  if (!clear) {
+    return;
+  }
+
+  arg1->data_24 = 0;
+  ui_active_region_clear();
+
+  if (arg1->func_ptr != NULL) {
+    // Call function pointer
+    arg1->func_ptr();
+  }
 }
 
 // FOD: seg000:0x168E

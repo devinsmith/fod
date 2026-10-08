@@ -25,6 +25,7 @@
 #include "game.h"
 #include "hexdump.h"
 #include "resource.h"
+#include "ui.h"
 
 // KEH: 0xD206, NPC offsets?
 extern unsigned char *ptr_D206;
@@ -69,6 +70,42 @@ struct anim_entry {
 
 // KEH: DSEG: 0xBEC2
 struct anim_entry g_anim_entry[ANIM_SLOTS];
+
+static void sub_DAC5();
+
+// KEH: DSEG:0x1CEC
+static struct ui_region region_1CEC = {
+  0x00,
+  0x0E,
+  0x27,
+  0x11,
+  0x00,
+  0x0E,
+  { 0x00, 0x70, 0xA0, 0x20 }, // rect offset 0x0C-0x12
+  0x00,
+  sub_DAC5,
+  0x00,
+  NULL
+};
+
+// KEH: DSEG:0x192F -- positioned string: [x][y][cells...][0xFF]; 0x00 = blank cell
+static const uint8_t weapon_header_str[] = {
+  17, 18,
+  'A','C',            0,
+  'A','M','M',        0,
+  'M','A','X',        0,
+  'C','O','N',        0,
+  'W','E','A','P','O','N',
+  0xFF
+};
+
+
+static void sub_DAC5()
+{
+  draw_borders(3000);
+  ui_print_positioned_str(weapon_header_str);
+}
+
 
 // KEH: seg000:0x8880
 static void sub_8880(int stat)
@@ -159,6 +196,10 @@ static void sub_B360(int stat, unsigned char *entry)
 
   // Entry is copied to CDB0/B2, not sure if needed.
   sub_8880(0);
+
+  ui_region_set_active(&full_screen_region, false);
+  ui_active_region_clear();
+
   printf("%s: unimplemented\n", __func__);
 }
 
