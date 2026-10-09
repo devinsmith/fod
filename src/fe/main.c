@@ -726,7 +726,6 @@ static void do_title()
 {
   struct resource *title_res = resource_load(RESOURCE_TITLE, 0, 0);
 
-  hexdump(title_res->bytes, 32);
   screen_draw(title_res->bytes);
 
   vga_waitkey();
