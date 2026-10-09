@@ -60,6 +60,11 @@ uint16_t scroll_delay_ms[8] = {
   2400, 1000, 500, 1, 100, 15, 250, 5
 };
 
+// KEH: DSEG:0x1A4E
+struct ui_rect whole_screen = {
+  0, 0, 160, 200
+};
+
 // KEH: DSEG:0x1C7C
 struct ui_region full_screen_region = {
   0,
@@ -522,6 +527,20 @@ void ui_region_print_str(const char *str, int x_pos, int y_pos)
   }
   // 0x16BC
   print_wrapped_text(str);
+}
+
+// KEH: seg000:0x2AFC
+void ui_region_print_centered_str(const char *str, int y_pos)
+{
+  char buffer[42];
+
+  snprintf(buffer, sizeof(buffer), "%s", str);
+  int max_char_len = active_region->rect.width / 4;
+  buffer[max_char_len] = '\0';
+
+  // Print centered based on length.
+  size_t str_len = strlen(buffer);
+  ui_region_print_str(buffer, (max_char_len - str_len) / 2, y_pos);
 }
 
 // FOD: seg000:0x1614

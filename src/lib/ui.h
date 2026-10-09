@@ -74,6 +74,7 @@ struct ui_region {
 };
 
 extern struct ui_region full_screen_region;
+extern struct ui_rect whole_screen;
 
 void ui_region_newline_or_scroll();
 void ui_region_queue_rect(const struct ui_rect *input);
@@ -86,6 +87,7 @@ void ui_sub_034D();
 void ui_draw_80_line(const uint16_t *src, uint16_t *dest);
 void screen_draw(const unsigned char *bytes);
 void ui_region_print_str(const char *str, int x_pos, int y_pos);
+void ui_region_print_centered_str(const char *str, int y_pos);
 void ui_print_positioned_str(const uint8_t *str);
 int ui_draw_scroll_list_page(struct player_rec *player,
     uint16_t scroll_offset,

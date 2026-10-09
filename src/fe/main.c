@@ -284,12 +284,6 @@ static struct ui_region unknown_2CA = {
   NULL  // 1A
 };
 
-// KEH: DSEG:0x1A4E
-// Is this the rect for the whole screen?
-static struct ui_rect whole_screen = {
-  0, 0, 160, 200
-};
-
 // KEH: DSEG:0x1A5E
 static struct ui_rect data_1A5E = { 4, 24, 152, 144 };
 
@@ -1754,20 +1748,6 @@ static void sub_3290(int char_num, const char *name)
   // XXX: This might not be correct.
   strncpy(g_game_state.players[char_num].name, name, 12);
   g_game_state.players[char_num].name[12] = '\0';
-}
-
-// KEH: seg000:0x2AFC
-static void ui_region_print_centered_str(const char *str, int y_pos)
-{
-  char buffer[42];
-
-  snprintf(buffer, sizeof(buffer), "%s", str);
-  int max_char_len = active_region->rect.width / 4;
-  buffer[max_char_len] = '\0';
-
-  // Print centered based on length.
-  size_t str_len = strlen(buffer);
-  ui_region_print_str(buffer, (max_char_len - str_len) / 2, y_pos);
 }
 
 // KEH: seg000:0x0A04

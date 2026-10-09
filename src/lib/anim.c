@@ -27,12 +27,6 @@
 #include "resource.h"
 #include "ui.h"
 
-// KEH: 0xD206, NPC offsets?
-extern unsigned char *ptr_D206;
-
-// KEH: DSEG: 0xBEC2
-static uint16_t word_BEC2;
-
 // KEH: DSEG: 0xD1E4
 static uint16_t word_D1E4;
 
@@ -46,7 +40,68 @@ extern uint16_t word_BEE6;
 
 extern uint16_t g_anim_count;
 
-static uint16_t word_1E74[4] = { 0x1C28, 0x1C0C, 0x1C44, 0x1C28 };
+// KEH: DSEG:0x1A86
+static struct ui_rect rect_1A86 = {
+  0x4, 0x8, 0x30, 0x60
+};
+
+// KEH: DSEG:0x1A8E
+static struct ui_rect rect_1A8E = {
+  0x38, 0x08, 0x30, 0x60
+};
+
+// KEH: DSEG:0x1A96
+static struct ui_rect rect_1A96 = {
+  0x6C, 0x08, 0x30, 0x60
+};
+
+// KEH: DSEG:0x1C0C
+static struct ui_region region_1C0C = {
+  0x01, // Initial X cursor position
+  0x01, // Initial Y cursor position
+  0x0C, // Max X cursor position
+  0x0B, // Max Y cursor position
+  0x01, // Cursor index x
+  0x01, // Cursor index y
+  { 0x04, 0x08, 0x30, 0x60 }, // ui rect
+  0x00,
+  NULL,
+  0x00,
+  &rect_1A86
+};
+
+// KEH: DSEG:0x1C28
+static struct ui_region region_1C28 = {
+  0x0E, // Initial X cursor position
+  0x01, // Initial Y cursor position
+  0x19, // Max X cursor position
+  0x0B, // Max Y cursor position
+  0x0E, // Cursor index x
+  0x01, // Cursor index y
+  { 0x38, 0x8, 0x30, 0x60 }, // ui rect
+  0x00,
+  NULL,
+  0x00,
+  &rect_1A8E
+};
+
+static struct ui_region region_1C44 = {
+  0x1B, // Initial X cursor position
+  0x01, // Initial Y cursor position
+  0x26, // Max X cursor position
+  0x0B, // Max Y cursor position
+  0x1B, // Cursor index x
+  0x01, // Cursor index y
+  { 0x6C, 0x8, 0x30, 0x60 }, // ui rect
+  0x00,
+  NULL,
+  0x00,
+  &rect_1A96
+};
+
+// KEH: DSEG: 0x1E74
+// The size of this is unclear.
+static struct ui_region *word_1E74[] = { &region_1C28, &region_1C0C, &region_1C44, &region_1C28 };
 
 #define ANIM_SLOTS 3
 
@@ -60,7 +115,7 @@ uint8_t  *g_anim_buf[ANIM_SLOTS];
 
 /* 12-byte record at DS:BEC2 + 12*i */
 struct anim_entry {
-  uint16_t field_0;      /* +0x00: copied from word_1E74[i + bias]            */
+  struct ui_region *region;       /* +0x00: copied from word_1E74[i + bias]            */
   uint16_t field_2;      /* +0x02: u16 read from anim data at offset 1        */
   uint8_t *data;         /* +0x04/+0x06: far ptr to decompressed anim buffer  */
   uint16_t field_8;      /* +0x08: never touched here                         */
@@ -149,7 +204,7 @@ static void sub_8880(int stat)
     int slot;
 
     // 0x8A1C
-    g_anim_entry[i].field_0 = word_1E74[i + bias];
+    g_anim_entry[i].region = word_1E74[i + bias];
 
     if (matched[i]) {
       slot = match_slot[i];
@@ -185,13 +240,13 @@ static void sub_8880(int stat)
 }
 
 // KEH: seg000:0xB360
-static void sub_B360(int stat, unsigned char *entry)
+void sub_B360(int stat, unsigned char *entry)
 {
+  // XXX: Rather than setting g_anim_count or g_wanted_id, why not pass
+  // these to sub_8880
   g_anim_count = 1;
 
-  // looks like 0x1C0C
-  word_BEC2 = word_1E74[1];
-
+  g_anim_entry[0].region = word_1E74[1];
   g_wanted_id[0] = stat;
 
   // Entry is copied to CDB0/B2, not sure if needed.
@@ -199,19 +254,13 @@ static void sub_B360(int stat, unsigned char *entry)
 
   ui_region_set_active(&full_screen_region, false);
   ui_active_region_clear();
+  ui_region_set_active(&region_1CEC, true);
+  ui_region_set_active(word_1E74[1], false);
 
-  printf("%s: unimplemented\n", __func__);
+  ui_region_print_centered_str((char *)entry, 11);
+
+  ui_region_refresh(&whole_screen);
+
+  ui_region_set_active(&region_1CEC, false);
 }
 
-// KEH: seg000:0xD8CD
-void sub_D8CD(int npc_idx)
-{
-  // Check if anyone is alive?
-  int party_result = check_party_condition(1);
-  // Sizeof npc is 0x68 bytes.
-  unsigned char *entry = ptr_D206 + (npc_idx * 0x68);
-  uint8_t stat = entry[0x63];
-  printf("%s: unimplemented\n", __func__);
-
-  sub_B360(stat, entry);
-}

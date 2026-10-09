@@ -31,7 +31,7 @@ extern uint16_t g_cached_id[];
 extern const char *level_ani_file;
 extern unsigned char level_ani_bytes[];
 
-void sub_D8CD(int npc_idx);
+void sub_B360(int stat, unsigned char *entry);
 
 #ifdef __cplusplus
 }

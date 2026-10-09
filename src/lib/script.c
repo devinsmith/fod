@@ -35,6 +35,9 @@ extern unsigned char *scr_decompressed;
 // currently in ui.c
 extern struct ui_region *active_region;
 
+// KEH: 0xD206, NPC offsets?
+extern unsigned char *ptr_D206;
+
 // KEH: DSEG:1979
 static uint8_t byte_1979 = 0;
 
@@ -130,6 +133,22 @@ static void sub_DF48(struct data_cursor *cursor, uint16_t *out, uint16_t want)
     uint8_t width    = skip_table[selector];
     cursor->offset += width + 1;
   }
+}
+
+// KEH: seg000:0xD8CD
+void sub_D8CD(int npc_idx)
+{
+  // Check if anyone is alive?
+  int party_result = check_party_condition(1);
+  // Sizeof npc is 0x68 bytes.
+  unsigned char *entry = ptr_D206 + (npc_idx * 0x68);
+  uint8_t stat = entry[0x63];
+
+  sub_B360(stat, entry);
+
+  printf("TODO: %s needs to call sub_7E1\n", __func__);
+//  sub_7E1(party_result, 1, 1);
+  byte_DAE6 = 1;
 }
 
 #define TOKEN_MAX_ARGS 5
