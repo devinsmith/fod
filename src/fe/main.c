@@ -579,7 +579,7 @@ static unsigned char *arch_bytes;
 static unsigned char hds_bytes[1180];
 
 // DSEG:0x3C84
-static unsigned char *arch_offset;
+unsigned char *arch_offset;
 
 // KEH DSEG:0x1E96
 static uint16_t word_1E96;
@@ -648,11 +648,6 @@ static char str_buffer[256];
 // KEH DSEG:0xD1D8
 uint16_t word_D1D8 = 0;
 
-// KEH DSEG:0x12C72 - base offset for data pointer calculation
-static uint16_t word_12C72 = 0;
-// KEH DSEG:0x12C74 - base segment for data pointer calculation
-static uint16_t word_12C74 = 0;
-
 // KEH DSEG:0x1EA4
 static uint16_t map_tile_array[9 * 19];
 
@@ -668,10 +663,7 @@ static void sub_5691(int arg0, int arg1);
 static void sub_138D(int arg0);
 
 static void sub_C68D(struct player_rec *player_ptr, bool flag);
-static uint16_t sub_7D9B(struct player_rec *player_ptr);
 static void sub_C5F4(struct player_rec *player_ptr, bool flag);
-static uint16_t sub_C990(struct player_rec *player_ptr, uint16_t *scroll_offset,
-                          uint16_t *max_count);
 static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
                          uint16_t arg3, uint16_t arg4);
 static uint8_t sub_CB58(uint16_t arg0);
@@ -691,7 +683,6 @@ static void sub_7FA8(int x, int y);
 static void sub_113F(int arg0);
 static void sub_92D5(void);
 static void sub_2B70(int arg0);
-static void sub_7E1(int arg0, int arg1, int arg2);
 static void sub_2B93(int arg0);
 static void sub_109D(int arg0);
 static void sub_8FFA(unsigned char *entity_ptr, int val);
@@ -2728,7 +2719,7 @@ static void sub_2B93(int arg0)
           &g_game_state.players[player_data_table[i]];
       entity->condition = 0xFFBF;
     }
-    sub_7E1(0, 0, 1);
+    ui_draw_party_roster(0, false, true);
   }
 
   sub_2B70(arg0);
@@ -2738,12 +2729,6 @@ static void sub_2B93(int arg0)
 static void sub_2B70(int arg0)
 {
   printf("%s: unimplemented (arg0=%d)\n", __func__, arg0);
-}
-
-// KEH: seg000:0x07E1
-static void sub_7E1(int arg0, int arg1, int arg2)
-{
-  printf("%s: unimplemented (%d, %d, %d)\n", __func__, arg0, arg1, arg2);
 }
 
 // KEH: seg000:0xB452
@@ -3321,7 +3306,7 @@ static int sub_103C9()
   }
 
   for (int i = 0; i < g_game_state.party_size; i++) {
-    if (g_game_state.players[i].weapon_id != 0xFF) {
+    if (g_game_state.players[i].weapon_idx != 0xFF) {
       printf("%s: unimplemented (handle weapon?)\n", __func__);
     }
   }
@@ -3420,9 +3405,9 @@ static uint16_t sub_7D9B(struct player_rec *player)
 {
   uint16_t sum = 0;
 
-  // Look at equipted items.
+  // Look at equipted armor items.
   for (int i = 0; i < 3; i++) {
-    uint8_t item_id = player->eq_items[i];
+    uint8_t item_id = player->armor_idx[i];
 
     if (item_id != 0xFF) {
       printf("%s: 0x7DBE unimplemented (item: 0x%02X)\n", __func__, item_id);
@@ -3480,11 +3465,10 @@ static void write_affliction(struct player_rec *player_ptr, uint16_t arg2)
 
 static void sub_C68D(struct player_rec *player_ptr, bool flag)
 {
-  uint16_t var_2;
   uint16_t var_4;
   int16_t cond;
 
-  var_2 = sub_7D9B(player_ptr);
+  uint16_t armor_class = sub_7D9B(player_ptr);
 
   ui_region_set_active(&region_1B2C, false);
   ui_active_region_clear();
@@ -3512,15 +3496,15 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
   }
   ui_region_print_str(str_buffer, 0, 3);
 
-  snprintf(str_buffer, sizeof(str_buffer), "  AC %3u", var_2);
+  snprintf(str_buffer, sizeof(str_buffer), "  AC %3u", armor_class);
   ui_region_print_str(str_buffer, 0, 4);
 
-  if (player_ptr->weapon_id == 0xFF) {
+  if (player_ptr->weapon_idx == 0xFF) {
     snprintf(str_buffer, sizeof(str_buffer), "Weap: Hands");
   } else {
     // TODO: Figure out equipped item name (Weapon).
-    printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->weapon_id);
-    snprintf(str_buffer, sizeof(str_buffer), "Weap: %s", get_item_name(player_ptr->weapon_id));
+    printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->weapon_idx);
+    snprintf(str_buffer, sizeof(str_buffer), "Weap: %s", get_item_name(player_ptr->weapon_idx));
   }
   ui_region_print_str(str_buffer, 0, 5);
 
@@ -3540,12 +3524,12 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
 // KEH: seg001:0182
 static bool is_item_equipped(struct player_rec *player, uint16_t item_id)
 {
-  if (player->weapon_id == item_id) {
+  if (player->weapon_idx == item_id) {
     return true;
   }
 
   for (int i = 0; i < 3; i++) {
-    if (player->eq_items[i] == item_id) {
+    if (player->armor_idx[i] == item_id) {
       return true;
     }
   }

@@ -63,23 +63,23 @@ struct player_rec {
   uint8_t passive_skills[16]; // 0x6E
 
   uint16_t condition;        // 0x44
-  uint16_t max_condition;
+  uint16_t max_condition;    // 0x46
 
   // Padding bytes? (unknown)
   uint8_t unknown_82;      // 0x82
   int8_t unknown_83;       // 0x83
 
   // Value of 0xFF = no item equipped
-  // other values are item IDs
-  uint8_t weapon_id; // Item of of equipped weapon (0x84)
-  uint8_t eq_items[3]; // Other equipped items?
+  // other values are indexes into items array.
+  uint8_t weapon_idx; // Item index of of equipped weapon (0x4A)
+  uint8_t armor_idx[3]; // Equipped armor items (0x4B-0x4D)
 
   uint8_t rank; // 0x88
 
   uint8_t unknown_8C; // 0x8C
 
   uint8_t unknown_91; // 0x91 (player drunk?)
-  uint8_t affliction; // bit encoded
+  uint8_t affliction; // 0x58 - bit encoded
   /*  00000001 - Poisoned
       00000010 - Irradiated
       00000100 - Rabid
@@ -90,7 +90,7 @@ struct player_rec {
       10000000 - Mutant
    */
 
-  struct item_rec items[32];
+  struct item_rec items[32]; // 0x62
 };
 
 // FOD: DSEG:0x231E - 0x31DE
@@ -117,7 +117,7 @@ struct game_state {
   uint8_t map; // 0x30
 
   // Number of players in the party (0-5)
-  uint8_t party_size; // 0x31
+  uint8_t party_size; // 0x31 (0xBF1B)
   uint8_t party_order[5]; // 0x32
 
   uint8_t day_of_week; // 0x37
@@ -133,6 +133,7 @@ extern uint16_t g_cached_id[];
 bool load_game_state();
 bool save_game_state();
 
+uint16_t player_armor_class(const struct player_rec *p);
 int get_player_condition_status(struct player_rec *player);
 int check_party_condition(int arg0);
 

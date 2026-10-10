@@ -146,8 +146,7 @@ void sub_D8CD(int npc_idx)
 
   sub_B360(stat, entry);
 
-  printf("TODO: %s needs to call sub_7E1\n", __func__);
-//  sub_7E1(party_result, 1, 1);
+  ui_draw_party_roster(party_result, true, true);
   byte_DAE6 = 1;
 }
 

@@ -107,6 +107,8 @@ void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 void ui_rect_clear(const struct ui_rect *r);
 void draw_borders(int offset);
 
+void ui_draw_party_roster(uint16_t selected, bool hightlight, bool full_refresh);
+
 #ifdef __cplusplus
 }
 #endif

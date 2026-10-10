@@ -28,6 +28,8 @@ static unsigned char disk1[3776];
 static size_t disk1_size = 0;
 static size_t disk1_offset = 0;
 
+extern unsigned char *arch_offset; // currently in main.c
+
 static void read_bytes(void *buffer, size_t count)
 {
   if (count + disk1_offset > disk1_size) {
@@ -177,11 +179,11 @@ static void read_player_rec(struct player_rec *player)
   player->unknown_82 = read_uint8();
   player->unknown_83 = (int8_t)read_uint8();
 
-  player->weapon_id = read_uint8();
+  player->weapon_idx = read_uint8();
 
-  /* Read equipped items */
+  /* Read equipped armor items */
   for (int i = 0; i < 3; i++) {
-    player->eq_items[i] = read_uint8();
+    player->armor_idx[i] = read_uint8();
   }
 
   /* Read rank and affliction */
@@ -528,4 +530,30 @@ const char *get_item_name(int item_id)
   }
 
   return item_names[item_id];
+}
+
+/* KEH: (seg000:7D9B) -- calculate armor class */
+uint16_t player_armor_class(const struct player_rec *player)
+{
+  uint16_t sum = 0;
+
+  // Look at equipted armor items.
+  for (int i = 0; i < 3; i++) {
+    uint8_t item_id = player->armor_idx[i];
+
+    if (item_id != 0xFF) {
+      printf("%s: 0x7DBE unimplemented (item: 0x%02X)\n", __func__, item_id);
+      // Manipulates sum
+      // sum += item_defs[p->items[p->eq_items[i]].item_id].armor; ?????
+    }
+  }
+
+  if (sum == 0) {
+    // 0x7DE1
+    // Deal with player's profession? Does each profession have an armor class?
+    uint8_t prof_val = arch_offset[(player->profession << 7) + 0x7A];
+    return prof_val;
+  }
+
+  return sum;
 }

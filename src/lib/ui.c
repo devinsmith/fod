@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "game.h"
 #include "platform.h"
 #include "resource.h"
 #include "tables.h"
@@ -77,6 +78,21 @@ struct ui_region full_screen_region = {
   0x00,
   NULL,
   0x0,
+  NULL
+};
+
+// KEH: DSEG:0x1AF4
+static struct ui_region party_region = {
+  0x01, // Initial X cursor position
+  0x13, // Initial Y cursor position
+  0x26, // Max X cursor position
+  0x17, // Max Y cursor position
+  0x01, // Cursor index x
+  0x13, // Cursor index y
+  { 0x04, 0x9C, 0x98, 0x28 }, // ui rect
+  0x08,
+  NULL,
+  0x00,
   NULL
 };
 
@@ -718,4 +734,94 @@ void print_wrapped_text(const char *str)
       i++;
     }
   }
+}
+
+static const char *condition_names[] = {
+  "OK ",
+  "UNC", // Unconcious
+  "SER", // Serious
+  "CRT", // Critical
+  "COM", // Comotose
+  "DED"  // Dead
+};
+
+// KEH: seg000:0x07E1
+void ui_draw_party_roster(uint16_t selected, bool highlight, bool full_refresh)
+{
+  char buf[32];
+  struct ui_region *saved_region = active_region;
+
+  ui_region_set_active(&party_region, false);
+  ui_active_region_clear();
+
+  for (int i = 0; i < g_game_state.party_size; i++) {
+    struct player_rec *p = &g_game_state.players[i];
+
+    uint16_t ac = player_armor_class(p);
+
+    // Get ammo
+    int ammo = 0;
+    if (p->weapon_idx != 0xFF) {
+      printf("%s: 0x9CC unimplemented (Weapon: %d)\n", __func__, p->weapon_idx);
+    }
+
+    // XXX: need to look this up properly.
+    const char *wname = "Hands";
+
+    // Look up DSEG 0x197A if weapon is not 0xFF
+
+    snprintf(buf, sizeof(buf), "F%1d>", i + 1);
+    if (highlight && selected == i) {
+      inverse_flag = true;
+    }
+
+    ui_region_print_str(buf, 0, i);
+    inverse_flag = false;
+
+    // 0x890
+    // Look up DSEG 0x197A is not 0xFF
+    // sub_69E8(i, wname);
+    //   continue;
+
+    // 0x89D
+    // column 3: name, AC, ammo
+    snprintf(buf, sizeof(buf), "%-12.12s %2.1d %3.1d", p->name, (int)ac, ammo);
+    ui_region_print_str(buf, 3, i);
+
+    // column 23: MAX?
+    snprintf(buf, sizeof(buf), "%3.1d", p->max_condition);
+    if (p->affliction) {
+      inverse_flag = true;
+    }
+    ui_region_print_str(buf, 23, i);
+    inverse_flag = false;
+
+    // column 27: CON -- condition text, else numeric value
+    int cond = get_player_condition_status(p);
+    if (cond > 0) {
+      inverse_flag = true;
+      ui_region_print_str(condition_names[cond], 27, i);
+      inverse_flag = false;
+    } else {
+      snprintf(buf, sizeof(buf), "%3.1d", p->condition);
+      ui_region_print_str(buf, 27, i);
+    }
+
+    // column 31: WEAPON
+    // Is weapon jammed?
+    // if (wsel != 0xFF && (player_slot(p, wsel)->flags & 1)) {
+    //   inverse_flag = true;
+    // }
+    snprintf(buf, sizeof(buf), "%-7.7s", wname);
+    ui_region_print_str(buf, 31, i);
+    inverse_flag = false;
+  }
+
+  if (full_refresh) {
+    ui_region_refresh_active();
+  } else {
+    ui_region_queue_rect(&active_region->rect);
+  }
+
+  ui_region_set_active(saved_region, false);
 }
