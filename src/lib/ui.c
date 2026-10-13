@@ -38,6 +38,9 @@ static struct ui_unknown2 *ptr_0CD0 = &data_074F;
 // KEH: DSEG:0x1834
 uint8_t byte_1834 = 0;
 
+// KEH: DSEG:0x1979
+bool do_expand = false;
+
 // FEH: DSEG:0x028F
 // KEH: DSEG:0x1978
 // Will contain 0x00 or 0xFF
@@ -98,6 +101,7 @@ static struct ui_region party_region = {
 
 static void ui_sub_048B();
 static void draw_border_chr(uint8_t chr_index, int i, int line_num);
+static void prepare_text(const char *str);
 
 // FOD: 0x00B0
 // KEH: 0x077F
@@ -545,7 +549,6 @@ void ui_region_set_active(struct ui_region *arg1, bool clear)
 // FOD: seg000:0x168E
 // KEH: 0xDE40
 // Prints a string within a region, at (x,y) coordinates
-// "Welcome", 2, 0xB
 void ui_region_print_str(const char *str, int x_pos, int y_pos)
 {
   struct ui_region *si = active_region;
@@ -558,7 +561,7 @@ void ui_region_print_str(const char *str, int x_pos, int y_pos)
     si->cursor_index_y = y_pos + si->initial_y_cursor_pos;
   }
   // 0x16BC
-  print_wrapped_text(str);
+  prepare_text(str);
 }
 
 // KEH: seg000:0x2AFC
@@ -668,6 +671,44 @@ void ui_region_newline_or_scroll()
 
   // DE39
   ui_region_scroll_line(si);
+}
+
+char str_tag_buffer[2048];
+
+// KEH: seg000:DB58
+// Replaces '^' in strings with the current player name.
+static char *expand_player_name(const char *src)
+{
+  char *dst = str_tag_buffer;
+
+  for (;;) {
+    char c = *src++;
+
+    if (c == '\0') {
+      *dst = '\0';          /* loc_DB87: stosb of the terminator */
+      break;
+    }
+
+    if (c == '^') {
+      const char *rep = current_player_name;
+      while (*rep) {
+        *dst++ = *rep++;
+      }
+    } else {
+      *dst++ = c;           /* loc_DB84 */
+    }
+  }
+
+  return str_tag_buffer;
+}
+
+// KEH: seg000:DB8B
+static void prepare_text(const char *str)
+{
+  if (do_expand) {
+    str = expand_player_name(str);
+  }
+  print_wrapped_text(str);
 }
 
 // FOD: seg000:0x159E

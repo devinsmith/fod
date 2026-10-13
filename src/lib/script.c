@@ -41,9 +41,6 @@ extern struct ui_region *active_region;
 // KEH: 0xD206, NPC offsets?
 extern unsigned char *ptr_D206;
 
-// KEH: DSEG:1979
-static uint8_t byte_1979 = 0;
-
 // KEH: DSEG:0x1A32
 static uint16_t word_1A32 = 0;
 
@@ -249,9 +246,9 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
   }
 
   // vga_pollkey?
-  byte_1979 = 1;
+  do_expand = true;
+  set_current_player_name(party_idx);
 
-  struct player_rec *player = &g_game_state.players[party_idx];
   if (!bool_DAE6 && cmd_type == 6) {
     sub_D8CD(arg4);
   }

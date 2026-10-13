@@ -126,6 +126,7 @@ struct game_state {
 };
 
 extern struct game_state g_game_state;
+extern const char *current_player_name;
 
 extern uint16_t g_wanted_id[];
 extern uint16_t g_cached_id[];
@@ -136,6 +137,7 @@ bool save_game_state();
 uint16_t player_armor_class(const struct player_rec *p);
 int get_player_condition_status(struct player_rec *player);
 int check_party_condition(int arg0);
+void set_current_player_name(int player_idx);
 
 const char *get_item_name(int item_id);
 

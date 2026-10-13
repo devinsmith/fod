@@ -28,6 +28,9 @@ static unsigned char disk1[3776];
 static size_t disk1_size = 0;
 static size_t disk1_offset = 0;
 
+// DSEG:0x1A4A
+const char *current_player_name;
+
 extern unsigned char *arch_offset; // currently in main.c
 
 static void read_bytes(void *buffer, size_t count)
@@ -399,6 +402,12 @@ int check_party_condition(int arg0)
   return g_game_state.party_size;
 }
 
+// KEH: seg000:0x98E3
+void set_current_player_name(int player_idx)
+{
+  current_player_name = g_game_state.players[player_idx].name;
+  // XXX:Should this function also return this for callers?
+};
 
 // This comes from "globals", 0x2A bytes in, Each item string can be 24 bytes
 static const char *item_names[] = {
