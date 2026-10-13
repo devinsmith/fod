@@ -75,6 +75,7 @@ struct ui_region {
 
 extern struct ui_region full_screen_region;
 extern struct ui_rect whole_screen;
+extern struct ui_region encounter_region;
 
 void ui_region_newline_or_scroll();
 void ui_region_queue_rect(const struct ui_rect *input);

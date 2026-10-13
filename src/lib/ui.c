@@ -36,7 +36,7 @@ static struct ui_unknown2 *ptr_0CCE = &data_074F;
 static struct ui_unknown2 *ptr_0CD0 = &data_074F;
 
 // KEH: DSEG:0x1834
-static uint8_t byte_1834 = 0;
+uint8_t byte_1834 = 0;
 
 // FEH: DSEG:0x028F
 // KEH: DSEG:0x1978
@@ -97,6 +97,7 @@ static struct ui_region party_region = {
 };
 
 static void ui_sub_048B();
+static void draw_border_chr(uint8_t chr_index, int i, int line_num);
 
 // FOD: 0x00B0
 // KEH: 0x077F
@@ -347,6 +348,21 @@ void ui_print_positioned_str(const uint8_t *str)
   }
 
   region->line_number = saved;
+}
+
+// KEH: seg000:DD5F
+/* Buffer: [x][y][chr][chr]...[0xFF] */
+void ui_print_border_chr(const uint8_t *str)
+{
+  uint8_t x = str[0];
+  uint8_t y = str[1];
+  str += 2;
+
+  while (*str != STR_END) {
+    draw_border_chr(*str, x, y);
+    x++;
+    str++;
+  }
 }
 
 // FOD: seg000:0x1778
@@ -825,3 +841,67 @@ void ui_draw_party_roster(uint16_t selected, bool highlight, bool full_refresh)
 
   ui_region_set_active(saved_region, false);
 }
+
+// KEH: seg000:DAD3
+static void sub_DAD3()
+{
+  // 0x189F
+  const uint8_t str1[] = {
+    7, 5, 0x84, 0x80,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x80, 0x84, 0xFF
+  };
+
+  // 18B8
+  const uint8_t str2[] = {
+    7, 6, 0x82,
+    0xB5, 0xB5, 0xB5, 0xB5, 0xB5,
+    0xB5, 0xB5, 0xB5, 0xB5, 0xB5,
+    0x82, 0xFF
+  };
+
+  // 18C7
+  const uint8_t str3[] = {
+    0x20, 0x6, 0x82,
+    0xB5, 0xB5, 0xB5, 0xB5, 0xB5,
+    0xB5, 0xB5, 0xB5, 0xB5, 0xB5,
+    0x82, 0xFF
+  };
+
+  // 0x18D6
+  const uint8_t str4[] = {
+    7, 0x12, 0x84, 0x80,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x81, 0x81, 0x81,
+    0x81, 0x81, 0x80, 0x84, 0xFF
+  };
+
+  ui_print_border_chr(str1);
+  ui_print_border_chr(str2);
+  ui_print_border_chr(str3);
+
+  // loc_DAE8
+  ui_print_border_chr(str4);
+}
+
+static struct ui_rect rect_1A66 = { 0x1C, 0x28, 0x68, 0x70 };
+
+// KEH: DSEG:0x1B10
+struct ui_region encounter_region = {
+  0x08,
+  0x06,
+  0x1F,
+  0x11,
+  0x08,
+  0x06,
+  { 0x20, 0x30, 0x60, 0x60 },
+  0x00,
+  sub_DAD3,
+  0x00,
+  &rect_1A66
+};

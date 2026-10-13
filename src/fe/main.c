@@ -190,7 +190,7 @@ struct level_map_header {
   uint8_t  boundary_msg;    // 0x0D - movement-blocked message index
 } __attribute__((packed));
 
-static unsigned char *level_map_large = NULL;
+unsigned char *level_map_large = NULL;
 
 // KEH: DSEG: 0xD9BC
 static const char *level_scr_file = NULL;
@@ -287,20 +287,6 @@ static struct ui_region unknown_2CA = {
 // KEH: DSEG:0x1A5E
 static struct ui_rect data_1A5E = { 4, 24, 152, 144 };
 
-// KEH: DSEG:0x1B10
-static struct ui_region encounter_region = {
-  0x01,
-  0x15,
-  0x26,
-  0x17,
-  0x01,
-  0x15,
-  { 0x04, 0x04, 0x98, 0x98 },
-  0x00,
-  0x00,
-  0x00,
-  NULL
-};
 
 // KEH: DSEG:0x1AD8
 static struct ui_region message_region = {
@@ -604,8 +590,9 @@ static uint16_t word_BEE8 = 0;
 
 // KEH DSEG:0xD9D0
 static uint16_t word_D9D0 = 0;
+
 // KEH DSEG:0xDAE6
-uint8_t byte_DAE6 = 0;
+bool bool_DAE6 = false;
 
 // KEH DSEG:0x1D126
 static uint16_t word_1D126 = 0;
@@ -2064,7 +2051,7 @@ static void sub_1834(unsigned char *map_pos, int arg2, int npc_num)
 
     loc_98F4(map_pos, word_D1D8, word_D9D0, word_BEC0, 0);
 
-    if (byte_DAE6 != 0 && word_D1D8 == 0) {
+    if (bool_DAE6 && word_D1D8 == 0) {
       sub_B452();
     }
   }
@@ -2735,7 +2722,7 @@ static void sub_2B70(int arg0)
 static void sub_B452(void)
 {
   word_BEE6 = 0;
-  byte_DAE6 = 0;
+  bool_DAE6 = false;
 
   ui_region_set_active(&full_screen_region, false);
   ui_active_region_clear();
@@ -2755,7 +2742,7 @@ static void sub_1766(void)
   }
 
   // 1825
-  if (byte_DAE6 != 0) {
+  if (bool_DAE6) {
     printf("%s: 0x182C unimplemented\n", __func__);
   }
 }
