@@ -52,6 +52,16 @@ struct plat_driver {
   uint16_t (*poll_scroll_keys)();
 };
 
+// Special keys returned by readkey
+enum {
+  KEY_RIGHT   = 0xFA,
+  KEY_LEFT    = 0xFB,
+  KEY_DOWN    = 0xFC,
+  KEY_UP      = 0xFD,
+  KEY_CONFIRM = 0xFE,   // Enter or Space
+  KEY_ESC     = 0xFF,
+};
+
 void register_platform_driver(struct plat_driver *driver);
 
 int vga_initialize(int game_width, int game_height);
@@ -66,6 +76,12 @@ bool vga_peek_key();
 bool vga_poll_events();
 void sys_delay(unsigned int ms);
 uint64_t sys_ticks();
+
+// Should be implemented by drivers.
+bool sys_kbhit(void);
+uint8_t sys_getch(void);
+
+uint8_t sys_readkey(void);
 
 // Retrieve scroll speed.
 uint16_t sys_scroll_speed();

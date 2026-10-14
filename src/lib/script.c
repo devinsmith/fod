@@ -141,8 +141,8 @@ static void sub_987A(struct data_cursor *data, uint16_t index)
   sub_8F9D(data, index);
   ui_region_refresh_active();
 
-  // Wait for enter key.
-  while (vga_waitkey() != 0xFE);
+  // Wait for confirmation key.
+  while (sys_readkey() != KEY_CONFIRM);
 
   // loc_9898
   ui_region_set_active(saved_region, false);

@@ -217,3 +217,57 @@ uint16_t sys_poll_scroll_keys()
 
   return 0;
 }
+
+// KEH: seg000:FBE2: Borland C's toupper(). This is ascii only, we don't deal with locale.
+static uint8_t toupper_ascii(uint8_t ch)
+{
+  return (ch >= 'a' && ch <= 'z') ? (uint8_t)(ch - 0x20) : ch;
+}
+
+uint8_t sys_readkey(void)
+{
+  for (;;) {
+    // loc_6C74 / loc_6C6B: spin until a key is waiting, calling the
+    // idle function each pass. (it is throttled internally to 3 ticks)
+    while (!sys_kbhit()) {
+      //anim_update(false);
+    }
+
+    uint8_t ch = sys_getch();
+    uint8_t result = 0;
+
+    if (ch != 0) {
+      switch (ch) {
+      case 0x0D:
+      case 0x20: result = KEY_CONFIRM; break;
+      case 0x1B: result = KEY_ESC;     break;
+      default:   result = toupper_ascii(ch); break;
+      }
+    } else {
+      uint8_t scan = sys_getch();       // extended key scancode
+      switch (scan) {
+      case 0x3B: case 0x3C: case 0x3D:
+      case 0x3E: case 0x3F:           // F1-F5 pass through unchanged
+        result = scan;
+        break;
+      case 0x44:                      // F10: toggle sound, never returned
+#if 0
+        play_sound(1);
+        sound_enabled = (sound_enabled == 0);
+        play_sound(1);
+        play_sound(1);
+#endif
+        break;
+      case 0x48: result = KEY_UP;    break;
+      case 0x4B: result = KEY_LEFT;  break;
+      case 0x4D: result = KEY_RIGHT; break;
+      case 0x50: result = KEY_DOWN;  break;
+      default:   break;               // F6-F9, Home, PgUp, End, ... ignored
+      }
+    }
+
+    if (result != 0) {
+      return result;
+    }
+  }
+}

@@ -211,6 +211,7 @@ static void q_push_ext(uint8_t scan)
   q_push(scan);
 }
 
+
 static void pump_events(void)
 {
   SDL_Event e;
@@ -250,6 +251,17 @@ bool sys_kbhit(void)
   return q_head != q_tail;
 }
 
+uint8_t sys_getch(void)
+{
+  while (q_head == q_tail) {
+    SDL_Delay(1);
+    pump_events();
+  }
+  uint8_t b = key_q[q_head];
+  q_head = (q_head + 1) % sizeof(key_q);
+  return b;
+}
+
 static void sdl_pace()
 {
     static Uint64 next = 0;
@@ -283,8 +295,6 @@ void display_update(void)
   SDL_RenderPresent(renderer);
   SDL_DestroyTexture(texture);
 }
-
-
 
 static uint8_t translate_key(const SDL_Event *e)
 {
