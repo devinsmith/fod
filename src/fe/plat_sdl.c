@@ -42,6 +42,10 @@ static SDL_Surface *surface = NULL;
 static SDL_AudioDeviceID audio_dev = 0;
 static SDL_atomic_t spk_atom;
 
+// Keyboard buffer.
+static uint8_t key_q[64];
+static unsigned int q_head, q_tail;
+
 // KEH: DSEG:0x1A04
 // In the future, it may be better to control the scroll speed
 // via a config variable in order to simplify the platform abstraction
@@ -189,6 +193,63 @@ void sdl_end(void)
   SDL_Quit();
 }
 
+// Push key into keyboard buffer.
+static void q_push(uint8_t b)
+{
+  unsigned int next = (q_tail + 1) % sizeof(key_q);
+  if (next != q_head) {
+    key_q[q_tail] = b;
+    q_tail = next;
+  }
+}
+
+// Push extended key into keyboard buffer.
+static void q_push_ext(uint8_t scan)
+{
+  // Original IBM PC/XT pushed 0, IBM PC/AT pushed 224 (0xE0)
+  q_push(0);
+  q_push(scan);
+}
+
+static void pump_events(void)
+{
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    switch (e.type) {
+    case SDL_QUIT:
+      exit(0);
+    case SDL_TEXTINPUT:
+      for (const char *p = e.text.text; *p; p++) {
+        if ((uint8_t)*p > 0x20 && (uint8_t)*p < 0x7F) {
+          q_push((uint8_t)*p);
+        }
+      }
+      break;
+    case SDL_KEYDOWN: {
+      SDL_Keycode k = e.key.keysym.sym;
+      if      (k == SDLK_RETURN || k == SDLK_KP_ENTER) q_push(0x0D);
+      else if (k == SDLK_ESCAPE)    q_push(0x1B);
+      else if (k == SDLK_SPACE)     q_push(0x20);
+      else if (k == SDLK_BACKSPACE) q_push(0x08);   // for text entry
+      else if (k == SDLK_UP)        q_push_ext(0x48);
+      else if (k == SDLK_LEFT)      q_push_ext(0x4B);
+      else if (k == SDLK_RIGHT)     q_push_ext(0x4D);
+      else if (k == SDLK_DOWN)      q_push_ext(0x50);
+      else if (k >= SDLK_F1 && k <= SDLK_F10) {
+        q_push_ext((uint8_t)(0x3B + (k - SDLK_F1)));
+      }
+      break;
+      }
+    }
+  }
+}
+
+bool sys_kbhit(void)
+{
+  pump_events();
+  return q_head != q_tail;
+}
+
 static void sdl_pace()
 {
     static Uint64 next = 0;
@@ -222,6 +283,8 @@ void display_update(void)
   SDL_RenderPresent(renderer);
   SDL_DestroyTexture(texture);
 }
+
+
 
 static uint8_t translate_key(const SDL_Event *e)
 {

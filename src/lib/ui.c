@@ -600,7 +600,7 @@ static uint16_t bios_ticks(void)
 }
 
 // KEH: seg000:0x6B44
-static void animate_tiles(uint8_t force)
+static void animate_tiles(bool force)
 {
   uint16_t now = bios_ticks();
   (void)now;
