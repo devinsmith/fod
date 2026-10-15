@@ -23,6 +23,7 @@
 #include "cursor.h"
 #include "game.h"
 #include "hexdump.h"
+#include "npc.h"
 #include "platform.h"
 #include "script.h"
 #include "sfx.h"
@@ -37,9 +38,6 @@ extern unsigned char *level_map_large;
 
 // currently in ui.c
 extern struct ui_region *active_region;
-
-// KEH: 0xD206, NPC offsets?
-extern unsigned char *ptr_D206;
 
 // KEH: DSEG:0x1A32
 static uint16_t word_1A32 = 0;
@@ -157,7 +155,7 @@ unsigned char *sub_8B08(uint16_t id, uint16_t *out_index)
   uint8_t npc_count = level_map_large[9];
 
   for (uint16_t i = 0; i < npc_count; i++) {
-    unsigned char *entry = ptr_D206 + (i * 0x68);
+    unsigned char *entry = npc_base + (i * 0x68);
     if (entry[0x49] == id) {
       *out_index = i;
       return entry;
@@ -203,7 +201,7 @@ void sub_D8CD(int npc_idx)
   // Check if anyone is alive?
   int party_result = check_party_condition(1);
   // Sizeof npc is 0x68 bytes.
-  unsigned char *entry = ptr_D206 + (npc_idx * 0x68);
+  unsigned char *entry = npc_base + (npc_idx * 0x68);
   uint8_t stat = entry[0x63];
 
   sub_B360(stat, entry);

@@ -27,6 +27,7 @@
 #include "fileio.h"
 #include "game.h"
 #include "hexdump.h"
+#include "npc.h"
 #include "platform.h"
 #include "random.h"
 #include "resource.h"
@@ -150,9 +151,6 @@ static uint8_t byte_D1E3;
 // KEH: DSEG:D1E8
 static uint8_t byte_D1E8;
 
-// KEH: DSEG:D206
-unsigned char *ptr_D206 = NULL;
-
 // KEH: DSEG:D9DA
 static unsigned char *ptr_D9DA = NULL;
 
@@ -183,7 +181,7 @@ struct level_map_header {
   uint8_t  minute_inc;      // 0x06 - minute advancement per tick on overworld
   uint8_t  unknown_07;      // 0x07
   uint8_t  unknown_08;      // 0x08
-  uint8_t  npc_count;       // 0x09 - number of NPC entries (ptr_D206)
+  uint8_t  npc_count;       // 0x09 - number of NPC entries
   uint8_t  unknown_0A;      // 0x0A
   uint8_t  creature_count;  // 0x0B - number of creature entries (ptr_D1DE)
   uint8_t  unknown_0C;      // 0x0C
@@ -1820,10 +1818,10 @@ static void sub_D78()
   for (int i = 0; i < val1; i++) {
 
     offset = i * 0x68;
-    unknowns[0] = ptr_D206[0x65 + offset];
-    unknowns[1] = ptr_D206[0x5c + offset];
-    unknowns[2] = ptr_D206[0x5B + offset];
-    unknowns[3] = ptr_D206[0x5F + offset];
+    unknowns[0] = npc_base[0x65 + offset];
+    unknowns[1] = npc_base[0x5c + offset];
+    unknowns[2] = npc_base[0x5B + offset];
+    unknowns[3] = npc_base[0x5F + offset];
 
     printf("%x %x %x %x\n", unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
 
@@ -1930,8 +1928,8 @@ static void sub_8C(int arg0)
   // [0x404] encounter/event data inside level_map_large
   word_D9B8 = *(uint16_t *)(base + 0x404);
 
-  // [0x406] used by sub_D8CD: array of 0x68-byte entries
-  ptr_D206 = level_map_large + *(uint16_t *)(base + 0x406);
+  // [0x406] used by sub_D8CD: array of 0x68-byte npc entries
+  npc_base = level_map_large + *(uint16_t *)(base + 0x406);
 
   // [0x408]
   word_D9D4 = *(uint16_t *)(base + 0x408);
@@ -2017,7 +2015,7 @@ static int is_walkable(int x, int y)
 
   int count = level_map_large[9];
   for (int i = 0; i < count; i++) {
-    unsigned char *entry = ptr_D206 + (i * 0x68);
+    unsigned char *entry = npc_base + (i * 0x68);
     if (entry[0x5B] == (uint8_t)x && entry[0x5C] == (uint8_t)y)
       return 0;
   }
@@ -2150,7 +2148,7 @@ static void sub_EF7(void)
     uint8_t npc_count = level_map_large[9];
 
     for (int i = 0; i < npc_count; i++) {
-      unsigned char *entry = ptr_D206 + (i * 0x68);
+      unsigned char *entry = npc_base + (i * 0x68);
 
       if (entry[0x5D] < 0x79)
         continue;
@@ -2849,7 +2847,7 @@ static void sub_253F(int direction, int arg2)
       // Loop through ptr_D206 to find NPC at local_x, local_y
       int npc_count = level_map_large[9];
       for (int i = 0; i < npc_count; i++) {
-        unsigned char *entry = ptr_D206 + (i * 0x68);
+        unsigned char *entry = npc_base + (i * 0x68);
         if (entry[0x5B] == (uint8_t)local_x && entry[0x5C] == (uint8_t)local_y) {
           entry[0x50] &= 0x7F;
           sub_1834(entry + 0x66, 6, i);
@@ -3092,6 +3090,7 @@ static void sub_39FE(int arg1, int arg2)
 
   tile_res = resource_load(RESOURCE_TILES, 0, 0);
 
+  // It's unclear how large this should be.
   level_map_large = malloc(0x10000);
 
   hexdump(tile_res->bytes, 32);
@@ -3321,7 +3320,7 @@ static int sub_4F1A(int arg0)
   // Check NPC interactions.
   for (int i = 0; i < num_npcs; i++) {
     // Each NPC is 0x68 bytes.
-    unsigned char *npc_entry = ptr_D206 + (i * 0x68);
+    unsigned char *npc_entry = npc_base + (i * 0x68);
     if (npc_entry[0x5D] > 0x3C) {
       printf("%s: unimplemented entry? (%d) Jump to loc_5094\n", __func__,
           npc_entry[0x5D]);
