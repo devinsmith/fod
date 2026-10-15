@@ -1480,10 +1480,6 @@ static int sub_D75(int current_char)
 
       ui_region_refresh_active();
     }
-
-    if (!dirty) {
-      sys_delay(10);
-    }
   }
 }
 
@@ -1603,7 +1599,6 @@ int main(int argc, char *argv[])
     // 14D5 and screen_draw are similar
     ui_region_refresh(&data_029E);
 
-  //  int local_val = 0;
     ui_region_set_active(&unknown_302, false);
 
     int current_char = 0;

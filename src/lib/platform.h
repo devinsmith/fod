@@ -76,6 +76,7 @@ bool vga_peek_key();
 bool vga_poll_events();
 void sys_delay(unsigned int ms);
 uint64_t sys_ticks();
+uint16_t bios_ticks(void);
 
 // Should be implemented by drivers.
 bool sys_kbhit(void);

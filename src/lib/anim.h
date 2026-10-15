@@ -32,6 +32,7 @@ extern const char *level_ani_file;
 extern unsigned char level_ani_bytes[];
 
 void sub_B360(int stat, unsigned char *entry);
+void anim_update(bool force);
 
 #ifdef __cplusplus
 }

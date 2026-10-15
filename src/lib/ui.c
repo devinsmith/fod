@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "anim.h"
 #include "game.h"
 #include "platform.h"
 #include "resource.h"
@@ -593,20 +594,6 @@ static void plot_font_str(const char *str, int len)
   }
 }
 
-// KEH: seg000:0xE08C: BIOS tick count at 18.2065 Hz, low 16 bits only
-static uint16_t bios_ticks(void)
-{
-  return (uint16_t)(sys_ticks() * 1193182u / 65536000u);
-}
-
-// KEH: seg000:0x6B44
-static void animate_tiles(bool force)
-{
-  uint16_t now = bios_ticks();
-  (void)now;
-  printf("%s:0x6B4E unhandled\n", __func__);
-}
-
 #define ROW_STRIDE 0xA0
 
 // KEH: seg000:0xE18D scrolls the region up 8 rows (one text line), animated.
@@ -644,7 +631,7 @@ void ui_region_scroll_line(const struct ui_region *r)
     if (scroll_speed != 0) {
       // Delay loop (keep any tile animations ticking)
       uint64_t end = sys_ticks() + scroll_delay_ms[scroll_speed - 1];
-      do { animate_tiles(0); sys_delay(1); } while (sys_ticks() < end);
+      do { anim_update(false); sys_delay(1); } while (sys_ticks() < end);
       // for slowing down or speeding up scolling.
       scroll_speed = sys_poll_scroll_keys();
     }

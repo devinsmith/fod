@@ -16,16 +16,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "anim.h"
 #include "platform.h"
+#include "sfx.h"
 
 #ifndef nitems
 #define nitems(_a) (sizeof((_a)) / sizeof((_a)[0]))
 #endif /* nitems */
 
 static struct plat_driver *sys_ctx = NULL;
+static bool sound_enabled = true;
 
 #define VGA_WIDTH 320
 #define VGA_HEIGHT 200
@@ -230,13 +234,18 @@ uint8_t sys_readkey(void)
     // loc_6C74 / loc_6C6B: spin until a key is waiting, calling the
     // idle function each pass. (it is throttled internally to 3 ticks)
     while (!sys_kbhit()) {
-      //anim_update(false);
+      // In FOD, the idle function is a randomize call, but in KEH it's
+      // animation update.
+      anim_update(false);
     }
 
     uint8_t ch = sys_getch();
     uint8_t result = 0;
 
     if (ch != 0) {
+      // The toupper_ascii is only done in KEH, but in FOD it
+      // is not done in order to allow character creation with mixed case
+      // names.
       switch (ch) {
       case 0x0D:
       case 0x20: result = KEY_CONFIRM; break;
@@ -251,12 +260,11 @@ uint8_t sys_readkey(void)
         result = scan;
         break;
       case 0x44:                      // F10: toggle sound, never returned
-#if 0
         play_sound(1);
-        sound_enabled = (sound_enabled == 0);
+        sound_enabled = (sound_enabled == false);
+        hw_speaker_set(sound_enabled);
         play_sound(1);
         play_sound(1);
-#endif
         break;
       case 0x48: result = KEY_UP;    break;
       case 0x4B: result = KEY_LEFT;  break;
@@ -271,3 +279,10 @@ uint8_t sys_readkey(void)
     }
   }
 }
+
+// KEH: seg000:0xE08C: BIOS tick count at 18.2065 Hz, low 16 bits only
+uint16_t bios_ticks(void)
+{
+  return (uint16_t)(sys_ticks() * 1193182u / 65536000u);
+}
+

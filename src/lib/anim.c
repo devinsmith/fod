@@ -24,11 +24,13 @@
 #include "compress.h"
 #include "game.h"
 #include "hexdump.h"
+#include "platform.h"
 #include "resource.h"
+#include "tables.h"
 #include "ui.h"
 
 // KEH: DSEG: 0xD1E4
-static uint16_t word_D1E4;
+static uint16_t g_anim_next;
 
 // KEH: DSEG: 0xD9C8
 const char *level_ani_file = NULL;
@@ -39,6 +41,8 @@ unsigned char level_ani_bytes[256];
 extern uint16_t word_BEE6;
 
 extern uint16_t g_anim_count;
+
+extern unsigned char *scratch;
 
 // KEH: DSEG:0x1A86
 static struct ui_rect rect_1A86 = {
@@ -116,10 +120,10 @@ uint8_t  *g_anim_buf[ANIM_SLOTS];
 /* 12-byte record at DS:BEC2 + 12*i */
 struct anim_entry {
   struct ui_region *region;       /* +0x00: copied from word_1E74[i + bias]            */
-  uint16_t field_2;      /* +0x02: u16 read from anim data at offset 1        */
-  uint8_t *data;         /* +0x04/+0x06: far ptr to decompressed anim buffer  */
+  uint16_t pos;          /* +0x02: u16 read from anim data at offset 1        */
+  unsigned char *script; /* +0x04/+0x06: far ptr to decompressed anim buffer  */
   uint16_t field_8;      /* +0x08: never touched here                         */
-  uint8_t  active;       /* +0x0A: set to 1                                   */
+  bool     active;       /* +0x0A: set to 1                                   */
   uint8_t  field_B;      /* +0x0B: never touched here                         */
 };
 
@@ -230,13 +234,13 @@ static void sub_8880(int stat)
       }
     }
     uint8_t *p = g_anim_buf[slot];
-    g_anim_entry[i].data    = p;
-    g_anim_entry[i].field_2 = (uint16_t)(p[1] | (p[2] << 8));
-    g_anim_entry[i].active  = 1;
+    g_anim_entry[i].script  = p;
+    g_anim_entry[i].pos     = (uint16_t)(p[1] | (p[2] << 8));
+    g_anim_entry[i].active  = true;
   }
 
   word_BEE6 = stat ? 3 : 1;
-  word_D1E4 = 0;
+  g_anim_next = 0;
 }
 
 // KEH: seg000:0xB360
@@ -262,5 +266,73 @@ void sub_B360(int stat, unsigned char *entry)
   ui_region_refresh(&whole_screen);
 
   ui_region_set_active(&region_1CEC, false);
+}
+
+#define ROW_BYTES 160
+void sprite_blit(const uint8_t *frame, uint16_t x, uint16_t y)
+{
+  const uint8_t *src = frame + 4;
+  uint8_t  w     = frame[0];
+  uint16_t rows  = frame[1];
+  uint16_t words = w >> 1;
+
+  uint16_t di = get_160_offset(y);
+  uint8_t *dst = scratch + di + (x >> 1);
+
+  do {
+      memcpy(dst, src, words * 2);       /* rep movsw */
+      src += words * 2;
+      dst += words * 2 + (ROW_BYTES - w);
+  } while (--rows);                      /* see the zero-height note below */
+}
+
+// KEH: seg001:10DD
+void sprite_draw_frame(uint16_t idx, const uint8_t *bank, uint16_t x, uint16_t y)
+{
+  uint16_t rel = bank[3 + idx*2] | (bank[3 + idx*2 + 1] << 8);  /* LE word */
+  const uint8_t *frame = bank + rel;     /* 16-bit offset math in the original */
+  sprite_blit(frame, (uint16_t)(x + frame[2]), (uint16_t)(y + frame[3]));  /* sub_11090 */
+}
+
+// KEH: seg000:0x6B44
+void anim_update(bool force)
+{
+  uint16_t now = bios_ticks();
+
+  if (!force && now < g_anim_next) {
+    return;
+  }
+
+  g_anim_next = now + 3;
+
+  // There can be up to 3 animations happening at once.
+  for (int i = 0; i < g_anim_count; i++) {
+    struct anim_entry *ae = &g_anim_entry[i];
+    unsigned char *script = ae->script;
+    unsigned char *cur = script + ae->pos;
+    uint8_t count = *cur++;
+
+    // Loop back to beginning.
+    if (count == 0xFF) {
+      ae->pos = script[1] | (script[2] << 8);
+      cur     = script + ae->pos;
+      count   = *cur++;
+    }
+
+    ae->pos += count + 1;   /* skip count byte + payload */
+
+    if (!ae->active) {
+      continue;
+    }
+
+    struct ui_region *r = ae->region;
+    for (int j = 0; j < count; j++) {
+      sprite_draw_frame(*cur++, ae->script, r->rect.x_pos * 2, r->rect.y_pos);
+    }
+
+    if (!force) {
+      ui_region_refresh(&r->rect);
+    }
+  }
 }
 
