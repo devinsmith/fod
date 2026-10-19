@@ -161,7 +161,7 @@ static const char *level_map_file = NULL;
 // KEH: DSEG: 0xD286
 static unsigned char *level_map_player_pos;
 
-static unsigned char level_map_bytes[256];
+static unsigned char level_map_offsets[256];
 
 // KEH: DSEG: 0xD9B4
 static unsigned char *dword_D9B4 = NULL;
@@ -675,7 +675,6 @@ static int sub_6D6B(uint16_t arg0);
 static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
 static void sub_B29B(const char *arg0);
-static void consume_key(void);
 static void sub_FFB2(uint32_t *accum, int32_t val);
 static void sub_FFD4(uint32_t *accum, uint32_t val);
 static void sub_22(int arg);
@@ -1842,15 +1841,19 @@ static void show_welcome_message()
 }
 
 // KEH: seg000:0x87E5
-static void sub_87E5(int arg0)
+static void save_level_map_if_dirty(int level)
 {
-  if (arg0 == 0) {
+  if (level == 0) {
     return;
   }
 
-  // 0x87E5
-  printf("%s:0x87F1 unhandled\n", __func__);
-  exit(1);
+  if (!(level_map_large[5] & 0x80)) {
+    return;
+  }
+
+  level_map_large[5] &= 0x7F;
+  indexed_record_rw(level_map_file, level_map_large, level - 1,
+      level_map_offsets, true);
 }
 
 static void sub_104C4(int arg)
@@ -1876,7 +1879,7 @@ static void sub_8C(int arg0)
     return;
   }
 
-  sub_87E5(byte_00EA);
+  save_level_map_if_dirty(byte_00EA);
   byte_00EA = arg0;
 
   uint16_t map_index = map_ids[arg0];
@@ -1891,14 +1894,14 @@ static void sub_8C(int arg0)
     level_ani_file = levels[map_index]->ani_file;
     level_phys_label = levels[map_index]->disk_id;
 
-    read_file(level_map_file, level_map_bytes, 112);
+    read_file(level_map_file, level_map_offsets, 112);
     read_file(level_scr_file, level_scr_bytes, 112);
     read_file(level_ani_file, level_ani_bytes, 212);
   }
 
   // Load decompressed map data from level_map_file into level_map_large
   // arg0_byte - 1 is the sub-index within the level_map_file file
-  indexed_record_rw(level_map_file, level_map_large, arg0 - 1, level_map_bytes, false);
+  indexed_record_rw(level_map_file, level_map_large, arg0 - 1, level_map_offsets, false);
   printf("Level map large:\n");
   hexdump(level_map_large, 32);
 
@@ -2245,11 +2248,6 @@ static void sub_B29B(const char *msg)
 
 // KEH: seg000:0xB2F0 - display message
 static void sub_B2F0(const char *msg, int arg2, int arg4)
-{
-  printf("%s: unimplemented\n", __func__);
-}
-
-static void consume_key(void)
 {
   printf("%s: unimplemented\n", __func__);
 }
