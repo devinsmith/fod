@@ -23,6 +23,7 @@
 #include "cursor.h"
 #include "game.h"
 #include "hexdump.h"
+#include "level.h"
 #include "npc.h"
 #include "platform.h"
 #include "script.h"
@@ -41,6 +42,9 @@ extern struct ui_region *active_region;
 
 // KEH: DSEG:0x1A32
 static uint16_t word_1A32 = 0;
+
+// KEH: DSEG:0xC5A0
+static uint8_t unknown_flags_table[255] = { 0 };
 
 // KEH DSEG:0x12BB9 - flag set after consume_key
 static uint8_t byte_12BB9 = 0;
@@ -210,6 +214,20 @@ void sub_D8CD(int npc_idx)
   bool_DAE6 = true;
 }
 
+// KEH: seg000:0x2AB2
+static void sub_2AB2(int x, int y, uint16_t val)
+{
+  uint16_t level_width = *(uint16_t *)level_map_large;
+  if (x >= level_width) {
+    return;
+  }
+
+  // Map cells begin at 0x414
+
+
+
+}
+
 #define TOKEN_MAX_ARGS 5
 #define TOKEN_BUF_LEN  (2 + TOKEN_MAX_ARGS)   // type, op, then up to 5 args
 
@@ -299,6 +317,25 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
       tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
       sub_987A(&tmp_cursor, token_buf[2]);
       break;
+    case 0x34:
+      // AF85
+      npc_base = sub_8B08(token_buf[2], &npc_id);
+      if (npc_base != NULL) {
+        uint8_t val = npc_base[0x49];
+        if ((unknown_flags_table[val] & 0x02) == 0) {
+          // AFB4
+          if (token_op == 0x34) {
+            sub_2AB2(npc_base[0x5B], npc_base[0x5C], 0);
+
+          } else {
+            // 0xB00C ?
+          }
+
+        }
+
+      }
+      break;
+
     case 0x3A:
       // B063
       npc_base = sub_8B08(token_buf[2], &npc_id);

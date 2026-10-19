@@ -220,7 +220,7 @@ static void sub_8880(int stat)
         ;
 
       if (slot < ANIM_SLOTS) {
-        read_indexed_file_data(level_ani_file, read_buf, id, level_ani_bytes, 0);
+        transfer_indexed_record(level_ani_file, read_buf, id, level_ani_bytes, false);
         hexdump(read_buf, 32);
 
         uint16_t low_bytes = *(uint16_t *)read_buf;

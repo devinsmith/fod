@@ -20,6 +20,7 @@ set(SOURCES
   fileio.c fileio.h
   game.c game.h
   hexdump.c hexdump.h
+  level.c level.h
   npc.c npc.h
   platform.c platform.h
   random.c random.h

@@ -76,11 +76,11 @@ void read_file(const char *file, uint8_t *buffer, uint16_t size);
  * @param dest_buffer  Destination buffer for the loaded data
  * @param index        Index into the lookup table (arg_0 - 1 from caller)
  * @param offset_table Pointer to table of (offset, size) pairs
- * @param flag         If 1, uses alternate loading method (unimplemented)
+ * @param write        If true, does write instead of read.
  * @return number of bytes read.
  */
-int read_indexed_file_data(const char *file, uint8_t *data, uint8_t val,
-    unsigned char *buffer, int flag);
+int transfer_indexed_record(const char *file, uint8_t *data, uint8_t val,
+    unsigned char *buffer, bool write);
 
 #ifdef __cplusplus
 }

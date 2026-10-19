@@ -27,6 +27,7 @@
 #include "fileio.h"
 #include "game.h"
 #include "hexdump.h"
+#include "level.h"
 #include "npc.h"
 #include "platform.h"
 #include "random.h"
@@ -171,24 +172,6 @@ static uint16_t word_D9B8 = 0;
 // KEH: DSEG: 0xD9D4
 static uint16_t word_D9D4 = 0;
 
-// Map header structure (overlays the start of level_map_large).
-// The map data is stored as: header (14 bytes) + padding + tile rows (each tile
-// is 8 bytes at offset 0x414).
-struct level_map_header {
-  uint16_t map_width;       // 0x00 - tiles wide
-  uint16_t map_height;      // 0x02 - tiles high
-  uint16_t filler_tile;     // 0x04 - tile used for out-of-bounds display
-  uint8_t  minute_inc;      // 0x06 - minute advancement per tick on overworld
-  uint8_t  unknown_07;      // 0x07
-  uint8_t  unknown_08;      // 0x08
-  uint8_t  npc_count;       // 0x09 - number of NPC entries
-  uint8_t  unknown_0A;      // 0x0A
-  uint8_t  creature_count;  // 0x0B - number of creature entries (ptr_D1DE)
-  uint8_t  unknown_0C;      // 0x0C
-  uint8_t  boundary_msg;    // 0x0D - movement-blocked message index
-} __attribute__((packed));
-
-unsigned char *level_map_large = NULL;
 
 // KEH: DSEG: 0xD9BC
 static const char *level_scr_file = NULL;
@@ -1783,9 +1766,10 @@ static bool sub_73E(int arg0, int arg1, int arg2)
 }
 
 // KEH: seg000:0xD19
-static void sub_D19(int arg0, int arg2, int arg4, int arg6)
+// Place an NPC at map cell (x, y)
+static void sub_D19(int arg0, int arg2, int y, int arg6)
 {
-  int ax = (int)(char)arg4;
+  int ax = y;
   ax *= ((uint16_t *)level_map_large)[0];
   int cx = ax;
 
@@ -1798,7 +1782,7 @@ static void sub_D19(int arg0, int arg2, int arg4, int arg6)
   ax += 0x414;
   level_map_large[ax + 1] &= 0x7;
 
-  if (sub_73E(arg0, arg2, arg4)) {
+  if (sub_73E(arg0, arg2, y)) {
     uint16_t *ptr = (uint16_t *)(&level_map_large[ax]);
     *ptr |= (arg6 << 0xB);
   }
@@ -1914,7 +1898,7 @@ static void sub_8C(int arg0)
 
   // Load decompressed map data from level_map_file into level_map_large
   // arg0_byte - 1 is the sub-index within the level_map_file file
-  read_indexed_file_data(level_map_file, level_map_large, arg0 - 1, level_map_bytes, 0);
+  transfer_indexed_record(level_map_file, level_map_large, arg0 - 1, level_map_bytes, false);
   printf("Level map large:\n");
   hexdump(level_map_large, 32);
 
@@ -2294,7 +2278,7 @@ static void sub_22(int arg)
   // We know read_indexed_file_data can only read a max of 64k.
   unsigned char *scr_data = malloc(1 << 16);
 
-  read_indexed_file_data(level_scr_file, scr_data, arg - 1, level_scr_bytes, 0);
+  transfer_indexed_record(level_scr_file, scr_data, arg - 1, level_scr_bytes, false);
   hexdump(scr_data, 32);
 
   // First two bytes are length?
