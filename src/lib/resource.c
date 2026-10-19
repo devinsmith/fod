@@ -217,29 +217,29 @@ void read_file(const char *file, uint8_t *buffer, uint16_t size)
 }
 
 // KEH: seg000:0x03BF
-int transfer_indexed_record(const char *file, uint8_t *data, uint8_t val,
-    unsigned char *offset_table, bool write)
+int indexed_record_rw(const char *filename, uint8_t *dest_buffer,
+    uint8_t index, unsigned char *offset_table, bool write)
 {
-  FILE *fp = fopen(file, write ? "r+b" : "rb");
+  FILE *fp = fopen(filename, write ? "r+b" : "rb");
   if (fp == NULL) {
-    fprintf(stderr, "Failed to open: %s\n", file);
+    fprintf(stderr, "Failed to open: %s\n", filename);
     return 0;
   }
 
-  uint16_t bx = val << 1;
+  uint16_t bx = index << 1;
   uint16_t *si = (uint16_t *)offset_table;
   uint16_t table_entry = si[bx];
   uint32_t file_offset = table_entry << 4;
   uint16_t data_size = si[bx + 1];
 
-  printf("%s: Transferring %s (%d bytes) at 0x%04X offset\n", __func__, file,
-      data_size, file_offset);
+  printf("%s: Transferring %s (%d bytes) at 0x%04X offset\n", __func__,
+      filename, data_size, file_offset);
 
   fseek(fp, file_offset, SEEK_SET);
   if (write) {
-    fwrite(data, 1, data_size, fp);
+    fwrite(dest_buffer, 1, data_size, fp);
   } else {
-    fread(data, 1, data_size, fp);
+    fread(dest_buffer, 1, data_size, fp);
   }
 
   fclose(fp);

@@ -1898,7 +1898,7 @@ static void sub_8C(int arg0)
 
   // Load decompressed map data from level_map_file into level_map_large
   // arg0_byte - 1 is the sub-index within the level_map_file file
-  transfer_indexed_record(level_map_file, level_map_large, arg0 - 1, level_map_bytes, false);
+  indexed_record_rw(level_map_file, level_map_large, arg0 - 1, level_map_bytes, false);
   printf("Level map large:\n");
   hexdump(level_map_large, 32);
 
@@ -2278,7 +2278,7 @@ static void sub_22(int arg)
   // We know read_indexed_file_data can only read a max of 64k.
   unsigned char *scr_data = malloc(1 << 16);
 
-  transfer_indexed_record(level_scr_file, scr_data, arg - 1, level_scr_bytes, false);
+  indexed_record_rw(level_scr_file, scr_data, arg - 1, level_scr_bytes, false);
   hexdump(scr_data, 32);
 
   // First two bytes are length?

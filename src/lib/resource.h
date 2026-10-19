@@ -70,7 +70,8 @@ void resource_release(struct resource *res);
 void read_file(const char *file, uint8_t *buffer, uint16_t size);
 
 /**
- * @brief Loads data from a file at a specific offset determined by a lookup table
+ * @brief Loads or saves data from a file at a specific offset determined by a
+ *        lookup table
  *
  * @param filename     Name of the file to read.
  * @param dest_buffer  Destination buffer for the loaded data
@@ -79,8 +80,8 @@ void read_file(const char *file, uint8_t *buffer, uint16_t size);
  * @param write        If true, does write instead of read.
  * @return number of bytes read.
  */
-int transfer_indexed_record(const char *file, uint8_t *data, uint8_t val,
-    unsigned char *buffer, bool write);
+int indexed_record_rw(const char *filename, uint8_t *dest_buffer,
+    uint8_t index, unsigned char *offset_table, bool write);
 
 #ifdef __cplusplus
 }
