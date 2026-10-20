@@ -47,7 +47,10 @@ struct level_map_header {
 // 8 bytes per cell, unknown what each means.
 struct map_cell {
   uint16_t word0;
-  uint8_t rest[6];
+  uint8_t b2;
+  uint8_t b3;
+  uint16_t w4;
+  uint16_t w6;
 };
 
 struct level_map {
@@ -62,6 +65,13 @@ struct level_map {
 };
 
 extern unsigned char *level_map_large;
+extern struct level_map *level_map;
+extern const char *level_map_file;
+extern unsigned char level_map_offsets[256];
+
+void save_level_map_if_dirty(int level);
+void level_map_init();
+void level_map_free();
 
 #ifdef __cplusplus
 }

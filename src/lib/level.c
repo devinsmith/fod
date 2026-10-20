@@ -16,9 +16,43 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stddef.h>
+#include <stdlib.h>
 
 #include "level.h"
+#include "resource.h"
 
 unsigned char *level_map_large = NULL;
+struct level_map *level_map;
 
+// KEH: DSEG: 0xD284
+const char *level_map_file = NULL;
+unsigned char level_map_offsets[256];
+
+
+// KEH: seg000:0x87E5
+void save_level_map_if_dirty(int level)
+{
+  if (level == 0) {
+    return;
+  }
+
+  if (!(level_map_large[5] & 0x80)) {
+    return;
+  }
+
+  level_map_large[5] &= 0x7F;
+  indexed_record_rw(level_map_file, level_map_large, level - 1,
+      level_map_offsets, true);
+}
+
+void level_map_init()
+{
+  // It's unclear how large this should be.
+  level_map_large = malloc(0x10000);
+  level_map = (struct level_map *)level_map_large;
+}
+
+void level_map_free()
+{
+  free(level_map_large);
+}

@@ -134,6 +134,7 @@ extern uint16_t g_cached_id[];
 bool load_game_state();
 bool save_game_state();
 
+bool is_near_player(int radius, int xpos, int ypos);
 uint16_t player_armor_class(const struct player_rec *p);
 int get_player_condition_status(struct player_rec *player);
 int check_party_condition(int arg0);

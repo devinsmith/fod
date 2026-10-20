@@ -566,3 +566,16 @@ uint16_t player_armor_class(const struct player_rec *player)
 
   return sum;
 }
+
+// KEH: seg000:0x073E
+// Returns true if (xpos, ypos) is within 'radius' of the player on
+// both axes (an axis-aligned square centered on the player, edges inclusive).
+// See also Chebyshev distance.
+bool is_near_player(int radius, int xpos, int ypos)
+{
+  int dx = xpos - g_game_state.x_pos;
+  int dy = ypos - g_game_state.y_pos;
+
+  return abs(dx) <= radius && abs(dy) <= radius;
+}
+

@@ -214,18 +214,29 @@ void sub_D8CD(int npc_idx)
   bool_DAE6 = true;
 }
 
+#define CELL_HI5_SHIFT 11
+#define CELL_HI5_MASK  0xF800u
+
+// Returns the cell at (x, y), or NULL if out of range.
+static inline struct map_cell *map_cell_at(struct level_map *m, int x, int y)
+{
+  if (x < 0 || x >= m->hdr.map_width || y < 0 || y >= m->hdr.map_height) {
+    return NULL;
+  }
+  return &m->cells[(size_t)y * m->hdr.map_width + x];
+}
+
 // KEH: seg000:0x2AB2
+// Set the 5 bit field (bits 11-15 of word0) of the cell at (x, y)
 static void sub_2AB2(int x, int y, uint16_t val)
 {
-  uint16_t level_width = *(uint16_t *)level_map_large;
-  if (x >= level_width) {
+  struct map_cell *cell = map_cell_at(level_map, x, y);   // map = (struct level_map *)level_map_large
+  if (!cell) {
     return;
   }
 
-  // Map cells begin at 0x414
-
-
-
+  cell->word0 = (cell->word0 & ~CELL_HI5_MASK)
+                | (uint16_t)((val & 0x1F) << CELL_HI5_SHIFT);
 }
 
 #define TOKEN_MAX_ARGS 5
@@ -320,12 +331,23 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
     case 0x34:
       // AF85
       npc_base = sub_8B08(token_buf[2], &npc_id);
+      // npc_base is in [bp-60h]
       if (npc_base != NULL) {
         uint8_t val = npc_base[0x49];
         if ((unknown_flags_table[val] & 0x02) == 0) {
           // AFB4
           if (token_op == 0x34) {
             sub_2AB2(npc_base[0x5B], npc_base[0x5C], 0);
+            // AFD0
+            npc_base[0x5B] = npc_base[0xCA];
+            npc_base[0x5C] = npc_base[0xC8];
+            uint8_t al = npc_base[0x65];
+            // push al
+            // push 0x5C
+            // push 0x5B
+            // push 0x5F
+//            sub_D19(
+            //
 
           } else {
             // 0xB00C ?

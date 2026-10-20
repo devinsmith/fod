@@ -155,13 +155,8 @@ static uint8_t byte_D1E8;
 // KEH: DSEG:D9DA
 static unsigned char *ptr_D9DA = NULL;
 
-// KEH: DSEG: 0xD284
-static const char *level_map_file = NULL;
-
 // KEH: DSEG: 0xD286
 static unsigned char *level_map_player_pos;
-
-static unsigned char level_map_offsets[256];
 
 // KEH: DSEG: 0xD9B4
 static unsigned char *dword_D9B4 = NULL;
@@ -1751,28 +1746,14 @@ static void draw_day_time()
   ui_region_set_active(old_region, false);
 }
 
-// KEH: seg000:0x073E
-static bool sub_73E(int arg0, int arg1, int arg2)
-{
-  if ((arg1 < (g_game_state.x_pos - arg0)) ||
-      ((g_game_state.x_pos + arg0) < arg1) ||
-      (arg2 < (g_game_state.y_pos - arg0)) ||
-      ((g_game_state.y_pos + arg0) < arg2)) {
-    return false;
-  }
-
-  return true;
-}
-
 // KEH: seg000:0xD19
 // Place an NPC at map cell (x, y)
-static void sub_D19(int arg0, int arg2, int y, int arg6)
+static void sub_D19(int radius, int x, int y, int arg6)
 {
-  int ax = y;
-  ax *= ((uint16_t *)level_map_large)[0];
+  int ax = y * level_map->hdr.map_width;
   int cx = ax;
 
-  ax = (int)(char)arg2;
+  ax = (int)(char)x;
   cx += ax;
 
   ax = cx;
@@ -1781,7 +1762,7 @@ static void sub_D19(int arg0, int arg2, int y, int arg6)
   ax += 0x414;
   level_map_large[ax + 1] &= 0x7;
 
-  if (sub_73E(arg0, arg2, y)) {
+  if (is_near_player(radius, x, y)) {
     uint16_t *ptr = (uint16_t *)(&level_map_large[ax]);
     *ptr |= (arg6 << 0xB);
   }
@@ -1838,22 +1819,6 @@ static void show_welcome_message()
 
   // Text is at KEH:DSEG:0x1835
   print_wrapped_text("Welcome to the beautiful island of Florida!\r");
-}
-
-// KEH: seg000:0x87E5
-static void save_level_map_if_dirty(int level)
-{
-  if (level == 0) {
-    return;
-  }
-
-  if (!(level_map_large[5] & 0x80)) {
-    return;
-  }
-
-  level_map_large[5] &= 0x7F;
-  indexed_record_rw(level_map_file, level_map_large, level - 1,
-      level_map_offsets, true);
 }
 
 static void sub_104C4(int arg)
@@ -2266,14 +2231,14 @@ static void sub_FFD4(uint32_t *accum, uint32_t val)
   printf("%s: unimplemented\n", __func__);
 }
 
-
+// Loads level script?
 static void sub_22(int arg)
 {
   g_cached_id[0] = 0xFFFF;
   g_cached_id[1] = 0xFFFF;
   g_cached_id[2] = 0xFFFF;
 
-  // We know read_indexed_file_data can only read a max of 64k.
+  // We know indexed_record_rw can only read a max of 64k.
   unsigned char *scr_data = malloc(1 << 16);
 
   indexed_record_rw(level_scr_file, scr_data, arg - 1, level_scr_bytes, false);
@@ -3072,10 +3037,7 @@ static void sub_39FE(int arg1, int arg2)
 
   tile_res = resource_load(RESOURCE_TILES, 0, 0);
 
-  // It's unclear how large this should be.
-  level_map_large = malloc(0x10000);
-
-  hexdump(tile_res->bytes, 32);
+  level_map_init();
 
   // KEH: seg000:2820 - sub_1BE equivalent
   // Load byte_1D15A and use it to index into a table, pass to sub_8C
@@ -3238,7 +3200,7 @@ static void sub_39FE(int arg1, int arg2)
   sub_10720();
 
   resource_release(tile_res);
-  free(level_map_large);
+  level_map_free();
 }
 
 // KEH: seg000:0x27CC
