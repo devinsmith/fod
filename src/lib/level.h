@@ -32,7 +32,8 @@ extern "C" {
 struct level_map_header {
   uint16_t map_width;       // 0x00 - tiles wide
   uint16_t map_height;      // 0x02 - tiles high
-  uint16_t filler_tile;     // 0x04 - tile used for out-of-bounds display
+  uint8_t  unknown_04;      // 0x04 - unknown
+  uint8_t  unknown_05;      // 0x05 - unknown
   uint8_t  minute_inc;      // 0x06 - minute advancement per tick on overworld
   uint8_t  unknown_07;      // 0x07
   uint8_t  unknown_08;      // 0x08
@@ -69,6 +70,8 @@ extern struct level_map *level_map;
 extern const char *level_map_file;
 extern unsigned char level_map_offsets[256];
 
+void level_set_cell(int x, int y, uint16_t val);
+void level_set_cell_nearby(int radius, int x, int y, uint16_t val);
 void save_level_map_if_dirty(int level);
 void level_map_init();
 void level_map_free();

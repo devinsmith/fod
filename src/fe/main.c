@@ -1746,27 +1746,6 @@ static void draw_day_time()
   ui_region_set_active(old_region, false);
 }
 
-// KEH: seg000:0xD19
-// Place an NPC at map cell (x, y)
-static void sub_D19(int radius, int x, int y, int arg6)
-{
-  int ax = y * level_map->hdr.map_width;
-  int cx = ax;
-
-  ax = (int)(char)x;
-  cx += ax;
-
-  ax = cx;
-  ax = ax << 3;
-
-  ax += 0x414;
-  level_map_large[ax + 1] &= 0x7;
-
-  if (is_near_player(radius, x, y)) {
-    uint16_t *ptr = (uint16_t *)(&level_map_large[ax]);
-    *ptr |= (arg6 << 0xB);
-  }
-}
 
 // KEH: seg000:0xD78
 static void sub_D78()
@@ -1789,7 +1768,7 @@ static void sub_D78()
 
     printf("%x %x %x %x\n", unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
 
-    sub_D19(unknowns[3], unknowns[2], unknowns[1], unknowns[0]);
+    level_set_cell_nearby(unknowns[3], unknowns[2], unknowns[1], unknowns[0]);
   }
 
   for (int i = 0; i < val2; i++) {
@@ -1800,7 +1779,7 @@ static void sub_D78()
     unknowns[3] = ptr_D1DE[0xC + offset];
 
     if ((ptr_D1DE[9 + offset] & 0xF) != 0) {
-      sub_D19(unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
+      level_set_cell_nearby(unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
     }
   }
 }
@@ -2683,7 +2662,7 @@ static void sub_1766(void)
 
   // 1825
   if (bool_DAE6) {
-    printf("%s: 0x182C unimplemented\n", __func__);
+    sub_B452();
   }
 }
 
