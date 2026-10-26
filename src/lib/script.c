@@ -318,8 +318,10 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
     unsigned char *npc_base;
     struct data_cursor tmp_cursor;
 
-    // This is in an index of slots, so probably not correct.
-    uint8_t prompt_response; // [bp+si-132h]
+    // We don't know how big variables is.
+    uint8_t variables[20];
+    uint8_t variable_idx = 0;
+    uint8_t branch_token[20];
 
     uint16_t token_buf[TOKEN_BUF_LEN] = { 0 };
     // 9A01
@@ -333,6 +335,56 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
     // arg[2] = bp-0C8h
 
     switch (token_op) {
+    case 0x14:
+      bool want_set;
+
+      // A71E
+      switch (token_buf[2]) {
+      case 0:
+      case 2:
+      case 4:
+        want_set = false;
+        break;
+      case 1:
+      case 3:
+      case 5:
+        want_set = true;
+        break;
+      default:
+        continue;
+      }
+
+      bool answer_set = (variables[variable_idx] != 0); // [bp+si-132h]
+      if (answer_set == want_set) {
+        // A74D
+        branch_token[variable_idx] = 1;
+
+        // set cursor
+        data_ptr.offset = cursor.offset + token_buf[3];
+        continue;
+
+      }
+
+      // loc_A76C
+      branch_token[variable_idx] = 0;
+      variable_idx++;
+      break;
+    case 0x15:
+      // A778
+      if (branch_token[variable_idx] != 0) {
+        variable_idx++;
+        continue;
+      }
+
+      // A756
+      data_ptr.offset = cursor.offset + token_buf[2];
+      break;
+    case 0x16:
+      // A789
+      if (variable_idx > 0) {
+        variable_idx--;
+      }
+      break;
     case 0x17:
       // A79A:
       sub_A79A(&data_ptr, token_buf[2]);
@@ -344,7 +396,7 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
       // AE69
       tmp_cursor.base = cursor.base;
       tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
-      prompt_response = sub_97D2(token_buf[2], &tmp_cursor);
+      variables[variable_idx] = sub_97D2(token_buf[2], &tmp_cursor);
       break;
     case 0x39:
       // A7E6
