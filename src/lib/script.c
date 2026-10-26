@@ -150,6 +150,46 @@ static void sub_987A(struct data_cursor *data, uint16_t index)
   byte_1834 = 0;
 }
 
+// KEH: seg000:0x8F63
+static void sub_8F63(struct data_cursor *data, uint16_t index)
+{
+  char *str = get_nth_string(data, index);
+  ui_region_set_active(active_region, true);
+  ui_region_print_str(str, 0, 0);
+}
+
+// KEH: seg000:0x9780
+// Print a Y/N prompt, then block until the player presses Y or N.
+// Returns 1 for Y, 0 for N. Any other key is ignored.
+static uint8_t prompt_yes_no(int x, int y)
+{
+  ui_region_print_str("Y)es  N)o", x, y);
+  ui_region_refresh_active();
+
+  for (;;) {
+    uint8_t key = sys_readkey();
+    if (key == 'Y') return 1;
+    if (key == 'N') return 0;
+  }
+}
+
+static uint8_t sub_97D2(uint16_t index, struct data_cursor *data)
+{
+  struct ui_region *saved_region = active_region;
+
+  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &encounter_region, true);
+  sub_8F63(data, index);
+
+  ui_region_newline_or_scroll();
+  ui_region_newline_or_scroll();
+
+  uint8_t yes = prompt_yes_no(0, -1);
+
+  ui_region_set_active(saved_region, false);
+
+  return yes;
+}
+
 // KEH: seg000:0x8B08
 // sub_8B08: find the first NPC whose byte at 0x49 equals id.
 // Returns the base pointer to the NPC or NULL if none match.
@@ -278,6 +318,9 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
     unsigned char *npc_base;
     struct data_cursor tmp_cursor;
 
+    // This is in an index of slots, so probably not correct.
+    uint8_t prompt_response; // [bp+si-132h]
+
     uint16_t token_buf[TOKEN_BUF_LEN] = { 0 };
     // 9A01
     sub_DF48(&data_ptr, token_buf, cmd_type);
@@ -296,6 +339,12 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
       break;
     case 0x1F:
       play_sound(token_buf[2]);
+      break;
+    case 0x27:
+      // AE69
+      tmp_cursor.base = cursor.base;
+      tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
+      prompt_response = sub_97D2(token_buf[2], &tmp_cursor);
       break;
     case 0x39:
       // A7E6
