@@ -27,6 +27,8 @@
 #include "resource.h"
 #include "sha1.h"
 
+struct resource *tile_res;
+
 static bool check_file(const char *filename, const char *hash)
 {
   bool is_valid = false;

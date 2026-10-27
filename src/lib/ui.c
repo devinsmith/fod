@@ -54,6 +54,17 @@ static unsigned char *font_bytes;
 // KEH: DSEG:0x1A4C
 struct ui_region *active_region;
 
+// KEH: DSEG:0x1A7E
+static struct ui_rect middle_rect = { 0x4C, 0x58, 0x8, 0x10 };
+
+// KEH: DSEG:0x1E96
+static uint16_t word_1E96;
+// KEH: DSEG:0x1E98
+static uint16_t word_1E98;
+
+// KEH DSEG:0x1EA4
+uint16_t map_tile_array[9 * 19];
+
 // DSEG:0x3E66
 static struct resource *border_res;
 
@@ -98,6 +109,15 @@ static struct ui_region party_region = {
   NULL,
   0x00,
   NULL
+};
+
+// Sprite overlays
+// KEH: DSEG:0x9E1A
+static uint16_t overlay_table[] = {
+  0x0000, 0x1E68, 0x1E60, 0x1F38, 0x1E48, 0x1E50,
+  0x1E58, 0x1EC8, 0x1ED0, 0x1ED8, 0x1EE0, 0x1EE8,
+  0x1EF0, 0x1EF8, 0x1F00, 0x1F08, 0x1F10, 0x1F18,
+  0x1F20, 0x1F28, 0x1F30
 };
 
 static void ui_sub_048B();
@@ -193,6 +213,16 @@ static void ui_sub_048B()
   call ax;
   */
 
+}
+
+void ui_set_sprite_overlay(int idx, uint16_t val)
+{
+  overlay_table[idx] = val;
+}
+
+uint16_t ui_get_sprite_overlay(int lookup)
+{
+  return overlay_table[lookup];
 }
 
 // seg001:0x04E4
@@ -778,6 +808,113 @@ void print_wrapped_text(const char *str)
       i++;
     }
   }
+}
+
+void draw_map_tile(uint16_t tile_id, int x, int y)
+{
+  int line_num = (y * 16) + 24;
+  int rows = 16;
+//  int cols = 4;
+
+  uint16_t bx = 0;
+  int sprite = tile_id & 0x7FF;
+  int overlay = 0;
+
+  if (sprite >= 512) {
+    sprite -= 512;
+    bx = 0x1000;
+    printf("%s: 0xE0A7 unhandled, tile_id = 0x%04X 0x%04X %d %d\n", __func__,
+        tile_id, tile_id & 0xF800, x, y);
+  }
+
+  // NPCs and other characters are rendered as sprite overlays on top of the
+  // tile map.
+  if (tile_id >= 0x800) {
+    // Calculate overlay.
+    uint16_t mask = tile_id & 0xF800;
+    uint16_t mask_flipped = (mask & 0xFF) << 8 | mask >> 8;
+    int table_lookup = mask_flipped >> 3;
+    if (table_lookup > 20) {
+      printf("%s: Overlay too large, check 0xE0E4\n", __func__);
+      table_lookup = 20;
+    }
+
+    overlay = ui_get_sprite_overlay(table_lookup);
+    // Convert from segment:offset to absolute, then index.
+    overlay = (overlay * 16) / 128;
+    printf("%s: Overlay number: %d\n", __func__, overlay);
+  }
+
+  int offset = sprite * 128; // 8*16 bytes
+  if (bx > 0) {
+    offset += bx;
+  }
+
+  unsigned char *es = scratch;
+  uint16_t di = get_160_offset(line_num);
+  di += (x << 3);
+  di += 4; // indentation
+  es += di;
+
+  unsigned char *si = tile_res->bytes + offset;
+
+  // copy tile "sprite" over to scratch buffer.
+  // tiles are stored in 8 x 16
+  for (int k = 0; k < rows; k++) {
+    // copy words from ds:si to es:di
+    memcpy(es, si, 8);
+    si += 8;
+    es += 8;
+
+    es += 0x98; // next line
+  }
+
+  if (overlay > 0) {
+    // KEH: 0xE10E
+    es = scratch;
+    di = get_160_offset(line_num);
+    di += (x << 3);
+    di += 4; // indentation
+    printf("Starting di: 0x%04X\n", di);
+    int index = 0;
+
+    offset = overlay * 128; // 8*16 bytes
+    si = tile_res->bytes + offset;
+
+    for (int j = 0; j < rows; j++) {
+      for (int k = 0; k < 8; k++) {
+        uint8_t al = *si;
+        al &= 0xF0;
+        if (al != 0) {
+          es[di] &= 0x0F;
+          es[di] |= al;
+        }
+        index++;
+        al = *si++;
+        al &= 0x0F;
+        if (al != 0) {
+          es[di] &= 0xF0;
+          es[di] |= al;
+        }
+        di++;
+      }
+      di += 0x98; // next line
+    }
+  }
+}
+
+// KEH: seg000:0xDFEE
+void draw_map_center_tile()
+{
+  word_1E96 = 9;
+  word_1E98 = 4;
+
+  int center = (4 * 19) + 9;
+  map_tile_array[center] |= 0x800;
+
+  draw_map_tile(map_tile_array[center], 9, 4);
+
+  ui_region_refresh(&middle_rect);
 }
 
 static const char *condition_names[] = {

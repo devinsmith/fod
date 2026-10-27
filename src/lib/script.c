@@ -42,6 +42,9 @@ extern struct ui_region *active_region;
 // KEH: DSEG:0x1A32
 static uint16_t word_1A32 = 0;
 
+// KEH: DSEG:0x1A46
+static uint16_t word_1A46 = 0;
+
 // KEH: DSEG:0xC5A0
 static uint8_t unknown_flags_table[255] = { 0 };
 
@@ -440,6 +443,12 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
         *(uint16_t *)(npc_base + 0x66) = token_buf[3];
         sub_7E09();
       }
+      break;
+    case 0x45:
+      // B168
+      word_1A46 = token_buf[3];
+      set_direction(current_direction);
+      draw_map_center_tile();
       break;
     default:
       // Check out 0xB1A7 for script op codes.

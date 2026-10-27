@@ -207,39 +207,12 @@ static const char *days[] = {
   "Sat"
 };
 
-// KEH: DSEG:0x1A36
-static uint16_t party_sprite_positions[] = {
-  0x1E70,
-  0x1E68,
-  0x1E78,
-  0x1E80,
-  0x1E90,
-  0x1E88,
-  0x1E98,
-  0x1EA0
-};
-
-// Sprite overlays
-// KEH: DSEG:0x9E1A
-static uint16_t overlay_table[] = {
-  0x0000, 0x1E68, 0x1E60, 0x1F38, 0x1E48, 0x1E50,
-  0x1E58, 0x1EC8, 0x1ED0, 0x1ED8, 0x1EE0, 0x1EE8,
-  0x1EF0, 0x1EF8, 0x1F00, 0x1F08, 0x1F10, 0x1F18,
-  0x1F20, 0x1F28, 0x1F30
-};
-
-// KEH: DSEG:0x1A48
-static int current_direction = 0;
-
 // FOD: DSEG:0x029C
 // KEH: DSEG:0x1A4C
 extern struct ui_region *active_region;
 
 // DSEG:0x029E
 static struct ui_rect data_029E = { 0, 0, 160, 200 };
-
-// KEH: DSEG:0x1A7E
-static struct ui_rect middle_rect = { 0x4C, 0x58, 0x8, 0x10 };
 
 // DSEG:0x02A6
 // 92 x 88 rectangle
@@ -522,8 +495,6 @@ static uint16_t word_2314 = 0;
 // DSEG:0x2316
 static struct resource *gani_res;
 
-static struct resource *tile_res;
-
 // DSEG:0x231A
 static uint8_t byte_231A = 0;
 // DSEG:0x231C
@@ -543,10 +514,6 @@ static unsigned char hds_bytes[1180];
 // DSEG:0x3C84
 unsigned char *arch_offset;
 
-// KEH DSEG:0x1E96
-static uint16_t word_1E96;
-// KEH DSEG:0x1E98
-static uint16_t word_1E98;
 // KEH DSEG:0x1E9A
 static uint16_t word_1E9A = 0;
 // KEH DSEG:0x1E9C
@@ -611,13 +578,9 @@ static char str_buffer[256];
 // KEH DSEG:0xD1D8
 uint16_t word_D1D8 = 0;
 
-// KEH DSEG:0x1EA4
-static uint16_t map_tile_array[9 * 19];
-
 static void sub_1548();
 static void sub_3290(int char_num, const char *name);
 static void sub_39FE(int arg1, int arg2);
-static void draw_map_tile(uint16_t tile_id, int x, int y);
 
 static void sub_27CC(int arg0);
 static int sub_D5BA(void);
@@ -1881,32 +1844,6 @@ static void sub_8C(int arg0)
   sub_22(arg0);
 }
 
-// KEH: seg000:0xDFC6
-// Saves the player's current direction, as well as updating the sprite
-// character to reflect the direction accurately.
-static void set_direction(int direction)
-{
-  if (direction != 5) {
-    current_direction = direction;
-
-    overlay_table[1] = party_sprite_positions[direction - 1];
-  }
-}
-
-// KEH: seg000:0xDFEE
-static void draw_map_center_tile()
-{
-  word_1E96 = 9;
-  word_1E98 = 4;
-
-  int center = (4 * 19) + 9;
-  map_tile_array[center] |= 0x800;
-
-  draw_map_tile(map_tile_array[center], 9, 4);
-
-  ui_region_refresh(&middle_rect);
-}
-
 // Displays a boundary/blocked-movement message by index (1-based).
 // arg_0 == 0 does nothing.
 static const char *boundary_messages[] = {
@@ -2805,100 +2742,6 @@ static void sub_253F(int direction, int arg2)
   }
 }
 
-
-static void draw_map_tile(uint16_t tile_id, int x, int y)
-{
-  int line_num = (y * 16) + 24;
-  int rows = 16;
-//  int cols = 4;
-
-  uint16_t bx = 0;
-  int sprite = tile_id & 0x7FF;
-  int overlay = 0;
-
-  if (sprite >= 512) {
-    sprite -= 512;
-    bx = 0x1000;
-    printf("%s: 0xE0A7 unhandled, tile_id = 0x%04X 0x%04X %d %d\n", __func__,
-        tile_id, tile_id & 0xF800, x, y);
-  }
-
-  // NPCs and other characters are rendered as sprite overlays on top of the
-  // tile map.
-  if (tile_id >= 0x800) {
-    // Calculate overlay.
-    uint16_t mask = tile_id & 0xF800;
-    uint16_t mask_flipped = (mask & 0xFF) << 8 | mask >> 8;
-    int table_lookup = mask_flipped >> 3;
-    if (table_lookup > 20) {
-      printf("%s: Overlay too large, check 0xE0E4\n", __func__);
-      table_lookup = 20;
-    }
-
-    overlay = overlay_table[table_lookup];
-    // Convert from segment:offset to absolute, then index.
-    overlay = (overlay * 16) / 128;
-    printf("%s: Overlay number: %d\n", __func__, overlay);
-  }
-
-  int offset = sprite * 128; // 8*16 bytes
-  if (bx > 0) {
-    offset += bx;
-  }
-
-  unsigned char *es = scratch;
-  uint16_t di = get_160_offset(line_num);
-  di += (x << 3);
-  di += 4; // indentation
-  es += di;
-
-  unsigned char *si = tile_res->bytes + offset;
-
-  // copy tile "sprite" over to scratch buffer.
-  // tiles are stored in 8 x 16
-  for (int k = 0; k < rows; k++) {
-    // copy words from ds:si to es:di
-    memcpy(es, si, 8);
-    si += 8;
-    es += 8;
-
-    es += 0x98; // next line
-  }
-
-  if (overlay > 0) {
-    // KEH: 0xE10E
-    es = scratch;
-    di = get_160_offset(line_num);
-    di += (x << 3);
-    di += 4; // indentation
-    printf("Starting di: 0x%04X\n", di);
-    int index = 0;
-
-    offset = overlay * 128; // 8*16 bytes
-    si = tile_res->bytes + offset;
-
-    for (int j = 0; j < rows; j++) {
-      for (int k = 0; k < 8; k++) {
-        uint8_t al = *si;
-        al &= 0xF0;
-        if (al != 0) {
-          es[di] &= 0x0F;
-          es[di] |= al;
-        }
-        index++;
-        al = *si++;
-        al &= 0x0F;
-        if (al != 0) {
-          es[di] &= 0xF0;
-          es[di] |= al;
-        }
-        di++;
-      }
-      di += 0x98; // next line
-    }
-  }
-}
-
 /* KEH: seg000:0xDD19 */
 static void draw_map()
 {
@@ -2998,8 +2841,8 @@ static void build_map_display()
   map_tile_array[center] &= 0x7FF;
   map_tile_array[center] |= 0x800;
 
-  printf("Map done\n");
-  hexdump(map_tile_array, 64);
+//  printf("Map done\n");
+//  hexdump(map_tile_array, 64);
 
   draw_map();
 }

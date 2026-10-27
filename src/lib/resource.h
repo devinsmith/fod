@@ -39,6 +39,8 @@ struct resource {
   size_t len;
 };
 
+extern struct resource *tile_res;
+
 /**
  * @brief Initializes the resource manager.
  */

@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "game.h"
+#include "ui.h"
 
 struct game_state g_game_state;
 
@@ -28,8 +29,24 @@ static unsigned char disk1[3776];
 static size_t disk1_size = 0;
 static size_t disk1_offset = 0;
 
-// DSEG:0x1A4A
+// KEH: DSEG:0x1A36
+static uint16_t party_sprite_positions[] = {
+  0x1E70,
+  0x1E68,
+  0x1E78,
+  0x1E80,
+  0x1E90,
+  0x1E88,
+  0x1E98,
+  0x1EA0
+};
+
+// KEH: DSEG:0x1A48
+int current_direction = 0;
+
+// KEH: DSEG:0x1A4A
 const char *current_player_name;
+
 
 extern unsigned char *arch_offset; // currently in main.c
 
@@ -579,3 +596,14 @@ bool is_near_player(int radius, int xpos, int ypos)
   return abs(dx) <= radius && abs(dy) <= radius;
 }
 
+// KEH: seg000:0xDFC6
+// Saves the player's current direction, as well as updating the sprite
+// character to reflect the direction accurately.
+void set_direction(int direction)
+{
+  if (direction != 5) {
+    current_direction = direction;
+
+    ui_set_sprite_overlay(1, party_sprite_positions[direction - 1]);
+  }
+}

@@ -76,6 +76,7 @@ struct ui_region {
 extern struct ui_region full_screen_region;
 extern struct ui_rect whole_screen;
 extern struct ui_region encounter_region;
+extern uint16_t map_tile_array[];
 extern bool do_expand;
 
 void ui_region_newline_or_scroll();
@@ -104,12 +105,18 @@ void ui_set_inverse(bool inverse);
 void print_wrapped_text(const char *str);
 void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 
+// Map tiles
+void draw_map_tile(uint16_t tile_id, int x, int y);
+void draw_map_center_tile();
+
 // Clears out an area on the scratch buffer by setting
 // the contents to black (0).
 void ui_rect_clear(const struct ui_rect *r);
 void draw_borders(int offset);
 
 void ui_draw_party_roster(uint16_t selected, bool hightlight, bool full_refresh);
+uint16_t ui_get_sprite_overlay(int lookup);
+void ui_set_sprite_overlay(int idx, uint16_t val);
 
 #ifdef __cplusplus
 }
