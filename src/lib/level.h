@@ -19,6 +19,7 @@
 #ifndef LEVEL_H
 #define LEVEL_H
 
+#include <assert.h> // For static_assert macro
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -54,6 +55,8 @@ struct map_cell {
   uint16_t w6;
 };
 
+static_assert(sizeof(struct map_cell) == 8, "map_cell must be 8 bytes");
+
 struct level_map {
  struct level_map_header hdr;                  // 0x00 - 0x0D
  uint8_t  unknown_0E[0x406 - 0x0E];            // 0x0E - 0x405 (1016 bytes), still unknown
@@ -69,6 +72,7 @@ extern unsigned char *level_map_large;
 extern struct level_map *level_map;
 extern const char *level_map_file;
 extern unsigned char level_map_offsets[256];
+extern struct map_cell *level_map_player_pos;
 
 void level_set_cell(int x, int y, uint16_t val);
 void level_set_cell_nearby(int radius, int x, int y, uint16_t val);

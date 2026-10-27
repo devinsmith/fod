@@ -25,9 +25,6 @@
 
 struct game_state g_game_state;
 
-// KEH: DSEG: 0xD286
-unsigned char *level_map_player_pos;
-
 static unsigned char disk1[3776];
 static size_t disk1_size = 0;
 static size_t disk1_offset = 0;

@@ -257,9 +257,40 @@ void sub_D8CD(int npc_idx)
   bool_DAE6 = true;
 }
 
+// KEH: seg000:0x8BBB
+static void level_cell_op(struct map_cell *cell, uint8_t op, uint16_t arg, uint16_t extra)
+{
+#if 0
+  switch (op) {
+  case 0x19:
+  case 0x1C: {
+    uint16_t cur = cell->word0;
+    if (arg != (cur & 0x07FF)) {
+      cell->word0 = arg | (cur & 0xF800);
+      if (!bool_DAE6) {
+        sub_DD4C();
+      }
+    }
+    break;
+  }
+  case 0x1A:
+  case 0x1D:
+    sub_8B69(cell, arg, extra);
+    break;
+  case 0x1B:
+  case 0x1E:
+    cell->w6 = arg;
+    break;
+  default:
+    break;
+  }
+  sub_7E09();
+#endif
+}
+
 static void op_A808(uint16_t op, uint16_t arg, uint16_t extra)
 {
-  printf("%s: unhandled: 0xA808\n", __func__);
+  level_cell_op(level_map_player_pos, op, arg, extra);
 }
 
 #define TOKEN_MAX_ARGS 5
@@ -267,7 +298,7 @@ static void op_A808(uint16_t op, uint16_t arg, uint16_t extra)
 
 // KEH: seg000:0x98F4
 // Processes scripted data referenced by ptr for a given event/command type.
-int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
+int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
     int arg5)
 {
   word_D1D8 = 0xFFFF;
@@ -275,7 +306,7 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
   byte_12BB9 = 0;
 
   // Compute data pointer from index table
-  uint16_t index = *(uint16_t *)ptr;
+  uint16_t index = cell_val;
   if (index == 0xFFFF) {
     return 0;
   }

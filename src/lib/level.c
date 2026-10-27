@@ -29,6 +29,8 @@ struct level_map *level_map;
 const char *level_map_file = NULL;
 unsigned char level_map_offsets[256];
 
+// KEH: DSEG: 0xD286
+struct map_cell *level_map_player_pos;
 
 // KEH: seg000:0x87E5
 void save_level_map_if_dirty(int level)

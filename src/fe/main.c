@@ -156,7 +156,7 @@ static uint8_t byte_D1E8;
 static unsigned char *ptr_D9DA = NULL;
 
 // KEH: DSEG: 0xD9B4
-static unsigned char *dword_D9B4 = NULL;
+static uint16_t dword_D9B4 = 0;
 
 // KEH: DSEG: 0xD9D8
 static uint16_t word_D9B8 = 0;
@@ -598,7 +598,7 @@ static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2);
 static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2);
 static int sub_CC58(int arg0, int fkey_index);
 static void sub_DD4C(void);
-static void sub_1834(unsigned char *ptr, int arg2, int npc_num);
+static void sub_1834(uint16_t cell, int arg2, int npc_num);
 static void set_party_position(int x, int y);
 static void sub_12E9(void);
 static void sub_1339(void);
@@ -1833,9 +1833,9 @@ static void sub_8C(int arg0)
 
   // Compute level_map_player_pos from party position
   {
-    uint16_t map_width = *(uint16_t *)level_map_large;
+    uint16_t map_width = level_map->hdr.map_width;
     uint16_t tile_index = (uint16_t)(g_game_state.y_pos * map_width + g_game_state.x_pos);
-    level_map_player_pos = level_map_large + (tile_index << 3) + 0x414;
+    level_map_player_pos = &level_map->cells[tile_index];
   }
 
   sub_22(arg0);
@@ -1868,12 +1868,14 @@ static void print_movement_msg(int msg_index)
 // Returns 0 (blocked) or 1 (passable)
 static int is_walkable(int x, int y)
 {
-  if (y < 0 || y >= ((uint16_t *)level_map_large)[1])
+  if (y < 0 || y >= level_map->hdr.map_height) {
     return 0;
-  if (x < 0 || x >= ((uint16_t *)level_map_large)[0])
+  }
+  if (x < 0 || x >= level_map->hdr.map_width) {
     return 0;
+  }
 
-  uint16_t map_width = ((uint16_t *)level_map_large)[0];
+  uint16_t map_width = level_map->hdr.map_width;
   int si = (y * map_width + x) << 3;
   if (!(level_map_large[0x416 + si] & 1))
     return 0;
@@ -1896,7 +1898,7 @@ static int is_walkable(int x, int y)
 }
 
 // KEH: seg000:0x1834
-static void sub_1834(unsigned char *map_pos, int arg2, int npc_num)
+static void sub_1834(uint16_t map_pos, int arg2, int npc_num)
 {
   word_D1D8 = arg2;
   dword_D9B4 = map_pos;
@@ -2189,14 +2191,12 @@ static void sub_7FA8(int x, int y)
 
   // Calculate tile entry offset from level_map_large
   // offset = (y * map_width + x) * 8 + 0x414
-  uint16_t map_width = ((uint16_t *)level_map_large)[0];
+  uint16_t map_width = level_map->hdr.map_width;
   uint16_t tile_offset = y * map_width + x;
-  tile_offset = tile_offset << 3;
-  tile_offset += 0x414;
-  level_map_player_pos = level_map_large + tile_offset;
+  level_map_player_pos = &level_map->cells[tile_offset];
 
   // Check if this tile has the interaction flag (bit 7 of byte at offset +2)
-  if ((level_map_player_pos[2] & 0x80) == 0) {
+  if ((level_map_player_pos->b2 & 0x80) == 0) {
     return;
   }
 
@@ -2329,7 +2329,7 @@ exit_loop:
 
   // If encounter was completed, mark tile as cleared
   if (var_4 != 0) {
-    sub_1834(level_map_player_pos + 6, 5, 0);
+    sub_1834(level_map_player_pos->w6, 5, 0);
   }
 }
 
@@ -2356,7 +2356,7 @@ static void sub_113F(int arg0)
   if (arg0 != 0) {
     var_2 = 1;
   } else {
-    var_2 = ((struct level_map_header *)level_map_large)->minute_inc;
+    var_2 = level_map->hdr.minute_inc;
   }
 
   // KEH: 0x12DB (do/while ?)
@@ -2479,7 +2479,7 @@ static void sub_109D(int arg0)
   if (arg0 != 0) {
     minute_inc = 1;
   } else {
-    minute_inc = ((struct level_map_header *)level_map_large)->minute_inc;
+    minute_inc = level_map->hdr.minute_inc;
   }
 
   word_CFC4++;
@@ -2658,31 +2658,24 @@ static void sub_253F(int direction, int arg2)
     byte_D1E8 = g_game_state.y_pos;
 
     // calculate location
-    // Are the offsets always 0 and 1?
-    uint16_t map_width = level_map_large[0] | (level_map_large[1] << 8);
+    uint16_t map_width = level_map->hdr.map_width;
     map_width *= g_game_state.y_pos;
     map_width += g_game_state.x_pos;
 
-    map_width = map_width << 3;
-    map_width += 0x414;
-
-    level_map_player_pos = level_map_large + map_width;
-
-    unsigned char *saved_pos = level_map_player_pos;
+    level_map_player_pos = &level_map->cells[map_width];
+    struct map_cell *saved_pos = level_map_player_pos;
 
     // byte_CDAE = 1;
     // byte_DBC6 = 0;
     draw_map_center_tile();
 
-    sub_1834(level_map_player_pos + 6, 1, 0);
+    sub_1834(level_map_player_pos->w6, 1, 0);
 
     // Recalculate level_map_player_pos for new position
-    uint16_t new_offset = ((uint16_t *)level_map_large)[0];
+    uint16_t new_offset = level_map->hdr.map_width;
     new_offset *= local_y;
     new_offset += local_x;
-    new_offset = new_offset << 3;
-    new_offset += 0x414;
-    level_map_player_pos = level_map_large + new_offset;
+    level_map_player_pos = &level_map->cells[new_offset];
 
     // Check if position changed
     bool position_changed = (saved_pos != level_map_player_pos);
@@ -2696,12 +2689,10 @@ static void sub_253F(int direction, int arg2)
       byte_D1E8 = local_y;
 
       // Recalculate level_map_player_pos for new position
-      uint16_t final_offset = ((uint16_t *)level_map_large)[0];
+      uint16_t final_offset = level_map->hdr.map_width;
       final_offset *= local_y;
       final_offset += local_x;
-      final_offset = final_offset << 3;
-      final_offset += 0x414;
-      level_map_player_pos = level_map_large + final_offset;
+      level_map_player_pos = &level_map->cells[final_offset];
 
       // 0x26F3
       // Loop through ptr_D206 to find NPC at local_x, local_y
@@ -2710,7 +2701,8 @@ static void sub_253F(int direction, int arg2)
         unsigned char *entry = npc_base + (i * 0x68);
         if (entry[0x5B] == (uint8_t)local_x && entry[0x5C] == (uint8_t)local_y) {
           entry[0x50] &= 0x7F;
-          sub_1834(entry + 0x66, 6, i);
+          uint16_t entry_66 = *((uint16_t *)(entry + 0x66));
+          sub_1834(entry_66, 6, i);
           break;
         }
       }
@@ -2722,7 +2714,7 @@ static void sub_253F(int direction, int arg2)
       }
 
       sub_12E9();
-      sub_1834(level_map_player_pos + 6, 0, 0);
+      sub_1834(level_map_player_pos->w6, 0, 0);
 
       if (arg2 == 0) {
         sub_1339();
