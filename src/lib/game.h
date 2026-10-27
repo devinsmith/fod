@@ -128,6 +128,7 @@ struct game_state {
 extern struct game_state g_game_state;
 extern const char *current_player_name;
 extern int current_direction;
+extern unsigned char *level_map_player_pos;
 
 extern uint16_t g_wanted_id[];
 extern uint16_t g_cached_id[];

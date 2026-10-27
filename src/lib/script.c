@@ -257,6 +257,11 @@ void sub_D8CD(int npc_idx)
   bool_DAE6 = true;
 }
 
+static void op_A808(uint16_t op, uint16_t arg, uint16_t extra)
+{
+  printf("%s: unhandled: 0xA808\n", __func__);
+}
+
 #define TOKEN_MAX_ARGS 5
 #define TOKEN_BUF_LEN  (2 + TOKEN_MAX_ARGS)   // type, op, then up to 5 args
 
@@ -391,6 +396,10 @@ int loc_98F4(unsigned char *ptr, int cmd_type, int party_idx, int arg4,
     case 0x17:
       // A79A:
       sub_A79A(&data_ptr, token_buf[2]);
+      break;
+    case 0x1B:
+      // A824
+      op_A808(0x1B, token_buf[2], 0);
       break;
     case 0x1F:
       play_sound(token_buf[2]);

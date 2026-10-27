@@ -155,9 +155,6 @@ static uint8_t byte_D1E8;
 // KEH: DSEG:D9DA
 static unsigned char *ptr_D9DA = NULL;
 
-// KEH: DSEG: 0xD286
-static unsigned char *level_map_player_pos;
-
 // KEH: DSEG: 0xD9B4
 static unsigned char *dword_D9B4 = NULL;
 
