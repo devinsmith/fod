@@ -511,17 +511,6 @@ static unsigned char hds_bytes[1180];
 // DSEG:0x3C84
 unsigned char *arch_offset;
 
-// KEH DSEG:0x1E9A
-static uint16_t word_1E9A = 0;
-// KEH DSEG:0x1E9C
-static uint16_t word_1E9C = 0;
-// KEH DSEG:0x1E9E
-static uint16_t word_1E9E = 0;
-// KEH DSEG:0x1EA0
-static uint16_t word_1EA0 = 0;
-// KEH DSEG:0x1EA2
-static uint16_t word_1EA2 = 0;
-
 // KEH DSEG:0xBEE6
 uint16_t word_BEE6 = 0;
 
@@ -2742,96 +2731,68 @@ static void draw_map()
   }
 }
 
+// Cell-to-display-tile conversion (extraction of DCE9 block in
+// build_map_display). b2 bit 6 wins over bit 7. A plain cell
+// keeps all 16 bits of word0.
+static uint16_t cell_to_display_tile(const struct map_cell *cell)
+{
+  uint16_t w = cell->word0;
+
+  if (cell->b2 & 0x40)
+    return (w & 0x07FF) | 0x1800;
+  if (cell->b2 & 0x80)                    // interaction flag
+    return (w & 0x07FF) | 0x1000;
+  return w;
+}
+
+#define VIEW_W 19
+#define VIEW_H 9
+
 // KEH: seg000:0xDC46
 // Builds the tile buffer for the visible map around
 // the player.
 static void build_map_display()
 {
-  uint16_t ax = ((uint16_t *)level_map_large)[2];
-  ax = ax & 0x7FFF;
+  const uint16_t map_w = level_map->hdr.map_width;
+  const uint16_t map_h = level_map->hdr.map_height;
 
-  printf("%s: DC51 - 0x%04X\n", __func__, ax);
+  uint16_t outside = level_map->hdr.filler_tile & 0x7FFF;
+  printf("%s: DC51 - (outside: 0x%04X)\n", __func__, outside);
 
-  word_1EA2 = ax;
+  printf("%s: DC57 - (x pos: 0x%04X)\n", __func__, g_game_state.x_pos);
+  uint16_t left_edge = g_game_state.x_pos - 9; // left edge of view
 
-  ax = g_game_state.x_pos;
-  printf("%s: DC57 - 0x%04X\n", __func__, ax);
-  ax -= 9;
-  word_1E9A = ax;
-
-  ax = g_game_state.y_pos;
-  printf("%s: DC63 - 0x%04X\n", __func__, ax);
-  ax -= 4;
-  word_1E9C = ax;
+  printf("%s: DC63 - (y pos: 0x%04X)\n", __func__, g_game_state.y_pos);
+  uint16_t top_edge = g_game_state.y_pos - 4; // top edge of view
 
   uint16_t *di = map_tile_array;
-  uint16_t si = 0;
 
   // DC79
-  for (int j = 0; j < 9; j++) {
-    for (int i = 0; i < 19; i++) {
-      word_1E9E = i + word_1E9A;
-      si = 0;
+  for (uint16_t row = 0; row < VIEW_H; row++) {
+    uint16_t map_y = top_edge + row;
+    for (uint16_t col = 0; col < VIEW_W; col++) {
+      uint16_t map_x = left_edge + col;
 
-      uint16_t si_word = ((uint16_t *)level_map_large)[si];
-      if (word_1E9E >= si_word) {
-        *di = word_1EA2;
-        di++;
+      // If the coordinates are outside the map boundaries, fill with outside tile.
+      // The 0x8000 tests are likely redundant but kept to match with FOD
+      if (map_x >= map_w || map_y >= map_h ||
+          (map_x & 0x8000) || (map_y & 0x8000)) {
+        *di++ = outside;
         continue;
       }
 
-      word_1EA0 = j + word_1E9C;
-      si_word = ((uint16_t *)level_map_large)[si + 1];
-      if (word_1EA0 >= si_word) {
-        *di = word_1EA2;
-        di++;
-        continue;
-      }
-
-      ax = 0x8000;
-      if ((word_1E9E & 0x8000) != 0) {
-        *di = word_1EA2;
-        di++;
-        continue;
-      }
-
-      if ((word_1EA0 & 0x8000) != 0) {
-        *di = word_1EA2;
-        di++;
-        continue;
-      }
-
-      uint16_t cx = ((uint16_t *)level_map_large)[si];
-      ax = word_1EA0 * cx;
-      ax += word_1E9E;
-      ax = ax << 3;
-      si += 0x414;
-      si += ax;
-
-      ax = ((uint16_t *)level_map_large)[si / 2];
-      if ((level_map_large[si + 2] & 0x40) == 0) {
-        if ((level_map_large[si + 2] & 0x80) != 0) {
-          ax = ax & 0x7FF;
-          ax = ax | 0x1000;
-        }
-      } else {
-        ax = ax & 0x7FF;
-        ax = ax | 0x1800;
-      }
+      const struct map_cell *cell =
+          &level_map->cells[(size_t)map_y * map_w + map_x];
 
       // DCE9
-      *di = ax;
-      di++;
+      *di++ = cell_to_display_tile(cell);
     }
   }
 
   // Add center portion
-  int center = (4 * 19) + 9;
+  int center = (VIEW_H / 2) * VIEW_W + VIEW_W / 2;
   map_tile_array[center] &= 0x7FF;
   map_tile_array[center] |= 0x800;
-
-//  printf("Map done\n");
-//  hexdump(map_tile_array, 64);
 
   draw_map();
 }

@@ -33,8 +33,7 @@ extern "C" {
 struct level_map_header {
   uint16_t map_width;       // 0x00 - tiles wide
   uint16_t map_height;      // 0x02 - tiles high
-  uint8_t  unknown_04;      // 0x04 - unknown
-  uint8_t  unknown_05;      // 0x05 - unknown
+  uint16_t filler_tile;     // 0x04 - tile used for out-of-bounds display
   uint8_t  minute_inc;      // 0x06 - minute advancement per tick on overworld
   uint8_t  unknown_07;      // 0x07
   uint8_t  unknown_08;      // 0x08

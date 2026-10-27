@@ -213,8 +213,7 @@ unsigned char *sub_8B08(uint16_t id, uint16_t *out_index)
 // KEH: seg000:0x7E09
 static void sub_7E09()
 {
-  level_map->hdr.unknown_05 |= 0x80;
-//  level_map_large[5] |= 0x80;
+  level_map->hdr.filler_tile |= 0x8000;
 }
 
 // KEH: seg000:0xDF48
