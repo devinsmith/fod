@@ -48,6 +48,15 @@ static uint16_t word_1A46 = 0;
 // KEH: DSEG:0xC5A0
 static uint8_t unknown_flags_table[255] = { 0 };
 
+// KEH: DSEG:BEC0
+uint16_t word_BEC0 = 0;
+
+// KEH: DSEG: 0xD9B4 (a pointer to something)
+uint16_t dword_D9B4 = 0;
+
+// KEH DSEG:0xD9D0
+uint16_t word_D9D0 = 0;
+
 // KEH DSEG:0x12BB9 - flag set after consume_key
 static uint8_t byte_12BB9 = 0;
 
@@ -256,10 +265,21 @@ void sub_D8CD(int npc_idx)
   bool_DAE6 = true;
 }
 
+// KEH: seg000:0x8B69
+// value -> field A (8 bits: low 7 in b3, MSB in b2 bit 0)
+// extra -> field B (16 bits: low 15 in w4, MSB in b2 bit 1)
+static void map_cell_set_packed(struct map_cell *cell, uint8_t value, uint16_t extra)
+{
+  cell->b3 = value & 0x7F;
+  cell->w4 = extra & 0x7FFF;
+  cell->b2 = (cell->b2 & ~0x03)
+           | ((value >> 7) & 1)        // bit 7 -> b2 bit 0
+           | ((extra >> 14) & 2);      // bit 15 -> b2 bit 1
+}
+
 // KEH: seg000:0x8BBB
 static void level_cell_op(struct map_cell *cell, uint8_t op, uint16_t arg, uint16_t extra)
 {
-#if 0
   switch (op) {
   case 0x19:
   case 0x1C: {
@@ -267,14 +287,14 @@ static void level_cell_op(struct map_cell *cell, uint8_t op, uint16_t arg, uint1
     if (arg != (cur & 0x07FF)) {
       cell->word0 = arg | (cur & 0xF800);
       if (!bool_DAE6) {
-        sub_DD4C();
+        redraw_map_view();
       }
     }
     break;
   }
   case 0x1A:
   case 0x1D:
-    sub_8B69(cell, arg, extra);
+    map_cell_set_packed(cell, arg, extra);
     break;
   case 0x1B:
   case 0x1E:
@@ -284,7 +304,6 @@ static void level_cell_op(struct map_cell *cell, uint8_t op, uint16_t arg, uint1
     break;
   }
   sub_7E09();
-#endif
 }
 
 static void op_A808(uint16_t op, uint16_t arg, uint16_t extra)
@@ -472,7 +491,18 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
         continue;
       }
       // 0xB028
-      printf("%s: unhandled: 0xB028\n", __func__);
+      if (token_buf[5] == 1) {
+        npc_base[0x50] |= 0x80;
+      }
+      // 0xB037
+      dword_D9B4 = *(uint16_t *)(npc_base + 0x66);
+      word_D1D8 = 6;
+      word_D9D0 = 0; // XXX: should be [bp-00A2]
+      word_BEC0 = 0; // XXX: should be [bp-00A4]
+      bool_DAE6 = false;
+      // varD2 = 1;   // [bp-00D2]
+      do_expand = false;
+      return 1;
       break;
     case 0x3A:
       // B063

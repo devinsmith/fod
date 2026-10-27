@@ -25,6 +25,10 @@
 extern "C" {
 #endif
 
+extern uint16_t word_BEC0;
+extern uint16_t dword_D9B4;
+extern uint16_t word_D9D0;
+
 int loc_98F4(uint16_t cell_val, int cmd_type, int arg3, int arg4, int arg5);
 
 #ifdef __cplusplus

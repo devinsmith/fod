@@ -24,6 +24,7 @@
 
 #include "anim.h"
 #include "game.h"
+#include "level.h"
 #include "platform.h"
 #include "resource.h"
 #include "tables.h"
@@ -63,7 +64,7 @@ static uint16_t word_1E96;
 static uint16_t word_1E98;
 
 // KEH DSEG:0x1EA4
-uint16_t map_tile_array[9 * 19];
+static uint16_t map_tile_array[9 * 19];
 
 // DSEG:0x3E66
 static struct resource *border_res;
@@ -1052,6 +1053,96 @@ static void sub_DAD3()
 
   // loc_DAE8
   ui_print_border_chr(str4);
+}
+
+#define VIEW_W 19
+#define VIEW_H 9
+
+/* KEH: seg000:0xDD19 */
+static void draw_map()
+{
+  // Draws our map 19x9 sprites
+  for (int row = 0; row < VIEW_H; row++) {
+    for (int col = 0; col < VIEW_W; col++) {
+      draw_map_tile(map_tile_array[col + (row * 19)], col, row);
+    }
+  }
+}
+
+// Cell-to-display-tile conversion (extraction of DCE9 block in
+// build_map_display). b2 bit 6 wins over bit 7. A plain cell
+// keeps all 16 bits of word0.
+static uint16_t cell_to_display_tile(const struct map_cell *cell)
+{
+  uint16_t w = cell->word0;
+
+  if (cell->b2 & 0x40)
+    return (w & 0x07FF) | 0x1800;
+  if (cell->b2 & 0x80)                    // interaction flag
+    return (w & 0x07FF) | 0x1000;
+  return w;
+}
+
+// KEH: seg000:0xDC46
+// Builds the tile buffer for the visible map around
+// the player.
+void build_map_display()
+{
+  const uint16_t map_w = level_map->hdr.map_width;
+  const uint16_t map_h = level_map->hdr.map_height;
+
+  uint16_t outside = level_map->hdr.filler_tile & 0x7FFF;
+  printf("%s: DC51 - (outside: 0x%04X)\n", __func__, outside);
+
+  printf("%s: DC57 - (x pos: 0x%04X)\n", __func__, g_game_state.x_pos);
+  uint16_t left_edge = g_game_state.x_pos - 9; // left edge of view
+
+  printf("%s: DC63 - (y pos: 0x%04X)\n", __func__, g_game_state.y_pos);
+  uint16_t top_edge = g_game_state.y_pos - 4; // top edge of view
+
+  uint16_t *di = map_tile_array;
+
+  // DC79
+  for (uint16_t row = 0; row < VIEW_H; row++) {
+    uint16_t map_y = top_edge + row;
+    for (uint16_t col = 0; col < VIEW_W; col++) {
+      uint16_t map_x = left_edge + col;
+
+      // If the coordinates are outside the map boundaries, fill with outside tile.
+      // The 0x8000 tests are likely redundant but kept to match with FOD
+      if (map_x >= map_w || map_y >= map_h ||
+          (map_x & 0x8000) || (map_y & 0x8000)) {
+        *di++ = outside;
+        continue;
+      }
+
+      const struct map_cell *cell =
+          &level_map->cells[(size_t)map_y * map_w + map_x];
+
+      // DCE9
+      *di++ = cell_to_display_tile(cell);
+    }
+  }
+
+  // Add center portion
+  int center = (VIEW_H / 2) * VIEW_W + VIEW_W / 2;
+  map_tile_array[center] &= 0x7FF;
+  map_tile_array[center] |= 0x800;
+
+  draw_map();
+}
+
+// KEH: seg000:0xDD4C
+// Redraws the map viewport: rebuilds the tile buffer for the area
+// around the player, draws it, and refreshes that region of the screen.
+void redraw_map_view(void)
+{
+  build_map_display();
+
+  // KEH: DSEG:0x1A5E
+  struct ui_rect data_1A5E = { 4, 24, 152 /* 19 * 8 */, 144 /* 9 * 16 */ };
+
+  ui_region_refresh(&data_1A5E);
 }
 
 static struct ui_rect rect_1A66 = { 0x1C, 0x28, 0x68, 0x70 };

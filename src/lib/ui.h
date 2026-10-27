@@ -76,7 +76,6 @@ struct ui_region {
 extern struct ui_region full_screen_region;
 extern struct ui_rect whole_screen;
 extern struct ui_region encounter_region;
-extern uint16_t map_tile_array[];
 extern bool do_expand;
 
 void ui_region_newline_or_scroll();
@@ -108,6 +107,8 @@ void plot_font_chr(uint8_t chr_index, int i, int line_num, int base);
 // Map tiles
 void draw_map_tile(uint16_t tile_id, int x, int y);
 void draw_map_center_tile();
+void build_map_display();
+void redraw_map_view(void);
 
 // Clears out an area on the scratch buffer by setting
 // the contents to black (0).

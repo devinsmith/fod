@@ -133,9 +133,6 @@ static const uint8_t map_ids[] = {
   1, 1, 2
 };
 
-// KEH: DSEG:BEC0
-static uint16_t word_BEC0 = 0;
-
 // KEH: DSEG: 0xCDAC
 static const char *level_phys_label = NULL;
 
@@ -154,9 +151,6 @@ static uint8_t byte_D1E8;
 
 // KEH: DSEG:D9DA
 static unsigned char *ptr_D9DA = NULL;
-
-// KEH: DSEG: 0xD9B4
-static uint16_t dword_D9B4 = 0;
 
 // KEH: DSEG: 0xD9D8
 static uint16_t word_D9B8 = 0;
@@ -230,8 +224,6 @@ static struct ui_region unknown_2CA = {
   NULL  // 1A
 };
 
-// KEH: DSEG:0x1A5E
-static struct ui_rect data_1A5E = { 4, 24, 152, 144 };
 
 
 // KEH: DSEG:0x1AD8
@@ -517,9 +509,6 @@ uint16_t word_BEE6 = 0;
 // KEH DSEG:0xBEE8
 static uint16_t word_BEE8 = 0;
 
-// KEH DSEG:0xD9D0
-static uint16_t word_D9D0 = 0;
-
 // KEH DSEG:0xDAE6
 bool bool_DAE6 = false;
 
@@ -586,7 +575,6 @@ static uint8_t sub_CAE6(uint16_t value, uint16_t *var6, uint16_t mode,
 static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2);
 static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2);
 static int sub_CC58(int arg0, int fkey_index);
-static void sub_DD4C(void);
 static void sub_1834(uint16_t cell, int arg2, int npc_num);
 static void set_party_position(int x, int y);
 static void sub_12E9(void);
@@ -622,7 +610,6 @@ static void sub_B29B(const char *arg0);
 static void sub_FFB2(uint32_t *accum, int32_t val);
 static void sub_FFD4(uint32_t *accum, uint32_t val);
 static void sub_22(int arg);
-static void build_map_display();
 
 static void do_title()
 {
@@ -1890,7 +1877,7 @@ static int is_walkable(int x, int y)
 static void sub_1834(uint16_t map_pos, int arg2, int npc_num)
 {
   word_D1D8 = arg2;
-  dword_D9B4 = map_pos;
+  dword_D9B4 = map_pos; // ???
   word_BEC0 = npc_num;
   word_D9D0 = 0;
 
@@ -1898,7 +1885,7 @@ static void sub_1834(uint16_t map_pos, int arg2, int npc_num)
     if (word_D1D8 == 8)
       break;
 
-    loc_98F4(map_pos, word_D1D8, word_D9D0, word_BEC0, 0);
+    loc_98F4(dword_D9B4, word_D1D8, word_D9D0, word_BEC0, 0);
 
     if (bool_DAE6 && word_D1D8 == 0) {
       sub_B452();
@@ -2314,7 +2301,7 @@ exit_loop:
 
   // Restore message region and refresh map
   ui_region_set_active(&message_region, false);
-  sub_DD4C();
+  redraw_map_view();
 
   // If encounter was completed, mark tile as cleared
   if (var_4 != 0) {
@@ -2699,7 +2686,7 @@ static void sub_253F(int direction, int arg2)
       // Check if tile is walkable
       if (is_walkable(local_x, local_y)) {
         set_party_position(local_x, local_y);
-        sub_DD4C();
+        redraw_map_view();
       }
 
       sub_12E9();
@@ -2709,7 +2696,7 @@ static void sub_253F(int direction, int arg2)
         sub_1339();
       }
 
-      sub_DD4C();
+      redraw_map_view();
     }
 
     sub_7FA8(g_game_state.x_pos, g_game_state.y_pos);
@@ -2718,83 +2705,6 @@ static void sub_253F(int direction, int arg2)
     sub_138D(0);
     return;
   }
-}
-
-/* KEH: seg000:0xDD19 */
-static void draw_map()
-{
-  // Draws our map 19x9 sprites
-  for (int j = 0; j < 9; j++) {
-    for (int i = 0; i < 19; i++) {
-      draw_map_tile(map_tile_array[i + (j * 19)], i, j);
-    }
-  }
-}
-
-// Cell-to-display-tile conversion (extraction of DCE9 block in
-// build_map_display). b2 bit 6 wins over bit 7. A plain cell
-// keeps all 16 bits of word0.
-static uint16_t cell_to_display_tile(const struct map_cell *cell)
-{
-  uint16_t w = cell->word0;
-
-  if (cell->b2 & 0x40)
-    return (w & 0x07FF) | 0x1800;
-  if (cell->b2 & 0x80)                    // interaction flag
-    return (w & 0x07FF) | 0x1000;
-  return w;
-}
-
-#define VIEW_W 19
-#define VIEW_H 9
-
-// KEH: seg000:0xDC46
-// Builds the tile buffer for the visible map around
-// the player.
-static void build_map_display()
-{
-  const uint16_t map_w = level_map->hdr.map_width;
-  const uint16_t map_h = level_map->hdr.map_height;
-
-  uint16_t outside = level_map->hdr.filler_tile & 0x7FFF;
-  printf("%s: DC51 - (outside: 0x%04X)\n", __func__, outside);
-
-  printf("%s: DC57 - (x pos: 0x%04X)\n", __func__, g_game_state.x_pos);
-  uint16_t left_edge = g_game_state.x_pos - 9; // left edge of view
-
-  printf("%s: DC63 - (y pos: 0x%04X)\n", __func__, g_game_state.y_pos);
-  uint16_t top_edge = g_game_state.y_pos - 4; // top edge of view
-
-  uint16_t *di = map_tile_array;
-
-  // DC79
-  for (uint16_t row = 0; row < VIEW_H; row++) {
-    uint16_t map_y = top_edge + row;
-    for (uint16_t col = 0; col < VIEW_W; col++) {
-      uint16_t map_x = left_edge + col;
-
-      // If the coordinates are outside the map boundaries, fill with outside tile.
-      // The 0x8000 tests are likely redundant but kept to match with FOD
-      if (map_x >= map_w || map_y >= map_h ||
-          (map_x & 0x8000) || (map_y & 0x8000)) {
-        *di++ = outside;
-        continue;
-      }
-
-      const struct map_cell *cell =
-          &level_map->cells[(size_t)map_y * map_w + map_x];
-
-      // DCE9
-      *di++ = cell_to_display_tile(cell);
-    }
-  }
-
-  // Add center portion
-  int center = (VIEW_H / 2) * VIEW_W + VIEW_W / 2;
-  map_tile_array[center] &= 0x7FF;
-  map_tile_array[center] |= 0x800;
-
-  draw_map();
 }
 
 // KEH: seg000:0x2813
@@ -2960,7 +2870,7 @@ static void sub_39FE(int arg1, int arg2)
 
           // Restore region
           ui_region_set_active((struct ui_region *)(intptr_t)saved_region, false);
-          sub_DD4C();
+          redraw_map_view();
         }
       }
       // else: unknown key, no action (falls through to loop check)
@@ -3738,12 +3648,6 @@ static void sub_138D(int arg0)
   (void)arg0;
 }
 
-// KEH: seg000:0xDD4C
-static void sub_DD4C(void)
-{
-  build_map_display();
-  ui_region_refresh(&data_1A5E);
-}
 
 // KEH: seg000:0xE674
 // Exit cleanup - saves/restores state
