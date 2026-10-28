@@ -20,17 +20,28 @@
 
 static struct npc_service doc_marino = {
   "Doc Marino.",
+  0,
   0
 };
 
 static struct npc_service doc_brewhoe = {
   "Doc Brewhoe's",
+  0,
   0
 };
 
 static struct npc_service doc_demedici = {
-  "Dr. DeMedici",
-  0xF
+  .name = "Dr DeMedici",
+  .anim_id = 0xF,
+  .count = 6,
+  .services = {
+    { "Healing", 0 },
+    { "Cure Poison", 0 },
+    { "Cure Rad Fever", 0 },
+    { "Cure Rabies", 0 },
+    { "Cure Venom", 0 },
+    { "Cure Mutation", 0 }
+  }
 };
 
 struct npc_service *npc_services[] = {

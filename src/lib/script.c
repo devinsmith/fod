@@ -319,7 +319,7 @@ static void sub_B498(const struct player_rec *player, int y_pos)
   ui_region_set_active(&region_1CEC, false);
   ui_active_region_clear();
 
-  snprintf(buffer, sizeof(buffer), "%s, you have $%d\n", player->name, g_game_state.money);
+  snprintf(buffer, sizeof(buffer), "%s, you have $%d", player->name, g_game_state.money);
   ui_region_print_centered_str(buffer, y_pos);
 }
 
@@ -328,6 +328,25 @@ static void sub_B5FF(const struct player_rec *player)
   sub_B498(player, 1);
   ui_region_refresh_active();
   ui_region_set_active(&region_1CD0, false);
+}
+
+/* sub_BB43 (seg000:BB43) */
+void list_cb_print_name_value(uint16_t row, uint16_t index, void *ud)
+{
+  char buf[48];
+  struct npc_service *svc = ud;
+
+  snprintf(buf, sizeof(buf), "%1d>%-16.16s %6d", row, svc->services[index].name, svc->services[index].price);
+
+#if 0
+    const struct list_entry *e =
+        (const struct list_entry *)(g_list_block + 0x2C) + index;
+
+    snprintf(buf, sizeof(buf), "%1d>%-16.16s %6" PRId32,
+             row, e->name, e->value);
+
+#endif
+  ui_region_print_str(buf, 0, row + 1);
 }
 
 static void sub_BBC8(uint16_t arg)
@@ -361,6 +380,8 @@ static void sub_BBC8(uint16_t arg)
   uint16_t profession_offset = ax;
   // BC77
 
+  ui_scroll_list_menu(svc, svc->count, &var_1E, "Which service?\r  Service         Price",
+      list_cb_print_name_value, false);
 
   // BF30
   if (var_2 != 0) {

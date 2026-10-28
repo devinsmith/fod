@@ -62,6 +62,9 @@ enum {
   KEY_ESC     = 0xFF,
 };
 
+#define KEY_FN_LO      0x3B   /* F1..F5 */
+#define KEY_FN_HI      0x3F
+
 void register_platform_driver(struct plat_driver *driver);
 
 int vga_initialize(int game_width, int game_height);

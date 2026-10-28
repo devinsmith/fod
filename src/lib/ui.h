@@ -92,11 +92,15 @@ void ui_region_print_str(const char *str, int x_pos, int y_pos);
 void ui_region_print_centered_str(const char *str, int y_pos);
 void ui_print_positioned_str(const uint8_t *str);
 
-int ui_draw_scroll_list_page(struct player_rec *player,
+int ui_draw_scroll_list_page(void *ud,
     uint16_t scroll_offset,
     uint16_t max_count, const char *title,
-    void (*cb)(uint16_t, uint16_t, struct player_rec *), bool highlight,
+    void (*cb)(uint16_t, uint16_t, void *), bool highlight,
     bool refresh);
+
+int ui_scroll_list_menu(void *ud, uint16_t max_count,
+    uint16_t *scroll_offset, const char *title,
+    void (*cb)(uint16_t, uint16_t, void *), bool highlight);
 
 // Font stuff
 void ui_load_fonts();

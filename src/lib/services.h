@@ -25,9 +25,16 @@
 extern "C" {
 #endif
 
+struct service_type {
+  char *name;
+  uint32_t price;
+};
+
 struct npc_service {
   char *name; // At 0x14, terminated by 0
   uint8_t anim_id; // At 0x28
+  uint16_t count; // 0x2A
+  struct service_type services[7]; // Not all NPCs offer 7 services.
 };
 
 struct npc_service *service_get_by_npc(int service_num);

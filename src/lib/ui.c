@@ -527,11 +527,13 @@ void ui_active_region_clear()
   ui_rect_clear(si);
 }
 
+#define LIST_PAGE_SIZE 8
+
 // KEH: seg000:15CB
-int ui_draw_scroll_list_page(struct player_rec *player,
+int ui_draw_scroll_list_page(void *ud,
     uint16_t scroll_offset,
     uint16_t max_count, const char *title,
-    void (*cb)(uint16_t, uint16_t, struct player_rec *), bool highlight,
+    void (*cb)(uint16_t, uint16_t, void *), bool highlight,
     bool refresh)
 {
   uint16_t items_shown;
@@ -543,6 +545,7 @@ int ui_draw_scroll_list_page(struct player_rec *player,
 
   if (max_count > 8) {
     // TODO add scrolling glyphs?
+    printf("%s: TODO, add scrolling glyphs\n", __func__);
   }
 
   if (highlight) {
@@ -552,7 +555,7 @@ int ui_draw_scroll_list_page(struct player_rec *player,
   ui_set_inverse(false);
 
   for (i = 0; i < items_shown; i++) {
-    cb(i + 1, scroll_offset + i, player);
+    cb(i + 1, scroll_offset + i, ud);
   }
 
   return items_shown;
@@ -576,6 +579,75 @@ void ui_region_set_active(struct ui_region *arg1, bool clear)
     // Call function pointer
     arg1->func_ptr();
   }
+}
+
+// KEH: seg000:0x1682 - process scroll-list interaction
+int ui_scroll_list_menu(void *ud, uint16_t max_count,
+    uint16_t *scroll_offset, const char *title,
+    void (*cb)(uint16_t, uint16_t, void *), bool highlight)
+{
+  int shown = 0; // rows drawn on current page
+  int sel = 0; // digit chosen
+  bool done = false;
+  bool redraw = true;
+
+  // Offset sitting exactly at the end: back up one page
+  if (*scroll_offset == max_count && max_count > 0) {
+    *scroll_offset -= LIST_PAGE_SIZE;
+  }
+
+  while (!done) {
+    if (redraw) {
+      shown = ui_draw_scroll_list_page(ud, *scroll_offset, max_count, title, cb, highlight, true);
+      redraw = false;
+    }
+
+    int key = sys_readkey();
+    if (key > 0) {
+      printf("Key = 0x%02X\n", key);
+    }
+
+    if (key >= '0' && key <= '9') {
+      sel = key & 0x0F;
+      if (sel > 0 && sel <= shown) {
+        done = true;
+      }
+      continue;
+    }
+
+    switch (key) {
+#if 0
+    case KEY_PGDN:
+        if ((int)max_count - (int)*scroll_offset > shown) {
+            *scroll_offset += LIST_PAGE_SIZE;
+            redraw = true;
+        }
+        break;
+
+    case KEY_PGUP:
+        if (*scroll_offset >= LIST_PAGE_SIZE) {
+            *scroll_offset -= LIST_PAGE_SIZE;
+            redraw = true;
+        }
+        break;
+
+    case KEY_EXTRA_A:
+    case KEY_EXTRA_B:
+        if (highlight)
+            return key;
+        break;
+#endif
+    case KEY_ESC:
+      return key;
+
+    default:
+      if (key >= KEY_FN_LO && key <= KEY_FN_HI)
+        return key - 0x46;               /* -11..-7 */
+      break;
+    }
+  }
+
+  return (int)*scroll_offset + sel - 1;
 }
 
 // FOD: seg000:0x168E

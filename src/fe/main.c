@@ -599,8 +599,6 @@ static void sub_E29(unsigned char *arg1, unsigned char *arg2,
                     uint8_t arg3, uint8_t arg4, uint16_t arg5, uint8_t arg6);
 static void sub_E2B8(uint16_t arg0, int arg1);
 static int16_t sub_7ED0(int x, int y);
-static int16_t sub_1682(struct player_rec *player, uint16_t arg1, uint16_t arg2,
-                        const char *title, uint16_t arg4, bool highlight);
 static int16_t sub_7F34(uint16_t arg0, int x, int y);
 static void sub_7B02(struct player_rec *player, uint16_t arg1, uint16_t arg2);
 static int sub_6D6B(uint16_t arg0);
@@ -2056,14 +2054,6 @@ static int16_t sub_7ED0(int x, int y)
   return 0;
 }
 
-// KEH: seg000:0x1682 - process scroll-list interaction
-static int16_t sub_1682(struct player_rec *player, uint16_t arg1,
-    uint16_t arg2, const char *title, uint16_t cb, bool highlight)
-{
-  printf("%s: unimplemented\n", __func__);
-  return -1;
-}
-
 // KEH: seg000:0x7F34 - process treasure/item reward step
 static int16_t sub_7F34(uint16_t arg0, int x, int y)
 {
@@ -2149,10 +2139,17 @@ static void sub_22(int arg)
   hexdump(scr_decompressed, 32);
 }
 
+void sub_7E5B(uint16_t val1, uint16_t var2, void *ud)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
 // KEH: seg000:0x7FA8
 // Handles encounters/interactions at a map tile position.
 // If the tile has flag 0x80 set, processes encounter logic (enemies, treasure, etc.)
 // and refreshes the map display.
+//
+// XXX/TODO: THIS IS VERY BROKEN
 static void sub_7FA8(int x, int y)
 {
   const char *var_12;
@@ -2206,8 +2203,8 @@ static void sub_7FA8(int x, int y)
       player = &g_game_state.players[var_A];
     }
 
-    // Process interaction with the entity
-    var_8 = sub_1682(player, var_6, 0x1028, var_12, 0x7E5B, false);
+    // TODO:Process interaction with the entity BROKEN
+    var_8 = ui_scroll_list_menu(player, var_6, NULL, "You find these items:", sub_7E5B, false);
 
     if ((int16_t)var_8 < 0) {
       // Negative result: special case
@@ -3145,9 +3142,10 @@ static bool is_item_equipped(struct player_rec *player, uint16_t item_id)
 }
 
 // KEH: seg000:13E4
-static void draw_inventory_row(uint16_t row_number, uint16_t item_index, struct player_rec *player)
+static void draw_inventory_row(uint16_t row_number, uint16_t item_index, void *ud)
 {
   char buf[46];
+  struct player_rec *player = ud;
   uint16_t item_id = table_CDC0[item_index];
   bool is_equipped = is_item_equipped(player, item_id);
   char marker = is_equipped ? '*': ' ';
@@ -3190,10 +3188,11 @@ static uint16_t draw_inventory_list(struct player_rec *player_ptr, uint16_t *scr
 }
 
 // KEH: seg000:C53E
-static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, struct player_rec *player)
+static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, void *ud)
 {
   char buf[42];
   uint16_t skill_index = table_CDC0[item_index];
+  struct player_rec *player = ud;
 
   const char *skill_name = (char *)hds_bytes + 0x16 * skill_index + 0x126;
 
@@ -3202,10 +3201,11 @@ static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, stru
 }
 
 // KEH: seg000:C53E
-static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, struct player_rec *player)
+static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, void *ud)
 {
   char buf[42];
   uint16_t skill_index = table_CDC0[item_index];
+  struct player_rec *player = ud;
 
   const char *skill_name = (char *)hds_bytes + 0x16 * skill_index + 0x286;
 
