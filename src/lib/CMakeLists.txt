@@ -26,6 +26,7 @@ set(SOURCES
   random.c random.h
   resource.c resource.h
   script.c script.h
+  services.c services.h
   sfx.c sfx.h
   sha1.c sha1.h
   tables.c tables.h

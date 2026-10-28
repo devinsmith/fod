@@ -91,6 +91,7 @@ void screen_draw(const unsigned char *bytes);
 void ui_region_print_str(const char *str, int x_pos, int y_pos);
 void ui_region_print_centered_str(const char *str, int y_pos);
 void ui_print_positioned_str(const uint8_t *str);
+
 int ui_draw_scroll_list_page(struct player_rec *player,
     uint16_t scroll_offset,
     uint16_t max_count, const char *title,

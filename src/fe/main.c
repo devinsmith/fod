@@ -600,7 +600,7 @@ static void sub_E29(unsigned char *arg1, unsigned char *arg2,
 static void sub_E2B8(uint16_t arg0, int arg1);
 static int16_t sub_7ED0(int x, int y);
 static int16_t sub_1682(struct player_rec *player, uint16_t arg1, uint16_t arg2,
-                        uint16_t *arg3, uint16_t arg4, bool highlight);
+                        const char *title, uint16_t arg4, bool highlight);
 static int16_t sub_7F34(uint16_t arg0, int x, int y);
 static void sub_7B02(struct player_rec *player, uint16_t arg1, uint16_t arg2);
 static int sub_6D6B(uint16_t arg0);
@@ -2056,9 +2056,9 @@ static int16_t sub_7ED0(int x, int y)
   return 0;
 }
 
-// KEH: seg000:0x1682 - process interaction
+// KEH: seg000:0x1682 - process scroll-list interaction
 static int16_t sub_1682(struct player_rec *player, uint16_t arg1,
-    uint16_t arg2, uint16_t *arg3, uint16_t arg4, bool highlight)
+    uint16_t arg2, const char *title, uint16_t cb, bool highlight)
 {
   printf("%s: unimplemented\n", __func__);
   return -1;
@@ -2155,7 +2155,7 @@ static void sub_22(int arg)
 // and refreshes the map display.
 static void sub_7FA8(int x, int y)
 {
-  uint16_t var_12;
+  const char *var_12;
   uint8_t var_E;
   uint8_t var_4;
   uint16_t var_A;
@@ -2177,7 +2177,7 @@ static void sub_7FA8(int x, int y)
   }
 
   // Initialize locals
-  var_12 = 0;
+  var_12 = NULL;
   var_E = 0;
   var_4 = 0;
 
@@ -2207,7 +2207,7 @@ static void sub_7FA8(int x, int y)
     }
 
     // Process interaction with the entity
-    var_8 = sub_1682(player, var_6, 0x1028, &var_12, 0x7E5B, false);
+    var_8 = sub_1682(player, var_6, 0x1028, var_12, 0x7E5B, false);
 
     if ((int16_t)var_8 < 0) {
       // Negative result: special case
@@ -2281,7 +2281,7 @@ static void sub_7FA8(int x, int y)
       }
 
       // Inventory full - display message with entity name
-      sprintf(str_buffer, "%s", (const char *)(intptr_t)player);
+      snprintf(str_buffer, sizeof(str_buffer), "%s", player->name);
       sub_B29B(str_buffer);
     }
 

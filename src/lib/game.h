@@ -66,7 +66,7 @@ struct player_rec {
   uint16_t max_condition;    // 0x46
 
   // Padding bytes? (unknown)
-  uint8_t unknown_82;      // 0x82
+  uint8_t unknown_82;      // 0x48
   int8_t unknown_83;       // 0x83
 
   // Value of 0xFF = no item equipped
@@ -112,7 +112,7 @@ struct game_state {
   uint16_t x_pos; // 0x0A-0x0B
   uint16_t y_pos; // 0x0C-0x0D
 
-  uint32_t money; // 0x0E
+  uint32_t money; // 0x0E (shared among all party members)
 
   uint8_t map; // 0x30
 

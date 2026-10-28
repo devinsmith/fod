@@ -30,8 +30,9 @@ extern uint16_t g_wanted_id[];
 extern uint16_t g_cached_id[];
 extern const char *level_ani_file;
 extern unsigned char level_ani_bytes[];
+extern struct ui_region region_1CEC;
 
-void sub_B360(int stat, unsigned char *entry);
+void sub_B360(int stat, char *entry);
 void anim_update(bool force);
 
 #ifdef __cplusplus

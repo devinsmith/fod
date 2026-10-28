@@ -133,7 +133,7 @@ struct anim_entry g_anim_entry[ANIM_SLOTS];
 static void sub_DAC5();
 
 // KEH: DSEG:0x1CEC
-static struct ui_region region_1CEC = {
+struct ui_region region_1CEC = {
   0x00,
   0x0E,
   0x27,
@@ -244,7 +244,7 @@ static void sub_8880(int stat)
 }
 
 // KEH: seg000:0xB360
-void sub_B360(int stat, unsigned char *entry)
+void sub_B360(int stat, char *entry)
 {
   // XXX: Rather than setting g_anim_count or g_wanted_id, why not pass
   // these to sub_8880

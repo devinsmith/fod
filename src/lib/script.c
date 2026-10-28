@@ -27,6 +27,7 @@
 #include "npc.h"
 #include "platform.h"
 #include "script.h"
+#include "services.h"
 #include "sfx.h"
 #include "ui.h"
 
@@ -259,7 +260,7 @@ void sub_D8CD(int npc_idx)
   unsigned char *entry = npc_base + (npc_idx * 0x68);
   uint8_t stat = entry[0x63];
 
-  sub_B360(stat, entry);
+  sub_B360(stat, (char *)entry);
 
   ui_draw_party_roster(party_result, true, true);
   bool_DAE6 = true;
@@ -309,6 +310,65 @@ static void level_cell_op(struct map_cell *cell, uint8_t op, uint16_t arg, uint1
 static void op_A808(uint16_t op, uint16_t arg, uint16_t extra)
 {
   level_cell_op(level_map_player_pos, op, arg, extra);
+}
+
+static void sub_B498(const struct player_rec *player, int y_pos)
+{
+  char buffer[32];
+
+  ui_region_set_active(&region_1CEC, false);
+  ui_active_region_clear();
+
+  snprintf(buffer, sizeof(buffer), "%s, you have $%d\n", player->name, g_game_state.money);
+  ui_region_print_centered_str(buffer, y_pos);
+}
+
+static void sub_B5FF(const struct player_rec *player)
+{
+  sub_B498(player, 1);
+  ui_region_refresh_active();
+  ui_region_set_active(&region_1CD0, false);
+}
+
+static void sub_BBC8(uint16_t arg)
+{
+  uint16_t var_1E = 0;
+  uint8_t var_2 = 0;
+
+  uint16_t var_10 = 0;
+
+  // BC07
+  while (var_10 < arg) {
+    // BBEE - advances offset over service_bytes
+
+    var_10++;
+  }
+
+  struct npc_service *svc = service_get_by_npc(arg);
+  printf("Services: %s (0x%02X)\n", svc->name, svc->anim_id);
+  sub_B360(svc->anim_id, svc->name);
+  uint16_t var_6 = check_party_condition(5);
+
+  // BC3F
+  ui_draw_party_roster(var_6, true, true);
+  const struct player_rec *current_player = &g_game_state.players[var_6];
+  sub_B5FF(current_player);
+
+  // BC5D
+  uint8_t al = current_player->unknown_82; // Profession offset string?
+  uint16_t ax = al << 7;
+
+  uint16_t profession_offset = ax;
+  // BC77
+
+
+  // BF30
+  if (var_2 != 0) {
+    // BF39 - break?
+  }
+
+  // BF3C
+  printf("%s unimplemented 0xBF3C\n", __func__);
 }
 
 #define TOKEN_MAX_ARGS 5
@@ -385,6 +445,11 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
     sub_DF48(&data_ptr, token_buf, cmd_type);
 
     uint16_t token_type = token_buf[0]; // 0xD0
+    if (token_type != cmd_type) {
+      // 99E2 (probably not correct)
+      do_expand = false;
+      return 1;
+    }
     uint16_t token_op   = token_buf[1]; // 0xCE
 
     // arg[0] = bp-0CCh
@@ -453,17 +518,15 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
     case 0x1F:
       play_sound(token_buf[2]);
       break;
+    case 0x2D:
+      // AE47
+      sub_BBC8(token_buf[2]);
+      break;
     case 0x27:
       // AE69
       tmp_cursor.base = cursor.base;
       tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
       variables[variable_idx] = sub_97D2(token_buf[2], &tmp_cursor);
-      break;
-    case 0x39:
-      // A7E6
-      tmp_cursor.base = cursor.base;
-      tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
-      sub_987A(&tmp_cursor, token_buf[2]);
       break;
     case 0x34:
       // AF85
@@ -503,6 +566,12 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
       // varD2 = 1;   // [bp-00D2]
       do_expand = false;
       return 1;
+      break;
+    case 0x39:
+      // A7E6
+      tmp_cursor.base = cursor.base;
+      tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
+      sub_987A(&tmp_cursor, token_buf[2]);
       break;
     case 0x3A:
       // B063
