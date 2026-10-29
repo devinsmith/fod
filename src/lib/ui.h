@@ -76,6 +76,7 @@ struct ui_region {
 extern struct ui_region full_screen_region;
 extern struct ui_rect whole_screen;
 extern struct ui_region encounter_region;
+extern struct ui_region datetime_region;
 extern bool do_expand;
 
 void ui_region_newline_or_scroll();
@@ -121,6 +122,7 @@ void redraw_map_view(void);
 // the contents to black (0).
 void ui_rect_clear(const struct ui_rect *r);
 void draw_borders(int offset);
+void draw_day_time();
 
 void ui_draw_party_roster(uint16_t selected, bool hightlight, bool full_refresh);
 uint16_t ui_get_sprite_overlay(int lookup);

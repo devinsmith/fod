@@ -1332,6 +1332,50 @@ void ui_draw_party_names_header(bool refresh)
   ui_region_set_active(old_region, false);
 }
 
+// KEH: DSEG:0x0142
+static const char *days[] = {
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat"
+};
+
+// KEH: DSEG:0x1C98
+struct ui_region datetime_region = {
+  0x01,
+  0x16,
+  0x05,
+  0x17,
+  0x01,
+  0x16,
+  { 0x04, 0xB0, 0x14, 0x10 }, // rect offset 0x0C-0x12
+  0x00,
+  0x00,
+  0x00,
+  NULL
+};
+
+// KEH: seg000:0x1033
+void draw_day_time()
+{
+  struct ui_region *old_region = active_region;
+
+  char current_time[16];
+
+  snprintf(current_time, sizeof(current_time), "%2.2d:%.2d",
+           g_game_state.hour, g_game_state.minute);
+
+  ui_region_set_active(&datetime_region, false);
+
+  ui_region_print_str(days[g_game_state.day_of_week], 1, 0);
+  ui_region_print_str(current_time, 0, 1);
+
+  ui_region_set_active(old_region, false);
+}
+
 static struct ui_rect rect_1A66 = { 0x1C, 0x28, 0x68, 0x70 };
 
 // KEH: DSEG:0x1B10

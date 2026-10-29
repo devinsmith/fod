@@ -187,17 +187,6 @@ static const struct attr_coordinates attributes[] = {
   { 0x1E, 0x04, "LK:" }
 };
 
-// KEH: DSEG:0x0142
-static const char *days[] = {
-  "Sun",
-  "Mon",
-  "Tue",
-  "Wed",
-  "Thu",
-  "Fri",
-  "Sat"
-};
-
 // FOD: DSEG:0x029C
 // KEH: DSEG:0x1A4C
 extern struct ui_region *active_region;
@@ -224,8 +213,6 @@ static struct ui_region unknown_2CA = {
   NULL  // 1A
 };
 
-
-
 // KEH: DSEG:0x1AD8
 static struct ui_region message_region = {
   7,
@@ -239,21 +226,6 @@ static struct ui_region message_region = {
   sub_DAAA, // Draw borders?
   0x00,
   NULL // rect offset 0x0C-0x12
-};
-
-// KEH: DSEG:0x1C98
-static struct ui_region datetime_region = {
-  0x01,
-  0x16,
-  0x05,
-  0x17,
-  0x01,
-  0x16,
-  { 0x04, 0xB0, 0x14, 0x10 }, // rect offset 0x0C-0x12
-  0x00,
-  0x00,
-  0x00,
-  NULL
 };
 
 // DSEG:0x02E6
@@ -1548,30 +1520,11 @@ static void sub_3290(int char_num, const char *name)
   g_game_state.players[char_num].name[12] = '\0';
 }
 
-// KEH: seg000:0x1033
-static void draw_day_time()
-{
-  struct ui_region *old_region = active_region;
-
-  char current_time[16];
-
-  snprintf(current_time, sizeof(current_time), "%2.2d:%.2d",
-           g_game_state.hour, g_game_state.minute);
-
-  ui_region_set_active(&datetime_region, false);
-
-  ui_region_print_str(days[g_game_state.day_of_week], 1, 0);
-  ui_region_print_str(current_time, 0, 1);
-
-  ui_region_set_active(old_region, false);
-}
-
-
 // KEH: seg000:0xD78
-static void sub_D78()
+static void level_mark_entity_cells()
 {
-  int val1 = level_map_large[9];
-  int val2 = level_map_large[0xb];
+  int val1 = level_map->hdr.npc_count;
+  int val2 = level_map->hdr.creature_count;
 
   uint8_t unknowns[4];
   int offset;
@@ -1842,7 +1795,7 @@ static int sub_7685()
 static void sub_1339(void)
 {
   sub_EF7();
-  sub_D78();
+  level_mark_entity_cells();
   word_DDDA = sub_4F1A(0);
 
   if (word_DDDA == 0) {
@@ -2440,7 +2393,7 @@ static void sub_B452(void)
   ui_active_region_clear();
   ui_region_set_active(&message_region, true);
   ui_draw_party_names_header(false);
-  sub_D78();
+  level_mark_entity_cells();
   build_map_display();
   draw_day_time();
   ui_region_refresh(&whole_screen);
@@ -2617,7 +2570,7 @@ static void sub_39FE(int arg1, int arg2)
   draw_day_time();
 
   // KEH: seg000:2845
-  sub_D78();
+  level_mark_entity_cells();
 
   // KEH: seg000:2848
   build_map_display();
