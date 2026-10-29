@@ -338,58 +338,52 @@ void list_cb_print_name_value(uint16_t row, uint16_t index, void *ud)
 
   snprintf(buf, sizeof(buf), "%1d>%-16.16s %6d", row, svc->services[index].name, svc->services[index].price);
 
-#if 0
-    const struct list_entry *e =
-        (const struct list_entry *)(g_list_block + 0x2C) + index;
-
-    snprintf(buf, sizeof(buf), "%1d>%-16.16s %6" PRId32,
-             row, e->name, e->value);
-
-#endif
   ui_region_print_str(buf, 0, row + 1);
 }
 
-static void sub_BBC8(uint16_t arg)
+// KEH: seg000:0xBBC8
+static void shop_services_menu(uint16_t arg)
 {
+  bool leave = false; // var_2
   uint16_t var_1E = 0;
-  uint8_t var_2 = 0;
-
   uint16_t var_10 = 0;
 
-  // BC07
-  while (var_10 < arg) {
-    // BBEE - advances offset over service_bytes
-
-    var_10++;
-  }
-
   struct npc_service *svc = service_get_by_npc(arg);
-  printf("Services: %s (0x%02X)\n", svc->name, svc->anim_id);
+  printf("%s: Services: %s (0x%02X)\n", __func__, svc->name, svc->anim_id);
   sub_B360(svc->anim_id, svc->name);
   uint16_t var_6 = check_party_condition(5);
 
   // BC3F
-  ui_draw_party_roster(var_6, true, true);
-  const struct player_rec *current_player = &g_game_state.players[var_6];
-  sub_B5FF(current_player);
+  while (!leave) {
+    ui_draw_party_roster(var_6, true, true);
+    const struct player_rec *current_player = &g_game_state.players[var_6];
+    sub_B5FF(current_player);
 
-  // BC5D
-  uint8_t al = current_player->unknown_82; // Profession offset string?
-  uint16_t ax = al << 7;
+    // BC5D
+    uint8_t al = current_player->unknown_82; // Profession offset string?
+    uint16_t ax = al << 7;
 
-  uint16_t profession_offset = ax;
-  // BC77
+    uint16_t profession_offset = ax;
+    // BC77
 
-  ui_scroll_list_menu(svc, svc->count, &var_1E, "Which service?\r  Service         Price",
-      list_cb_print_name_value, false);
+    int choice = ui_scroll_list_menu(svc, svc->count, &var_1E,
+        "Which service?\r  Service         Price",
+        list_cb_print_name_value, false);
 
-  // BF30
-  if (var_2 != 0) {
-    // BF39 - break?
+    printf("Choice is: %d\n", choice);
+
+    if (choice >= 0 && choice <= 9) {
+    } else if (choice == KEY_ESC) {
+      ui_active_region_clear();
+      ui_region_refresh_active();
+      leave = true;
+    } else {
+    }
   }
 
-  // BF3C
-  printf("%s unimplemented 0xBF3C\n", __func__);
+  if (!bool_DAE6) {
+  } else {
+  }
 }
 
 #define TOKEN_MAX_ARGS 5
@@ -541,7 +535,7 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
       break;
     case 0x2D:
       // AE47
-      sub_BBC8(token_buf[2]);
+      shop_services_menu(token_buf[2]);
       break;
     case 0x27:
       // AE69

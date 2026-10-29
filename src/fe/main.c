@@ -256,89 +256,6 @@ static struct ui_region datetime_region = {
   NULL
 };
 
-// KEH: DSEG:0x1DE8
-static struct ui_region player_f1_region = {
-  1,
-  1,
-  6,
-  1,
-  1,
-  1,
-  { 0x4, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
-  0,
-  0,
-  0,
-  NULL
-};
-
-// KEH: DSEG:0x1E04
-static struct ui_region player_f2_region = {
-  8,
-  1,
-  0xD,
-  0x1,
-  0x8,
-  0x1,
-  { 0x20, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
-  0,
-  0,
-  0,
-  NULL
-};
-
-// KEH: DSEG:0x1E20
-static struct ui_region player_f3_region = {
-  0xF,
-  1,
-  0x14,
-  0x1,
-  0x0F,
-  0x1,
-  { 0x3C, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
-  0,
-  0,
-  0,
-  NULL
-};
-
-// KEH: DSEG:0x1E3C
-static struct ui_region player_f4_region = {
-  0x16,
-  1,
-  0x1B,
-  0x1,
-  0x16,
-  0x1,
-  { 0x58, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
-  0,
-  0,
-  0,
-  NULL
-};
-
-// KEH: DSEG:0x1E58
-static struct ui_region player_f5_region = {
-  0x1D,
-  1,
-  0x22,
-  0x1,
-  0x1D,
-  0x1,
-  { 0x74, 0x8, 0x18, 0x8 }, // rect offset 0x0C-0x12
-  0,
-  0,
-  0,
-  NULL
-};
-
-static struct ui_region *player_regions[] = {
-  &player_f1_region,
-  &player_f2_region,
-  &player_f3_region,
-  &player_f4_region,
-  &player_f5_region
-};
-
 // DSEG:0x02E6
 static struct ui_region unknown_2E6 = {
   0x0E,   // 00
@@ -1631,37 +1548,6 @@ static void sub_3290(int char_num, const char *name)
   g_game_state.players[char_num].name[12] = '\0';
 }
 
-// KEH: seg000:0x0A04
-static void sub_0A04(int arg0)
-{
-  struct ui_region *old_region = active_region;
-
-  for (int i = 0; i < 5; i++) {
-
-    const struct player_rec *current_player = &g_game_state.players[i];
-    ui_set_inverse(false);
-
-    ui_region_set_active(player_regions[i], false);
-    ui_active_region_clear();
-
-    if (i < g_game_state.party_size) {
-      ui_region_print_centered_str(current_player->name, 0);
-
-      if (current_player->affliction != 0) {
-        // 0x0A57
-        printf("%s:0x0A57 unhandled\n", __func__);
-      }
-
-      if (arg0 != 0) {
-        // 0x0A6A
-        printf("%s:0x0A6A unhandled\n", __func__);
-      }
-    }
-  }
-
-  ui_region_set_active(old_region, false);
-}
-
 // KEH: seg000:0x1033
 static void draw_day_time()
 {
@@ -2553,7 +2439,7 @@ static void sub_B452(void)
   ui_region_set_active(&full_screen_region, false);
   ui_active_region_clear();
   ui_region_set_active(&message_region, true);
-  sub_0A04(0);
+  ui_draw_party_names_header(false);
   sub_D78();
   build_map_display();
   draw_day_time();
@@ -2725,7 +2611,7 @@ static void sub_39FE(int arg1, int arg2)
   show_welcome_message();
 
   // KEH: seg000:2839-283F
-  sub_0A04(0);
+  ui_draw_party_names_header(false);
 
   // KEH: seg000:2842
   draw_day_time();

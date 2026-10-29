@@ -102,6 +102,8 @@ int ui_scroll_list_menu(void *ud, uint16_t max_count,
     uint16_t *scroll_offset, const char *title,
     void (*cb)(uint16_t, uint16_t, void *), bool highlight);
 
+void ui_draw_party_names_header(bool refresh);
+
 // Font stuff
 void ui_load_fonts();
 bool ui_load_res();
