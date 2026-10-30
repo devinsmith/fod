@@ -25,9 +25,12 @@
 extern "C" {
 #endif
 
+// This is 32 bytes, but we don't know the different properties.
 struct service_type {
-  char *name;
-  uint32_t price;
+  char *name;     // 16 bytes
+  uint32_t price;  // 0x16
+  uint8_t req_kind; // 0x1A
+  int req_value;  // 0x1C
 };
 
 struct npc_service {

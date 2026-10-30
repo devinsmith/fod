@@ -74,7 +74,7 @@ struct player_rec {
   uint8_t weapon_idx; // Item index of of equipped weapon (0x4A)
   uint8_t armor_idx[3]; // Equipped armor items (0x4B-0x4D)
 
-  uint8_t rank; // 0x88
+  uint8_t rank; // 0x4E
 
   uint8_t unknown_8C; // 0x8C
 

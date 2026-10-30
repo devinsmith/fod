@@ -367,9 +367,31 @@ void sub_B29B(const char *msg)
 }
 
 // KEH: seg000:0xB2F0 - display message
-static void sub_B2F0(const char *msg, int arg2, int arg4)
+static void sub_B2F0(const char *msg, int arg2, int y_pos)
 {
-  printf("%s: unimplemented\n", __func__);
+  struct ui_region *saved_region = active_region;
+
+  ui_region_set_active(&region_1CEC, false);
+  ui_active_region_clear();
+  uint16_t len = strlen(msg);
+
+  uint16_t cx = active_region->max_x_cursor_pos;
+  cx -= active_region->initial_x_cursor_pos;
+
+  if (cx <= len) {
+    // Msg too long for region?
+    // B333
+    printf("%s: 0xB333 unimplemented\n", __func__);
+  } else {
+    ui_region_print_centered_str(msg, y_pos);
+  }
+
+  ui_region_refresh_active();
+  sys_readkey();
+  ui_active_region_clear();
+  ui_region_refresh_active();
+
+  ui_region_set_active(saved_region, false);
 }
 
 static void sub_CB19(int player_num, uint16_t arg2)
@@ -417,6 +439,21 @@ uint8_t handle_fkeys(uint16_t key, uint16_t *arg0, uint16_t arg2,
   return 0;
 }
 
+static int service_req_stat(const struct player_rec *p, struct service_type *e)
+{
+  switch (e->req_kind) {
+  case 0: return p->rank;
+  }
+
+  return 0;
+}
+
+static bool service_apply(const struct player_rec *p, void *unk, struct service_type *e)
+{
+  // TODO
+  return false;
+}
+
 // KEH: seg000:0xBBC8
 static void shop_services_menu(uint16_t arg)
 {
@@ -446,9 +483,29 @@ static void shop_services_menu(uint16_t arg)
         "Which service?\r  Service         Price",
         list_cb_print_name_value, false);
 
+    // BC97
     printf("Choice is: %d\n", choice);
 
     if (choice >= 0 && choice <= 9) {
+      // BCA1
+      struct service_type *e = &svc->services[choice];
+      const char *err = NULL;
+
+      if (e->price > g_game_state.money) {
+        err = "You do not have the funds for that.";
+      } else if (service_req_stat(current_player, e) < e->req_value) {
+        err = "That service is not available to you at this time.";
+      }
+
+      if (!err) {
+        if (service_apply(current_player, NULL, e)) {
+          g_game_state.money -= e->price;
+          ui_draw_party_roster(var_6, 1, 1);
+          continue;
+        }
+        err = "You have no need for this service.";
+      }
+      sub_B2F0(err, 0, 1);
     } else if (choice == KEY_ESC) {
       ui_active_region_clear();
       ui_region_refresh_active();
