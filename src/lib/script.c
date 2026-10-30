@@ -341,6 +341,31 @@ void list_cb_print_name_value(uint16_t row, uint16_t index, void *ud)
   ui_region_print_str(buf, 0, row + 1);
 }
 
+// KEH: seg000:0xB29B - display message
+void sub_B29B(const char *msg)
+{
+  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &encounter_region, true);
+  ui_active_region_clear();
+
+  // B2BC
+  uint16_t ax = active_region->max_y_cursor_pos;
+  ax -= active_region->initial_y_cursor_pos;
+  active_region->data_24 = ax;
+
+  byte_1834 = 1;
+
+  ui_region_print_str(msg, 0, 0);
+
+  ui_region_refresh_active();
+
+  int key;
+  do {
+    key = sys_readkey();
+  } while (key != KEY_CONFIRM);
+
+  byte_1834 = 0;
+}
+
 // KEH: seg000:0xBBC8
 static void shop_services_menu(uint16_t arg)
 {

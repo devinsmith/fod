@@ -467,7 +467,6 @@ static void sub_7B02(struct player_rec *player, uint16_t arg1, uint16_t arg2);
 static int sub_6D6B(uint16_t arg0);
 static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
-static void sub_B29B(const char *arg0);
 static void sub_FFB2(uint32_t *accum, int32_t val);
 static void sub_FFD4(uint32_t *accum, uint32_t val);
 static void sub_22(int arg);
@@ -1853,12 +1852,6 @@ static void sub_6D96(uint16_t arg0)
 
 // KEH: seg000:0xD6AA - add item to inventory
 static void sub_D6AA(void *ptr, uint16_t arg1)
-{
-  printf("%s: unimplemented\n", __func__);
-}
-
-// KEH: seg000:0xB29B - display message
-static void sub_B29B(const char *msg)
 {
   printf("%s: unimplemented\n", __func__);
 }
