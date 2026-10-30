@@ -16,10 +16,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "game.h"
 #include "level.h"
+#include "npc.h"
 #include "resource.h"
 
 unsigned char *level_map_large = NULL;
@@ -90,6 +92,43 @@ void level_set_cell_nearby(int radius, int x, int y, uint16_t val)
   cell->word0 &= ~CELL_HI5_MASK;
   if (is_near_player(radius, x, y)) {
     cell_set_value(cell, val);
+  }
+}
+
+// KEH: seg000:0xD78
+void level_mark_entity_cells()
+{
+  int val1 = level_map->hdr.npc_count;
+  int val2 = level_map->hdr.creature_count;
+
+  uint8_t unknowns[4];
+  int offset;
+
+  printf("%s: ncp_count: %d, creature_count: %d\n", __func__, val1, val2);
+
+  for (int i = 0; i < val1; i++) {
+
+    offset = i * 0x68;
+    unknowns[0] = npc_base[0x65 + offset];
+    unknowns[1] = npc_base[0x5c + offset];
+    unknowns[2] = npc_base[0x5B + offset];
+    unknowns[3] = npc_base[0x5F + offset];
+
+    printf("%x %x %x %x\n", unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
+
+    level_set_cell_nearby(unknowns[3], unknowns[2], unknowns[1], unknowns[0]);
+  }
+
+  for (int i = 0; i < val2; i++) {
+    offset = i * 0x66;
+    unknowns[0] = ptr_D1DE[5 + offset];
+    unknowns[1] = ptr_D1DE[2 + offset];
+    unknowns[2] = ptr_D1DE[3 + offset];
+    unknowns[3] = ptr_D1DE[0xC + offset];
+
+    if ((ptr_D1DE[9 + offset] & 0xF) != 0) {
+      level_set_cell_nearby(unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
+    }
   }
 }
 

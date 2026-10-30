@@ -40,7 +40,6 @@ static const int GAME_WIDTH = 320;
 static const int GAME_HEIGHT = 200;
 
 // Border drawing sub-routines.
-static void sub_DAAA();
 static void sub_DAB0();
 
 struct level_meta {
@@ -140,9 +139,6 @@ static const char *level_phys_label = NULL;
 // We don't know how big this is.
 static uint16_t table_CDC0[32];
 
-// KEH: DSEG:D1DE
-static unsigned char *ptr_D1DE = NULL;
-
 // KEH: DSEG:D1E3
 static uint8_t byte_D1E3;
 
@@ -211,21 +207,6 @@ static struct ui_region unknown_2CA = {
   0,    // 16
   0,    // 18
   NULL  // 1A
-};
-
-// KEH: DSEG:0x1AD8
-static struct ui_region message_region = {
-  7,
-  0x16,
-  0x27,
-  0x18,
-  0x7,
-  0x16,
-  { 0x1C, 0xB0, 0x84, 0x18 },
-  0x00,
-  sub_DAAA, // Draw borders?
-  0x00,
-  NULL // rect offset 0x0C-0x12
 };
 
 // DSEG:0x02E6
@@ -392,14 +373,8 @@ static unsigned char hds_bytes[1180];
 // DSEG:0x3C84
 unsigned char *arch_offset;
 
-// KEH DSEG:0xBEE6
-uint16_t word_BEE6 = 0;
-
 // KEH DSEG:0xBEE8
 static uint16_t word_BEE8 = 0;
-
-// KEH DSEG:0xDAE6
-bool bool_DAE6 = false;
 
 // KEH DSEG:0x1D126
 static uint16_t word_1D126 = 0;
@@ -476,7 +451,6 @@ static void sub_2B93(int arg0);
 static void sub_109D(int arg0);
 static void sub_8FFA(unsigned char *entity_ptr, int val);
 static void sub_7854(void);
-static void sub_B452(void);
 static void sub_1766(void);
 static void sub_E674(void);
 static void sub_10720(void);
@@ -1520,54 +1494,12 @@ static void sub_3290(int char_num, const char *name)
   g_game_state.players[char_num].name[12] = '\0';
 }
 
-// KEH: seg000:0xD78
-static void level_mark_entity_cells()
-{
-  int val1 = level_map->hdr.npc_count;
-  int val2 = level_map->hdr.creature_count;
-
-  uint8_t unknowns[4];
-  int offset;
-
-  printf("%s: val1: %d, val2: %d\n", __func__, val1, val2);
-
-  for (int i = 0; i < val1; i++) {
-
-    offset = i * 0x68;
-    unknowns[0] = npc_base[0x65 + offset];
-    unknowns[1] = npc_base[0x5c + offset];
-    unknowns[2] = npc_base[0x5B + offset];
-    unknowns[3] = npc_base[0x5F + offset];
-
-    printf("%x %x %x %x\n", unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
-
-    level_set_cell_nearby(unknowns[3], unknowns[2], unknowns[1], unknowns[0]);
-  }
-
-  for (int i = 0; i < val2; i++) {
-    offset = i * 0x66;
-    unknowns[0] = ptr_D1DE[5 + offset];
-    unknowns[1] = ptr_D1DE[2 + offset];
-    unknowns[2] = ptr_D1DE[3 + offset];
-    unknowns[3] = ptr_D1DE[0xC + offset];
-
-    if ((ptr_D1DE[9 + offset] & 0xF) != 0) {
-      level_set_cell_nearby(unknowns[0], unknowns[1], unknowns[2], unknowns[3]);
-    }
-  }
-}
-
-static void sub_DAAA()
-{
-  draw_borders(0);
-}
-
 // KEH: seg000:0xD9CF
 static void show_welcome_message()
 {
   active_region = &message_region;
 
-  sub_DAAA();
+  draw_borders_0();
 
   // Text is at KEH:DSEG:0x1835
   print_wrapped_text("Welcome to the beautiful island of Florida!\r");
@@ -1725,7 +1657,7 @@ static void sub_1834(uint16_t map_pos, int arg2, int npc_num)
     loc_98F4(dword_D9B4, word_D1D8, word_D9D0, word_BEC0, 0);
 
     if (bool_DAE6 && word_D1D8 == 0) {
-      sub_B452();
+      ui_refresh_all();
     }
   }
 
@@ -2383,22 +2315,6 @@ static void sub_2B70(int arg0)
   printf("%s: unimplemented (arg0=%d)\n", __func__, arg0);
 }
 
-// KEH: seg000:0xB452
-static void sub_B452(void)
-{
-  word_BEE6 = 0;
-  bool_DAE6 = false;
-
-  ui_region_set_active(&full_screen_region, false);
-  ui_active_region_clear();
-  ui_region_set_active(&message_region, true);
-  ui_draw_party_names_header(false);
-  level_mark_entity_cells();
-  build_map_display();
-  draw_day_time();
-  ui_region_refresh(&whole_screen);
-}
-
 // KEH: seg000:0x1766
 static void sub_1766(void)
 {
@@ -2408,7 +2324,7 @@ static void sub_1766(void)
 
   // 1825
   if (bool_DAE6) {
-    sub_B452();
+    ui_refresh_all();
   }
 }
 
@@ -2727,7 +2643,7 @@ static void sub_27CC(int arg0)
 {
   // TODO: Implement post-action processing
   printf("%s: unimplemented\n", __func__);
-  sub_B452();
+  ui_refresh_all();
 }
 
 // KEH: seg000:0xD5BA
@@ -2768,9 +2684,9 @@ static int sub_4F1A(int arg0)
   g_wanted_id[var_0E] = 0xFFFF;
 
   // Populate a table with empty strings.
-  // "            "
-  // This is done 3 times.
-  // CDB0 contains offset:segment, 3 times
+  for (int i = 0; i < 3; i++) {
+    npc_names[i] =  "            ";
+  }
 
   var_0A = sub_103C9();
   var_0E = 0;

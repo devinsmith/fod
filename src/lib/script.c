@@ -378,11 +378,15 @@ static void shop_services_menu(uint16_t arg)
       ui_region_refresh_active();
       leave = true;
     } else {
+      // F1-F5 keys
     }
   }
 
+  // BF39
   if (!bool_DAE6) {
+    ui_refresh_all();
   } else {
+    sub_B3DF(-1);
   }
 }
 

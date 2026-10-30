@@ -24,6 +24,7 @@
 #include "compress.h"
 #include "game.h"
 #include "hexdump.h"
+#include "npc.h"
 #include "platform.h"
 #include "resource.h"
 #include "tables.h"
@@ -116,16 +117,6 @@ uint16_t g_cached_id[ANIM_SLOTS];
 
 // KEH: DSEG: 0x1A0A
 uint8_t  *g_anim_buf[ANIM_SLOTS];
-
-/* 12-byte record at DS:BEC2 + 12*i */
-struct anim_entry {
-  struct ui_region *region;       /* +0x00: copied from word_1E74[i + bias]            */
-  uint16_t pos;          /* +0x02: u16 read from anim data at offset 1        */
-  unsigned char *script; /* +0x04/+0x06: far ptr to decompressed anim buffer  */
-  uint16_t field_8;      /* +0x08: never touched here                         */
-  bool     active;       /* +0x0A: set to 1                                   */
-  uint8_t  field_B;      /* +0x0B: never touched here                         */
-};
 
 // KEH: DSEG: 0xBEC2
 struct anim_entry g_anim_entry[ANIM_SLOTS];
@@ -252,8 +243,8 @@ void sub_B360(int stat, char *entry)
 
   g_anim_entry[0].region = word_1E74[1];
   g_wanted_id[0] = stat;
+  npc_names[0] = entry;
 
-  // Entry is copied to CDB0/B2, not sure if needed.
   sub_8880(0);
 
   ui_region_set_active(&full_screen_region, false);

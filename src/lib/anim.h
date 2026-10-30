@@ -22,15 +22,28 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "ui.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+  /* 12-byte record at DS:BEC2 + 12*i */
+struct anim_entry {
+  struct ui_region *region;   /* +0x00: copied from word_1E74[i + bias]   */
+  uint16_t pos;          /* +0x02: u16 read from anim data at offset 1        */
+  unsigned char *script; /* +0x04/+0x06: far ptr to decompressed anim buffer  */
+  uint16_t field_8;      /* +0x08: never touched here                         */
+  bool     active;       /* +0x0A: set to 1                                   */
+  uint8_t  field_B;      /* +0x0B: never touched here                         */
+};
 
 extern uint16_t g_wanted_id[];
 extern uint16_t g_cached_id[];
 extern const char *level_ani_file;
 extern unsigned char level_ani_bytes[];
 extern struct ui_region region_1CEC;
+extern struct anim_entry g_anim_entry[];
 
 void sub_B360(int stat, char *entry);
 void anim_update(bool force);

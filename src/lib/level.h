@@ -75,6 +75,7 @@ extern struct map_cell *level_map_player_pos;
 
 void level_set_cell(int x, int y, uint16_t val);
 void level_set_cell_nearby(int radius, int x, int y, uint16_t val);
+void level_mark_entity_cells();
 void save_level_map_if_dirty(int level);
 void level_map_init();
 void level_map_free();

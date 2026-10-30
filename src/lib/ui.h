@@ -77,7 +77,9 @@ extern struct ui_region full_screen_region;
 extern struct ui_rect whole_screen;
 extern struct ui_region encounter_region;
 extern struct ui_region datetime_region;
+extern struct ui_region message_region;
 extern bool do_expand;
+extern bool bool_DAE6;
 
 void ui_region_newline_or_scroll();
 void ui_region_queue_rect(const struct ui_rect *input);
@@ -121,12 +123,15 @@ void redraw_map_view(void);
 // Clears out an area on the scratch buffer by setting
 // the contents to black (0).
 void ui_rect_clear(const struct ui_rect *r);
+void draw_borders_0();
 void draw_borders(int offset);
 void draw_day_time();
+void ui_refresh_all(void);
 
 void ui_draw_party_roster(uint16_t selected, bool hightlight, bool full_refresh);
 uint16_t ui_get_sprite_overlay(int lookup);
 void ui_set_sprite_overlay(int idx, uint16_t val);
+void sub_B3DF(int arg);
 
 #ifdef __cplusplus
 }

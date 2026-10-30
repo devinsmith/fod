@@ -25,6 +25,7 @@
 #include "anim.h"
 #include "game.h"
 #include "level.h"
+#include "npc.h"
 #include "platform.h"
 #include "resource.h"
 #include "tables.h"
@@ -36,6 +37,9 @@ extern unsigned char *scratch;
 static uint16_t word_0CCC = 0;
 static struct ui_unknown2 *ptr_0CCE = &data_074F;
 static struct ui_unknown2 *ptr_0CD0 = &data_074F;
+
+// KEH DSEG:0xBEE6
+uint16_t word_BEE6 = 0;
 
 // KEH: DSEG:0x1834
 uint8_t byte_1834 = 0;
@@ -57,6 +61,9 @@ struct ui_region *active_region;
 
 // KEH: DSEG:0x1A7E
 static struct ui_rect middle_rect = { 0x4C, 0x58, 0x8, 0x10 };
+
+// KEH DSEG:0xDAE6
+bool bool_DAE6 = false;
 
 // KEH: DSEG:0x1E96
 static uint16_t word_1E96;
@@ -1376,6 +1383,47 @@ void draw_day_time()
   ui_region_set_active(old_region, false);
 }
 
+// KEH: seg000:0xB452
+void ui_refresh_all(void)
+{
+  word_BEE6 = 0;
+  bool_DAE6 = false;
+
+  ui_region_set_active(&full_screen_region, false);
+  ui_active_region_clear();
+  ui_region_set_active(&message_region, true);
+  ui_draw_party_names_header(false);
+  level_mark_entity_cells();
+  build_map_display();
+  draw_day_time();
+  ui_region_refresh(&whole_screen);
+}
+
+void draw_borders_0()
+{
+  draw_borders(0);
+}
+
+// KEH: seg000:0xB3DF
+void sub_B3DF(int arg)
+{
+  ui_region_set_active(&full_screen_region, true);
+  ui_region_set_active(&region_1CEC, true);
+  ui_region_set_active(g_anim_entry[0].region, true);
+
+  ui_region_print_centered_str(npc_names[0], 0xB);
+
+  if (arg != -1) { // or 0xFFFF
+    ui_draw_party_roster(arg, true, false);
+  }
+
+  ui_region_set_active(&region_1CEC, false);
+  // B441
+  //sub_10772();
+  printf("%s: unhandled call to 10772\n", __func__);
+  ui_region_refresh(&whole_screen);
+}
+
 static struct ui_rect rect_1A66 = { 0x1C, 0x28, 0x68, 0x70 };
 
 // KEH: DSEG:0x1B10
@@ -1391,4 +1439,19 @@ struct ui_region encounter_region = {
   sub_DAD3,
   0x00,
   &rect_1A66
+};
+
+// KEH: DSEG:0x1AD8
+struct ui_region message_region = {
+  7,
+  0x16,
+  0x27,
+  0x18,
+  0x7,
+  0x16,
+  { 0x1C, 0xB0, 0x84, 0x18 },
+  0x00,
+  draw_borders_0,
+  0x00,
+  NULL // rect offset 0x0C-0x12
 };
