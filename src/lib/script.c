@@ -366,6 +366,57 @@ void sub_B29B(const char *msg)
   byte_1834 = 0;
 }
 
+// KEH: seg000:0xB2F0 - display message
+static void sub_B2F0(const char *msg, int arg2, int arg4)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
+static void sub_CB19(int player_num, uint16_t arg2)
+{
+  char buffer[42];
+
+  struct player_rec *current_player = &g_game_state.players[player_num];
+
+  snprintf(buffer, sizeof(buffer), "%s is incapacitated.", current_player->name);
+
+  if (arg2 == 0) {
+    sub_B29B(buffer);
+    return;
+  }
+
+  sub_B2F0(buffer, 0, 2);
+}
+
+// KEH: DSEG: 0xCB80
+// Handle Function keys, usually F1-F5
+uint8_t handle_fkeys(uint16_t key, uint16_t *arg0, uint16_t arg2,
+                         uint16_t arg3, uint16_t arg4)
+{
+  if (key < 0x3B) {
+    return 0;
+  }
+
+  if (key >= (uint16_t)(g_game_state.party_size + 0x3B)) {
+    return 0;
+  }
+
+  int player_num = key - 0x3B;
+  struct player_rec *current_player = &g_game_state.players[player_num];
+  int condition_status = get_player_condition_status(current_player);
+  if (condition_status < arg2) {
+    if (arg3 != 0) {
+      return 0;
+    }
+
+    *arg0 = player_num;
+    return 1;
+  }
+
+  sub_CB19(player_num, arg4);
+  return 0;
+}
+
 // KEH: seg000:0xBBC8
 static void shop_services_menu(uint16_t arg)
 {
@@ -404,6 +455,7 @@ static void shop_services_menu(uint16_t arg)
       leave = true;
     } else {
       // F1-F5 keys
+      handle_fkeys(choice + 0x46, &var_6, 5, 0, 0);
     }
   }
 

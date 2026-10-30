@@ -429,8 +429,6 @@ static void sub_138D(int arg0);
 
 static void sub_C68D(struct player_rec *player_ptr, bool flag);
 static void sub_C5F4(struct player_rec *player_ptr, bool flag);
-static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
-                         uint16_t arg3, uint16_t arg4);
 static uint8_t sub_CB58(uint16_t arg0);
 static uint8_t sub_CBDF(uint16_t arg0);
 static void sub_CA0B(struct player_rec *player_ptr);
@@ -1856,12 +1854,6 @@ static void sub_D6AA(void *ptr, uint16_t arg1)
   printf("%s: unimplemented\n", __func__);
 }
 
-// KEH: seg000:0xB2F0 - display message
-static void sub_B2F0(const char *msg, int arg2, int arg4)
-{
-  printf("%s: unimplemented\n", __func__);
-}
-
 static void sub_FFB2(uint32_t *accum, int32_t val)
 {
   (void)accum;
@@ -1977,7 +1969,7 @@ static void sub_7FA8(int x, int y)
         goto loop_continue;
       }
       // Call menu/dialog handler
-      sub_CB80(var_8 + 0x46, &var_A, 1, 0, 1);
+      handle_fkeys(var_8 + 0x46, &var_A, 1, 0, 1);
       goto loop_continue;
     }
 
@@ -3038,47 +3030,6 @@ static uint16_t draw_passive_skills(int player_num, uint16_t *counter, uint16_t 
   return -1;
 }
 
-static void sub_CB19(int player_num, uint16_t arg2)
-{
-  struct player_rec *current_player = &g_game_state.players[player_num];
-
-  snprintf(str_buffer, sizeof(str_buffer), "%s is incapacitated.", current_player->name);
-
-  if (arg2 == 0) {
-    sub_B29B(str_buffer);
-    return;
-  }
-
-  sub_B2F0(str_buffer, 0, 2);
-}
-
-static uint8_t sub_CB80(uint16_t key, uint16_t *arg0, uint16_t arg2,
-                         uint16_t arg3, uint16_t arg4)
-{
-  if (key < 0x3B) {
-    return 0;
-  }
-
-  if (key >= (uint16_t)(g_game_state.party_size + 0x3B)) {
-    return 0;
-  }
-
-  int player_num = key - 0x3B;
-  struct player_rec *current_player = &g_game_state.players[player_num];
-  int condition_status = get_player_condition_status(current_player);
-  if (condition_status < arg2) {
-    if (arg3 != 0) {
-      return 0;
-    }
-
-    *arg0 = player_num;
-    return 1;
-  }
-
-  sub_CB19(player_num, arg4);
-  return 0;
-}
-
 static uint8_t sub_CB58(uint16_t arg0)
 {
   printf("%s: unimplemented\n", __func__);
@@ -3218,7 +3169,7 @@ handle_key_lt_A:
       }
 
       if (key_signed >= (int16_t)0x3B && key_signed <= (int16_t)0x3F) {
-        sub_CB80(var_4, (uint16_t *)&arg0, 6, var_2, 1);
+        handle_fkeys(var_4, (uint16_t *)&arg0, 6, var_2, 1);
         continue;
       }
 
@@ -3283,7 +3234,7 @@ action_check:
 
 handle_generic_key:
       if (var_4 >= 0x3B && var_4 <= 0x3F) {
-        sub_CB80(var_4, (uint16_t *)&arg0, 6, var_2, 1);
+        handle_fkeys(var_4, (uint16_t *)&arg0, 6, var_2, 1);
         continue;
       }
 
@@ -3322,7 +3273,7 @@ handle_generic_key:
       int result1 = draw_active_skills(arg0, &var_1C, 1, 1);
       var_20 = result1;
 
-      if (sub_CB80(result1 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
+      if (handle_fkeys(result1 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
         continue;
 
       if (sub_CAE6(var_20, &var_6, 0, 2))
@@ -3370,7 +3321,7 @@ handle_generic_key:
       uint16_t result2 = draw_passive_skills(arg0, &var_1A, 1, 1);
       var_20 = result2;
 
-      if (sub_CB80(result2 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
+      if (handle_fkeys(result2 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
         continue;
 
       if (var_20 == 0xFFFF) {

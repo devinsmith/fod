@@ -29,6 +29,8 @@ extern uint16_t word_BEC0;
 extern uint16_t dword_D9B4;
 extern uint16_t word_D9D0;
 
+uint8_t handle_fkeys(uint16_t key, uint16_t *arg0, uint16_t arg2,
+                         uint16_t arg3, uint16_t arg4);
 void sub_B29B(const char *msg);
 int loc_98F4(uint16_t cell_val, int cmd_type, int arg3, int arg4, int arg5);
 
