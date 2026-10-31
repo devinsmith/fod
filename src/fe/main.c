@@ -1575,7 +1575,7 @@ static void sub_8C(int arg0)
 
   // Compute level_map_player_pos from party position
   {
-    uint16_t map_width = level_map->hdr.map_width;
+    uint16_t map_width = level_map->map_width;
     uint16_t tile_index = (uint16_t)(g_game_state.y_pos * map_width + g_game_state.x_pos);
     level_map_player_pos = &level_map->cells[tile_index];
   }
@@ -1610,14 +1610,14 @@ static void print_movement_msg(int msg_index)
 // Returns 0 (blocked) or 1 (passable)
 static int is_walkable(int x, int y)
 {
-  if (y < 0 || y >= level_map->hdr.map_height) {
+  if (y < 0 || y >= level_map->map_height) {
     return 0;
   }
-  if (x < 0 || x >= level_map->hdr.map_width) {
+  if (x < 0 || x >= level_map->map_width) {
     return 0;
   }
 
-  uint16_t map_width = level_map->hdr.map_width;
+  uint16_t map_width = level_map->map_width;
   int si = (y * map_width + x) << 3;
   if (!(level_map_large[0x416 + si] & 1))
     return 0;
@@ -1920,7 +1920,7 @@ static void sub_7FA8(int x, int y)
 
   // Calculate tile entry offset from level_map_large
   // offset = (y * map_width + x) * 8 + 0x414
-  uint16_t map_width = level_map->hdr.map_width;
+  uint16_t map_width = level_map->map_width;
   uint16_t tile_offset = y * map_width + x;
   level_map_player_pos = &level_map->cells[tile_offset];
 
@@ -2085,7 +2085,7 @@ static void sub_113F(int arg0)
   if (arg0 != 0) {
     var_2 = 1;
   } else {
-    var_2 = level_map->hdr.minute_inc;
+    var_2 = level_map->minute_inc;
   }
 
   // KEH: 0x12DB (do/while ?)
@@ -2208,7 +2208,7 @@ static void sub_109D(int arg0)
   if (arg0 != 0) {
     minute_inc = 1;
   } else {
-    minute_inc = level_map->hdr.minute_inc;
+    minute_inc = level_map->minute_inc;
   }
 
   word_CFC4++;
@@ -2371,7 +2371,7 @@ static void sub_253F(int direction, int arg2)
     byte_D1E8 = g_game_state.y_pos;
 
     // calculate location
-    uint16_t map_width = level_map->hdr.map_width;
+    uint16_t map_width = level_map->map_width;
     map_width *= g_game_state.y_pos;
     map_width += g_game_state.x_pos;
 
@@ -2385,7 +2385,7 @@ static void sub_253F(int direction, int arg2)
     sub_1834(level_map_player_pos->w6, 1, 0);
 
     // Recalculate level_map_player_pos for new position
-    uint16_t new_offset = level_map->hdr.map_width;
+    uint16_t new_offset = level_map->map_width;
     new_offset *= local_y;
     new_offset += local_x;
     level_map_player_pos = &level_map->cells[new_offset];
@@ -2402,7 +2402,7 @@ static void sub_253F(int direction, int arg2)
       byte_D1E8 = local_y;
 
       // Recalculate level_map_player_pos for new position
-      uint16_t final_offset = level_map->hdr.map_width;
+      uint16_t final_offset = level_map->map_width;
       final_offset *= local_y;
       final_offset += local_x;
       level_map_player_pos = &level_map->cells[final_offset];

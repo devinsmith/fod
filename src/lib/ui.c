@@ -1188,10 +1188,10 @@ static uint16_t cell_to_display_tile(const struct map_cell *cell)
 // the player.
 void build_map_display()
 {
-  const uint16_t map_w = level_map->hdr.map_width;
-  const uint16_t map_h = level_map->hdr.map_height;
+  const uint16_t map_w = level_map->map_width;
+  const uint16_t map_h = level_map->map_height;
 
-  uint16_t outside = level_map->hdr.filler_tile & 0x7FFF;
+  uint16_t outside = level_map->filler_tile & 0x7FFF;
   printf("%s: DC51 - (outside: 0x%04X)\n", __func__, outside);
 
   printf("%s: DC57 - (x pos: 0x%04X)\n", __func__, g_game_state.x_pos);

@@ -56,10 +56,10 @@ void save_level_map_if_dirty(int level)
 // Returns the cell at (x, y), or NULL if out of range.
 static inline struct map_cell *map_cell_at(struct level_map *m, int x, int y)
 {
-  if (x < 0 || x >= m->hdr.map_width || y < 0 || y >= m->hdr.map_height) {
+  if (x < 0 || x >= m->map_width || y < 0 || y >= m->map_height) {
     return NULL;
   }
-  return &m->cells[(size_t)y * m->hdr.map_width + x];
+  return &m->cells[(size_t)y * m->map_width + x];
 }
 
 static inline void cell_set_value(struct map_cell *c, uint16_t val)
@@ -98,8 +98,8 @@ void level_set_cell_nearby(int radius, int x, int y, uint16_t val)
 // KEH: seg000:0xD78
 void level_mark_entity_cells()
 {
-  int val1 = level_map->hdr.npc_count;
-  int val2 = level_map->hdr.creature_count;
+  int val1 = level_map->npc_count;
+  int val2 = level_map->creature_count;
 
   uint8_t unknowns[4];
   int offset;

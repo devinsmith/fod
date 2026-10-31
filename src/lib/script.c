@@ -223,7 +223,7 @@ unsigned char *sub_8B08(uint16_t id, uint16_t *out_index)
 // KEH: seg000:0x7E09
 static void sub_7E09()
 {
-  level_map->hdr.filler_tile |= 0x8000;
+  level_map->filler_tile |= 0x8000;
 }
 
 // KEH: seg000:0xDF48
@@ -528,22 +528,31 @@ static void shop_services_menu(uint16_t arg)
 static void sub_7140()
 {
   uint16_t var_10 = 0;
-  struct ui_region *var_6 = active_region;
-  uint8_t var_4 = 0;
+  struct ui_region *saved_region = active_region;
+  bool done = false;
 
   ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, !bool_DAE6);
 
   // Jump to 736F
-  while (var_4 == 0) {
+  while (!done) {
     ui_active_region_clear();
 
     ui_region_print_str("What do you wish?\r\r\r1. Retrieve a member\r2. Store a member\r\rL)eave", 0, 0);
     ui_region_refresh_active();
     int key = sys_readkey();
-    sys_delay(300);
+    if (key == '1') {
+      // Retrieve member (71AE)
+      printf("%s: Retrieval not implemented\n", __func__);
+    } else if (key == '2') {
+      // Store a member (72BD)
+      printf("%s: Storage not implemented\n", __func__);
+    } else if (key == 'L') {
+      // Leave
+      done = true;
+    }
   }
   // 7378
-  printf("%s: unimplemented\n", __func__);
+  ui_region_set_active(saved_region, false);
 }
 
 #define TOKEN_MAX_ARGS 5
