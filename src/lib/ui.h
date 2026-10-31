@@ -75,7 +75,7 @@ struct ui_region {
 
 extern struct ui_region full_screen_region;
 extern struct ui_rect whole_screen;
-extern struct ui_region encounter_region;
+extern struct ui_region popup_region;
 extern struct ui_region datetime_region;
 extern struct ui_region message_region;
 extern bool do_expand;

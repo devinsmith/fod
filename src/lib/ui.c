@@ -394,8 +394,9 @@ void ui_print_positioned_str(const uint8_t *str)
 }
 
 // KEH: seg000:DD5F
-/* Buffer: [x][y][chr][chr]...[0xFF] */
-void ui_print_border_chr(const uint8_t *str)
+// Prints a buffer of characters horizontally, increasing X
+// Buffer: [x][y][chr][chr]...[0xFF]
+static void ui_print_border_chr_hz(const uint8_t *str)
 {
   uint8_t x = str[0];
   uint8_t y = str[1];
@@ -404,6 +405,22 @@ void ui_print_border_chr(const uint8_t *str)
   while (*str != STR_END) {
     draw_border_chr(*str, x, y);
     x++;
+    str++;
+  }
+}
+
+// KEH: seg000:DD92
+// Prints a buffer of characters vertically, increasing Y
+// Buffer: [x][y][chr][chr]...[0xFF]
+static void ui_print_border_chr_vr(const uint8_t *str)
+{
+  uint8_t x = str[0];
+  uint8_t y = str[1];
+  str += 2;
+
+  while (*str != STR_END) {
+    draw_border_chr(*str, x, y);
+    y++;
     str++;
   }
 }
@@ -1092,7 +1109,7 @@ void ui_draw_party_roster(uint16_t selected, bool highlight, bool full_refresh)
 // KEH: seg000:DAD3
 static void sub_DAD3()
 {
-  // 0x189F
+  // 0x189B
   const uint8_t str1[] = {
     7, 5, 0x84, 0x80,
     0x81, 0x81, 0x81, 0x81, 0x81,
@@ -1128,12 +1145,14 @@ static void sub_DAD3()
     0x81, 0x81, 0x80, 0x84, 0xFF
   };
 
-  ui_print_border_chr(str1);
-  ui_print_border_chr(str2);
-  ui_print_border_chr(str3);
-
-  // loc_DAE8
-  ui_print_border_chr(str4);
+  // Top
+  ui_print_border_chr_hz(str1);
+  // Left
+  ui_print_border_chr_vr(str2);
+  // Right
+  ui_print_border_chr_vr(str3);
+  // Bottom
+  ui_print_border_chr_hz(str4);
 }
 
 #define VIEW_W 19
@@ -1427,7 +1446,9 @@ void sub_B3DF(int arg)
 static struct ui_rect rect_1A66 = { 0x1C, 0x28, 0x68, 0x70 };
 
 // KEH: DSEG:0x1B10
-struct ui_region encounter_region = {
+// Defines an area where a popup window will show up to
+// give the player notice about something
+struct ui_region popup_region = {
   0x08,
   0x06,
   0x1F,

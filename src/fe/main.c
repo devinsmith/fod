@@ -1943,7 +1943,7 @@ static void sub_7FA8(int x, int y)
   sub_E2B8(table_1ACE[var_A], 1);
 
   // Set active region to encounter UI
-  ui_region_set_active(&encounter_region, true);
+  ui_region_set_active(&popup_region, true);
 
   // Main encounter loop
   while (1) {
@@ -2561,7 +2561,7 @@ static void sub_39FE(int arg1, int arg2)
 
           while (!var_4) {
             // Set up quit menu region
-            ui_region_set_active(&encounter_region, true);
+            ui_region_set_active(&popup_region, true);
             ui_active_region_clear();
 
             // Display quit menu

@@ -142,7 +142,7 @@ static void sub_A79A(struct data_cursor *data, uint16_t index)
 // KEH: seg000:0x8F9D
 void sub_8F9D(struct data_cursor *string_table, uint16_t index)
 {
-  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &encounter_region, true);
+  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, true);
   active_region->data_24 = active_region->max_y_cursor_pos - active_region->initial_y_cursor_pos;
   byte_1834 = 1;
   const char *s = get_nth_string(string_table, index);
@@ -190,7 +190,7 @@ static uint8_t sub_97D2(uint16_t index, struct data_cursor *data)
 {
   struct ui_region *saved_region = active_region;
 
-  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &encounter_region, true);
+  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, true);
   sub_8F63(data, index);
 
   ui_region_newline_or_scroll();
@@ -344,7 +344,7 @@ void list_cb_print_name_value(uint16_t row, uint16_t index, void *ud)
 // KEH: seg000:0xB29B - display message
 void sub_B29B(const char *msg)
 {
-  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &encounter_region, true);
+  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, true);
   ui_active_region_clear();
 
   // B2BC
@@ -522,6 +522,28 @@ static void shop_services_menu(uint16_t arg)
   } else {
     sub_B3DF(-1);
   }
+}
+
+// KEH: seg000:0x7140
+static void sub_7140()
+{
+  uint16_t var_10 = 0;
+  struct ui_region *var_6 = active_region;
+  uint8_t var_4 = 0;
+
+  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, !bool_DAE6);
+
+  // Jump to 736F
+  while (var_4 == 0) {
+    ui_active_region_clear();
+
+    ui_region_print_str("What do you wish?\r\r\r1. Retrieve a member\r2. Store a member\r\rL)eave", 0, 0);
+    ui_region_refresh_active();
+    int key = sys_readkey();
+    sys_delay(300);
+  }
+  // 7378
+  printf("%s: unimplemented\n", __func__);
 }
 
 #define TOKEN_MAX_ARGS 5
@@ -740,6 +762,9 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
       word_1A46 = token_buf[3];
       set_direction(current_direction);
       draw_map_center_tile();
+      break;
+    case 0x48:
+      sub_7140();
       break;
     default:
       // Check out 0xB1A7 for script op codes.
