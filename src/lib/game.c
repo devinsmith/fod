@@ -119,20 +119,6 @@ static uint32_t read_uint32()
       (bytes[2] << 16) | (bytes[1] << 8) | bytes[0]);
 }
 
-/* Write a uint32_t value in little-endian format */
-static void write_uint32(FILE *fp, uint32_t value)
-{
-  uint8_t bytes[4];
-
-  /* Convert to little-endian format */
-  bytes[0] = (uint8_t)(value & 0xFF);
-  bytes[1] = (uint8_t)((value >> 8) & 0xFF);
-  bytes[2] = (uint8_t)((value >> 16) & 0xFF);
-  bytes[3] = (uint8_t)((value >> 24) & 0xFF);
-
-  write_bytes(fp, bytes, 4);
-}
-
 static void advance_reader(size_t count)
 {
   disk1_offset += count;
@@ -160,15 +146,13 @@ static void read_item_rec(struct item_rec *item)
 /* Function to read a player_rec from a file */
 static void read_player_rec(struct player_rec *player)
 {
-  /* Read player name (12 chars) */
-  read_bytes(player->name, sizeof(player->name) - 1);
-  player->name[12] = '\0';
-
-  advance_reader(2); // Skip 2 bytes
+  /* Read player name (12 chars + NUL) */
+  read_bytes(player->name, sizeof(player->name));
+  player->name[sizeof(player->name) - 1] = '\0';
 
   /* Read player stats */
   player->profession = read_uint8();
-  advance_reader(7);
+  player->unknown_0F = read_uint8();
 
   // Gender starts at 0x50
   player->gender = read_uint8();
@@ -191,6 +175,8 @@ static void read_player_rec(struct player_rec *player)
   for (int i = 0; i < 16; i++) {
     player->passive_skills[i] = read_uint8();
   }
+
+  read_bytes(player->unknown_3E, sizeof(player->unknown_3E));
 
   /* Read condition values */
   player->condition = read_uint16();

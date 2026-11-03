@@ -1486,9 +1486,10 @@ static void sub_DAB0()
 
 static void sub_3290(int char_num, const char *name)
 {
-  // XXX: This might not be correct.
-  strncpy(g_game_state.players[char_num].name, name, 12);
-  g_game_state.players[char_num].name[12] = '\0';
+  struct player_rec *p = &g_game_state.players[char_num];
+
+  strncpy(p->name, name, sizeof(p->name) - 1);
+  p->name[sizeof(p->name) - 1] = '\0';
 }
 
 // KEH: seg000:0xD9CF

@@ -19,13 +19,16 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include <assert.h> // For static_assert macro
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+// 6 bytes each?
 struct item_rec {
   uint8_t item_id;
   uint8_t unknown;
@@ -33,13 +36,15 @@ struct item_rec {
   // usually extra properties are number of ammo for bullets, etc.
   uint8_t props[2];
   uint8_t flags; // extra flag properties.
-};
+} __attribute__((packed));
+
+static_assert(sizeof(struct item_rec) == 6, "item_rec must be 6 bytes");
 
 // Should be 332 bytes long.
 struct player_rec {
-  char name[13]; // 0x00-0x0D
-
+  char name[14]; // 0x00-0x0D (12 chars + NUL)
   uint8_t profession; // 0x0E
+  uint8_t unknown_0F; // 0x0F
   uint8_t gender; // 0x10
   uint8_t unknown_11; // 0x11
 
@@ -61,7 +66,7 @@ struct player_rec {
 
   uint8_t active_skills[16]; // 0x1E
   uint8_t passive_skills[16]; // 0x2E
-
+  uint8_t  unknown_3E[6];       // 0x3E
   uint16_t condition;        // 0x44
   uint16_t max_condition;    // 0x46
 
@@ -75,8 +80,10 @@ struct player_rec {
   uint8_t armor_idx[3]; // Equipped armor items (0x4B-0x4D)
 
   uint8_t rank; // 0x4E
+  uint8_t unknown_4F[3];  // 0x4F
 
   uint8_t unknown_52; // 0x52
+  uint8_t unknown_53[4]; // 0x53
 
   uint8_t unknown_57; // 0x57 (player drunk?)
   uint8_t affliction; // 0x58 - bit encoded
@@ -90,8 +97,20 @@ struct player_rec {
       10000000 - Mutant
    */
 
+  uint8_t unknown_59[9];  // 0x59
+
   struct item_rec items[32]; // 0x62
-};
+  uint8_t unknown_122[42]; // 0x122
+} __attribute__((packed));
+
+static_assert(offsetof(struct player_rec, profession) == 0x0E, "profession");
+static_assert(offsetof(struct player_rec, gender) == 0x10, "gender");
+static_assert(offsetof(struct player_rec, attributes) == 0x12, "attributes");
+static_assert(offsetof(struct player_rec, condition) == 0x44, "condition");
+static_assert(offsetof(struct player_rec, weapon_idx) == 0x4A, "weapon_idx");
+static_assert(offsetof(struct player_rec, affliction) == 0x58, "affliction");
+static_assert(offsetof(struct player_rec, items) == 0x62, "items");
+static_assert(sizeof(struct player_rec) == 332, "player_rec size");
 
 // FOD: DSEG:0x231E - 0x31DE
 // KEH: DSEG:0xBEEA - ?

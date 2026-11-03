@@ -24,6 +24,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "game.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,7 +56,8 @@ struct level_map {
   uint8_t  boundary_msg;     // 0x0D - movement-blocked message index
   uint8_t  unknown_0E[0x1E - 0x0E];  // 0x0E - 0x1D (16 bytes)
   uint16_t npc_stored;       // 0x1E - number of NPCs stored
-  uint8_t  unknown_20[0x406 - 0x20]; // 0x20 - 0x405 (998 bytes)
+  struct player_rec stored_npc[3]; // 0x20 - 0x404
+  uint16_t unknown_404;
   uint16_t npc_offset;       // 0x406
   uint16_t offset_408;       // 0x408
   uint16_t offset_40A;       // 0x40A
