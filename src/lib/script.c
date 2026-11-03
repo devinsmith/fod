@@ -473,7 +473,7 @@ static void shop_services_menu(uint16_t arg)
     sub_B5FF(current_player);
 
     // BC5D
-    uint8_t al = current_player->unknown_82; // Profession offset string?
+    uint8_t al = current_player->unknown_48; // Profession offset string?
     uint16_t ax = al << 7;
 
     uint16_t profession_offset = ax;
@@ -524,6 +524,17 @@ static void shop_services_menu(uint16_t arg)
   }
 }
 
+// KEH: seg000:sub_D23B (seg000:BB43) */
+void list_cb_print_player_names(uint16_t row, uint16_t index, void *ud)
+{
+  char buf[48];
+  struct player_rec *player = &g_game_state.players[index];
+
+  snprintf(buf, sizeof(buf), "%1d> %-19.19s", row, player->name);
+
+  ui_region_print_str(buf, 0, row + 1);
+}
+
 // KEH: seg000:0x7140
 static void sub_7140()
 {
@@ -542,10 +553,35 @@ static void sub_7140()
     int key = sys_readkey();
     if (key == '1') {
       // Retrieve member (71AE)
-      printf("%s: Retrieval not implemented\n", __func__);
+      if (level_map->npc_stored == 0) {
+        sub_B29B("\rThere's no one here!");
+      } else if (g_game_state.party_size == 5) {
+        sub_B29B("\rYour party is full!");
+      } else {
+        // 0x71CC
+        printf("%s: Retrieval not implemented (0x71CC)\n", __func__);
+      }
     } else if (key == '2') {
       // Store a member (72BD)
-      printf("%s: Storage not implemented\n", __func__);
+      if (g_game_state.party_size == 1) {
+        sub_B29B("\rWith you gone, who's gonna type?");
+      } else if (level_map->npc_stored == 3) {
+        sub_B29B("\rWe're full right now!");
+      } else {
+        // 72E1
+        // Loop through party?
+        uint16_t var_E = 0; // location of party
+        uint16_t var_C = 0;
+        // jump 7305
+        uint8_t al = g_game_state.party_size;
+        var_C = g_game_state.party_size;
+
+        int choice = ui_scroll_list_menu(NULL, var_C, &var_10, "Who will stay?", list_cb_print_player_names, false);
+        if (choice > 0 && choice < 9) {
+          // 7332
+          printf("%s: Storage not implemented\n", __func__);
+        }
+      }
     } else if (key == 'L') {
       // Leave
       done = true;

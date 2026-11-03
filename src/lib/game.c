@@ -172,7 +172,7 @@ static void read_player_rec(struct player_rec *player)
 
   // Gender starts at 0x50
   player->gender = read_uint8();
-  player->unknown_51 = read_uint8();
+  player->unknown_11 = read_uint8();
 
   read_bytes(player->attributes, sizeof(player->attributes));
   /* Assuming attributes are stored in the order:
@@ -196,8 +196,8 @@ static void read_player_rec(struct player_rec *player)
   player->condition = read_uint16();
   player->max_condition = read_uint16();
 
-  player->unknown_82 = read_uint8();
-  player->unknown_83 = (int8_t)read_uint8();
+  player->unknown_48 = read_uint8();
+  player->unknown_49 = (int8_t)read_uint8();
 
   player->weapon_idx = read_uint8();
 
@@ -209,10 +209,10 @@ static void read_player_rec(struct player_rec *player)
   /* Read rank and affliction */
   player->rank = read_uint8();
   advance_reader(3); // 0x89, 0x8A, 0x8B
-  player->unknown_8C = read_uint8();
+  player->unknown_52 = read_uint8();
 
   advance_reader(4); // 0x8D, 0x8E, 0x8F, 0x90
-  player->unknown_91 = read_uint8();
+  player->unknown_57 = read_uint8();
   player->affliction = read_uint8();
 
   advance_reader(9); // 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B
@@ -291,7 +291,7 @@ bool load_game_state()
     for (int i = 0; i < 5; i++) {
       g_game_state.party_order[i] = 0;
       g_game_state.players[i].name[0] = '\0';
-      g_game_state.players[i].unknown_8C = 6; // ???
+      g_game_state.players[i].unknown_52 = 6; // ???
 
       // Initialize items array
       for (int n = 0; n < 32; n++) {

@@ -582,6 +582,10 @@ int ui_draw_scroll_list_page(void *ud,
     cb(i + 1, scroll_offset + i, ud);
   }
 
+  if (refresh) {
+    ui_region_refresh_active();
+  }
+
   return items_shown;
 }
 

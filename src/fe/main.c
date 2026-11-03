@@ -698,7 +698,7 @@ static void save_players()
   g_game_state.do_init = 1;
 
   for (int i = 0; i < g_game_state.party_size; i++) {
-    g_game_state.players[i].unknown_83 = -6;
+    g_game_state.players[i].unknown_49 = -6;
 
     // 0x2ACE ++
     // set to 0x01
@@ -1035,7 +1035,7 @@ static void init_player(int arg1, int profession)
   g_game_state.players[arg1].affliction = 0;
   g_game_state.players[arg1].profession = profession;
   al = prof_ptr[0x7B];
-  g_game_state.players[arg1].unknown_51 = al;
+  g_game_state.players[arg1].unknown_11 = al;
   g_game_state.players[arg1].gender = 1;
 
 
@@ -2325,7 +2325,7 @@ static void sub_253F(int direction, int arg2)
 
   for (int i = 0; i < g_game_state.party_size; i++) {
     if (g_game_state.players[i].condition > 0 &&
-        g_game_state.players[i].unknown_91 != 0) {
+        g_game_state.players[i].unknown_57 != 0) {
       bVar7 = true;
       break;
     }
@@ -2913,10 +2913,10 @@ static uint16_t draw_inventory_list(struct player_rec *player_ptr, uint16_t *scr
   // Handle inventory?
 
   // ?
-  for (int i = 0; i < player_ptr->unknown_8C; i++) {
+  for (int i = 0; i < player_ptr->unknown_52; i++) {
     table_CDC0[i] = i;
   }
-  *max_count = player_ptr->unknown_8C;
+  *max_count = player_ptr->unknown_52;
 
   /*
       if (*scroll_offset == *max_count && *max_count > 0)

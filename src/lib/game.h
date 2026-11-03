@@ -37,37 +37,37 @@ struct item_rec {
 
 // Should be 332 bytes long.
 struct player_rec {
-  char name[13]; // 0x00-0x12
+  char name[13]; // 0x00-0x0D
 
   uint8_t profession; // 0x0E
   uint8_t gender; // 0x10
-  uint8_t unknown_51; // 0x51
+  uint8_t unknown_11; // 0x11
 
-  // 0x52 - 0x5C
-  // 0 - Strength - 0x52
-  // 1 - Intelligence - 0x53
-  // 2 - Dexterity - 0x54
-  // 3 - Willpower - 0x55
-  // 4 - Aptitude - 0x56
-  // 5 - Charisma - 0x57
-  // 6 - Luck - 0x58
-  // Unknown - 0x59
-  // Unknown - 0x5A
-  // Unknown - 0x5B
-  // Unknown - 0x5C
-  uint8_t attributes[11]; // 0x52
+  // 0x12 - 0x1C
+  // 0 - Strength - 0x12
+  // 1 - Intelligence - 0x13
+  // 2 - Dexterity - 0x14
+  // 3 - Willpower - 0x15
+  // 4 - Aptitude - 0x16
+  // 5 - Charisma - 0x17
+  // 6 - Luck - 0x18
+  // Unknown - 0x19
+  // Unknown - 0x1A
+  // Unknown - 0x1B
+  // Unknown - 0x1C
+  uint8_t attributes[11]; // 0x12
 
-  uint8_t attribute_points; // 0x5D
+  uint8_t attribute_points; // 0x1D
 
-  uint8_t active_skills[16]; // 0x5E
-  uint8_t passive_skills[16]; // 0x6E
+  uint8_t active_skills[16]; // 0x1E
+  uint8_t passive_skills[16]; // 0x2E
 
   uint16_t condition;        // 0x44
   uint16_t max_condition;    // 0x46
 
   // Padding bytes? (unknown)
-  uint8_t unknown_82;      // 0x48
-  int8_t unknown_83;       // 0x83
+  uint8_t unknown_48;      // 0x48
+  int8_t unknown_49;       // 0x49
 
   // Value of 0xFF = no item equipped
   // other values are indexes into items array.
@@ -76,9 +76,9 @@ struct player_rec {
 
   uint8_t rank; // 0x4E
 
-  uint8_t unknown_8C; // 0x8C
+  uint8_t unknown_52; // 0x52
 
-  uint8_t unknown_91; // 0x91 (player drunk?)
+  uint8_t unknown_57; // 0x57 (player drunk?)
   uint8_t affliction; // 0x58 - bit encoded
   /*  00000001 - Poisoned
       00000010 - Irradiated
