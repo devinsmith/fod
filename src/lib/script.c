@@ -532,6 +532,17 @@ void list_cb_print_player_names(uint16_t row, uint16_t index, void *ud)
   ui_region_print_str(buf, 0, row + 1);
 }
 
+// KEH: seg000:70B4 */
+void list_cb_print_stored(uint16_t row, uint16_t index, void *ud)
+{
+  char buf[48];
+  struct player_rec *player = &level_map->stored_npc[index];
+
+  snprintf(buf, sizeof(buf), "%1d> %-19.19s", row, player->name);
+
+  ui_region_print_str(buf, 0, row + 1);
+}
+
 // KEH: seg000:0x7140
 static void sub_7140()
 {
@@ -557,6 +568,22 @@ static void sub_7140()
       } else {
         // 0x71CC
         printf("%s: Retrieval not implemented (0x71CC)\n", __func__);
+        int choice = ui_scroll_list_menu(NULL, level_map->npc_stored,
+            &var_10, "Pick up whom?", list_cb_print_stored, false);
+
+        if (choice >= 0 && choice < 3) {
+          struct player_rec *chosen = &level_map->stored_npc[choice];
+          struct player_rec *empty = &g_game_state.players[g_game_state.party_size];
+          memcpy(empty, chosen, sizeof(struct player_rec));
+          level_map->npc_stored--;
+          g_game_state.party_size++;
+
+          // This really might not be correct, but I don't know what unknown_flags_table
+          // is for yet
+          g_game_state.unknown_flags_table[chosen->unknown_49] &= ~0x01;
+          sub_7E09();
+          ui_party_refresh();
+        }
       }
     } else if (key == '2') {
       // Store a member (72BD)
@@ -565,16 +592,10 @@ static void sub_7140()
       } else if (level_map->npc_stored == 3) {
         sub_B29B("\rWe're full right now!");
       } else {
-        // 72E1
-        // Loop through party?
-        uint16_t var_E = 0; // location of party
-        uint16_t var_C = 0;
-        // jump 7305
-        uint8_t al = g_game_state.party_size;
-        var_C = g_game_state.party_size;
+        int choice = ui_scroll_list_menu(NULL, g_game_state.party_size,
+            &var_10, "Who will stay?", list_cb_print_player_names, false);
 
-        int choice = ui_scroll_list_menu(NULL, var_C, &var_10, "Who will stay?", list_cb_print_player_names, false);
-        if (choice > 0 && choice < 5) {
+        if (choice >= 0 && choice < 5) {
           struct player_rec *saved = &level_map->stored_npc[level_map->npc_stored];
           struct player_rec *chosen = &g_game_state.players[choice];
           memcpy(saved, chosen, sizeof(struct player_rec));
