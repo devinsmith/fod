@@ -46,9 +46,6 @@ static uint16_t word_1A32 = 0;
 // KEH: DSEG:0x1A46
 static uint16_t word_1A46 = 0;
 
-// KEH: DSEG:0xC5A0
-static uint8_t unknown_flags_table[255] = { 0 };
-
 // KEH: DSEG:BEC0
 uint16_t word_BEC0 = 0;
 
@@ -577,9 +574,15 @@ static void sub_7140()
         var_C = g_game_state.party_size;
 
         int choice = ui_scroll_list_menu(NULL, var_C, &var_10, "Who will stay?", list_cb_print_player_names, false);
-        if (choice > 0 && choice < 9) {
-          // 7332
-          printf("%s: Storage not implemented\n", __func__);
+        if (choice > 0 && choice < 5) {
+          struct player_rec *saved = &level_map->stored_npc[level_map->npc_stored];
+          struct player_rec *chosen = &g_game_state.players[choice];
+          memcpy(saved, chosen, sizeof(struct player_rec));
+          level_map->npc_stored++;
+
+          party_remove_member(choice);
+          sub_7E09();
+          ui_party_refresh();
         }
       }
     } else if (key == 'L') {
@@ -757,7 +760,7 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
       }
 
       uint8_t val = npc_base[0x49];
-      if ((unknown_flags_table[val] & 0x02) == 0) {
+      if ((g_game_state.unknown_flags_table[val] & 0x02) == 0) {
         // AFB4
         if (token_op == 0x34) {
           level_set_cell(npc_base[0x5B], npc_base[0x5C], 0);

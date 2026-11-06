@@ -129,6 +129,7 @@ void draw_day_time();
 void ui_refresh_all(void);
 
 void ui_draw_party_roster(uint16_t selected, bool hightlight, bool full_refresh);
+void ui_party_refresh();
 uint16_t ui_get_sprite_overlay(int lookup);
 void ui_set_sprite_overlay(int idx, uint16_t val);
 void sub_B3DF(int arg);

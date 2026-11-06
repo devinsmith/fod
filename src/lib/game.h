@@ -72,7 +72,7 @@ struct player_rec {
 
   // Padding bytes? (unknown)
   uint8_t unknown_48;      // 0x48
-  int8_t unknown_49;       // 0x49
+  uint8_t unknown_49;      // 0x49
 
   // Value of 0xFF = no item equipped
   // other values are indexes into items array.
@@ -142,6 +142,9 @@ struct game_state {
   uint8_t day_of_week; // 0x37
 
   struct player_rec players[5]; // players
+
+  // KEH: DSEG:0xC5A0
+  uint8_t unknown_flags_table[255];
 };
 
 extern struct game_state g_game_state;
@@ -162,6 +165,8 @@ void set_current_player_name(int player_idx);
 void set_direction(int direction);
 
 const char *get_item_name(int item_id);
+
+void party_remove_member(int member);
 
 #ifdef __cplusplus
 }

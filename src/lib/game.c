@@ -183,7 +183,7 @@ static void read_player_rec(struct player_rec *player)
   player->max_condition = read_uint16();
 
   player->unknown_48 = read_uint8();
-  player->unknown_49 = (int8_t)read_uint8();
+  player->unknown_49 = read_uint8();
 
   player->weapon_idx = read_uint8();
 
@@ -591,5 +591,21 @@ void set_direction(int direction)
     current_direction = direction;
 
     ui_set_sprite_overlay(1, party_sprite_positions[direction - 1]);
+  }
+}
+
+// KEH: seg001:045A
+void party_remove_member(int member)
+{
+  struct player_rec *player = &g_game_state.players[member];
+
+  g_game_state.unknown_flags_table[player->unknown_49] &= ~0x01;
+  player->name[0] = '\0';
+
+  g_game_state.party_size--;
+
+  for (int i = member; i < g_game_state.party_size; i++) {
+    g_game_state.party_order[i] = g_game_state.party_order[i + 1];
+    g_game_state.players[i] = g_game_state.players[i + 1];
   }
 }

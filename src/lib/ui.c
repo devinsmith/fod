@@ -1427,6 +1427,16 @@ void draw_borders_0()
   draw_borders(0);
 }
 
+// KEH: seg000:0x711E
+void ui_party_refresh()
+{
+  if (bool_DAE6) {
+    ui_draw_party_roster(0, false, true);
+  } else {
+    ui_draw_party_names_header(true);
+  }
+}
+
 // KEH: seg000:0xB3DF
 void sub_B3DF(int arg)
 {
