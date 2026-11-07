@@ -47,26 +47,26 @@ struct player_rec {
   uint8_t unknown_0F; // 0x0F
   uint8_t gender; // 0x10
   uint8_t unknown_11; // 0x11
+  uint8_t unknown_12[6];  // 0x12-0x17
 
-  // 0x12 - 0x1C
-  // 0 - Strength - 0x12
-  // 1 - Intelligence - 0x13
-  // 2 - Dexterity - 0x14
-  // 3 - Willpower - 0x15
-  // 4 - Aptitude - 0x16
-  // 5 - Charisma - 0x17
-  // 6 - Luck - 0x18
-  // Unknown - 0x19
-  // Unknown - 0x1A
-  // Unknown - 0x1B
-  // Unknown - 0x1C
-  uint8_t attributes[11]; // 0x12
+  // 0x18 - 0x22
+  // 0 - Strength - 0x18
+  // 1 - Intelligence - 0x19
+  // 2 - Dexterity - 0x1A
+  // 3 - Willpower - 0x1B
+  // 4 - Aptitude - 0x1C
+  // 5 - Charisma - 0x1D
+  // 6 - Luck - 0x1E
+  // Unknown - 0x1F
+  // Unknown - 0x20
+  // Unknown - 0x21
+  // Unknown - 0x22
+  uint8_t attributes[11]; // 0x18
 
-  uint8_t attribute_points; // 0x1D
+  uint8_t attribute_points; // 0x23
 
-  uint8_t active_skills[16]; // 0x1E
-  uint8_t passive_skills[16]; // 0x2E
-  uint8_t  unknown_3E[6];       // 0x3E
+  uint8_t active_skills[16]; // 0x24
+  uint8_t passive_skills[16]; // 0x34
   uint16_t condition;        // 0x44
   uint16_t max_condition;    // 0x46
 
@@ -105,7 +105,11 @@ struct player_rec {
 
 static_assert(offsetof(struct player_rec, profession) == 0x0E, "profession");
 static_assert(offsetof(struct player_rec, gender) == 0x10, "gender");
-static_assert(offsetof(struct player_rec, attributes) == 0x12, "attributes");
+static_assert(offsetof(struct player_rec, unknown_12) == 0x12, "unknown_12");
+static_assert(offsetof(struct player_rec, attributes) == 0x18, "attributes");
+static_assert(offsetof(struct player_rec, attribute_points) == 0x23, "attribute_points");
+static_assert(offsetof(struct player_rec, active_skills) == 0x24, "active_skills");
+static_assert(offsetof(struct player_rec, passive_skills) == 0x34, "passive_skills");
 static_assert(offsetof(struct player_rec, condition) == 0x44, "condition");
 static_assert(offsetof(struct player_rec, weapon_idx) == 0x4A, "weapon_idx");
 static_assert(offsetof(struct player_rec, affliction) == 0x58, "affliction");

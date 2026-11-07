@@ -158,6 +158,8 @@ static void read_player_rec(struct player_rec *player)
   player->gender = read_uint8();
   player->unknown_11 = read_uint8();
 
+  read_bytes(player->unknown_12, sizeof(player->unknown_12));
+
   read_bytes(player->attributes, sizeof(player->attributes));
   /* Assuming attributes are stored in the order:
    * Strength, Intelligence, Dexterity, Willpower, Aptitude,
@@ -175,8 +177,6 @@ static void read_player_rec(struct player_rec *player)
   for (int i = 0; i < 16; i++) {
     player->passive_skills[i] = read_uint8();
   }
-
-  read_bytes(player->unknown_3E, sizeof(player->unknown_3E));
 
   /* Read condition values */
   player->condition = read_uint16();

@@ -465,8 +465,6 @@ static void sub_7B02(struct player_rec *player, uint16_t arg1, uint16_t arg2);
 static int sub_6D6B(uint16_t arg0);
 static void sub_6D96(uint16_t arg0);
 static void sub_D6AA(void *ptr, uint16_t arg1);
-static void sub_FFB2(uint32_t *accum, int32_t val);
-static void sub_FFD4(uint32_t *accum, uint32_t val);
 static void sub_22(int arg);
 
 static void do_title()
@@ -1855,20 +1853,6 @@ static void sub_D6AA(void *ptr, uint16_t arg1)
   printf("%s: unimplemented\n", __func__);
 }
 
-static void sub_FFB2(uint32_t *accum, int32_t val)
-{
-  (void)accum;
-  (void)val;
-  printf("%s: unimplemented\n", __func__);
-}
-
-static void sub_FFD4(uint32_t *accum, uint32_t val)
-{
-  (void)accum;
-  (void)val;
-  printf("%s: unimplemented\n", __func__);
-}
-
 // Loads level script?
 static void sub_22(int arg)
 {
@@ -2857,12 +2841,13 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
   ui_region_print_str("Attributes", 6, 7);
   word_12D80 = 0;
 
-  for (var_4 = 0; var_4 < 7; var_4++) {
+  // C7F9
+  for (int i = 0; i < 7; i++) {
     snprintf(str_buffer, sizeof(str_buffer), "%3s%2u",
-             skill_display[var_4].name, player_ptr->attributes[var_4]);
+             skill_display[i].name, player_ptr->attributes[i]);
     ui_region_print_str(str_buffer,
-                        skill_display[var_4].x,
-                        skill_display[var_4].y);
+                        skill_display[i].x,
+                        skill_display[i].y);
   }
 }
 
