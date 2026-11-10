@@ -429,14 +429,13 @@ static void sub_138D(int arg0);
 
 static void sub_C68D(struct player_rec *player_ptr, bool flag);
 static void sub_C5F4(struct player_rec *player_ptr, bool flag);
-static uint8_t sub_CB58(uint16_t arg0);
+static uint8_t sub_CB58(int player_num);
 static uint8_t sub_CBDF(uint16_t arg0);
 static void sub_CA0B(struct player_rec *player_ptr);
-static uint8_t sub_CAE6(uint16_t value, uint16_t *var6, uint16_t mode,
-                         uint16_t flag);
-static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2);
+static bool choose_left_right(uint16_t key, uint16_t *dst, uint16_t left_val,
+            uint16_t right_val);
 static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2);
-static int sub_CC58(int arg0, int fkey_index);
+static int show_character_sheet(int arg0, int fkey_index);
 static void sub_1834(uint16_t cell, int arg2, int npc_num);
 static void set_party_position(int x, int y);
 static void sub_12E9(void);
@@ -2020,7 +2019,7 @@ static void sub_7FA8(int x, int y)
 
       // Inventory full - display message with entity name
       snprintf(str_buffer, sizeof(str_buffer), "%s", player->name);
-      sub_B29B(str_buffer);
+      ui_display_msg(str_buffer);
     }
 
 loop_continue:
@@ -2522,7 +2521,7 @@ static void sub_39FE(int arg1, int arg2)
           int fkey_index = key_pressed - 0x3B;
           // byte_1D15B would be max party index - check bounds
           if (fkey_index < g_game_state.party_size) {
-            var_10 = sub_CC58(fkey_index, 0);
+            var_10 = show_character_sheet(fkey_index, 0);
             sub_27CC(var_10);
           }
         } else if (key_signed == -1) {
@@ -2960,8 +2959,8 @@ static int draw_active_skills(int player_num, uint16_t *counter, uint16_t arg2, 
   }
 
   if (arg2 != 0) {
-//    return sub_1682(player, var_2, counter, "Active", draw_skill_row, true);
-    printf("%s: unimplemented CS:C8A6\n", __func__);
+    ui_scroll_list_menu(player, var_2, counter, "Active", draw_active_skill_row, true);
+    printf("Done\n");
     return 0;
   }
 
@@ -3016,9 +3015,14 @@ static uint16_t draw_passive_skills(int player_num, uint16_t *counter, uint16_t 
   return -1;
 }
 
-static uint8_t sub_CB58(uint16_t arg0)
+static uint8_t sub_CB58(int player_num)
 {
-  printf("%s: unimplemented\n", __func__);
+  struct player_rec *current_player = &g_game_state.players[player_num];
+  if (current_player->condition >= 1) {
+    return 1;
+  }
+
+  print_incapacitated(player_num, 1);
   return 0;
 }
 
@@ -3033,16 +3037,33 @@ static void sub_CA0B(struct player_rec *player_ptr)
   printf("%s: unimplemented\n", __func__);
 }
 
-static uint8_t sub_CAE6(uint16_t value, uint16_t *var6, uint16_t mode,
-                         uint16_t flag)
+// KEH: seg000:CAE6
+static bool choose_left_right(uint16_t key,
+    uint16_t *dst, uint16_t left_val,
+    uint16_t right_val)
 {
-  printf("%s: unimplemented\n", __func__);
-  *var6 = mode;
-  return 0;
+  bool handled = false;
+
+  if (key == KEY_LEFT) {
+    *dst = left_val;
+    handled = true;
+  } else if (key == KEY_RIGHT) {
+    *dst = right_val;
+    handled = true;
+  }
+
+  return handled;
 }
 
-static uint8_t sub_C052(uint16_t arg0, uint16_t arg1, uint16_t arg2)
+// KEH: seg000:C052
+static uint8_t use_medic_skill(uint16_t arg0, bool interactive, uint16_t arg2)
 {
+  if (interactive) {
+    ui_region_set_active(&popup_region, 1);
+    ui_region_refresh_active();
+  }
+
+  // Pick the target.
   printf("%s: unimplemented\n", __func__);
   return 0;
 }
@@ -3053,39 +3074,36 @@ static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2)
   return 0;
 }
 
+enum panel { PANEL_STATS = 0, PANEL_ACTIVE = 1, PANEL_PASSIVE = 2 };
+
 // KEH: seg000:0xCC58
 // F-key handler - character skill/action menu.
 // arg0 = menu page (always 0 from game loop)
 // fkey_index = which F-key was pressed (0=F1..4=F5)
 // Returns arg0 on action completion, or -1 on ESC/exit.
-static int sub_CC58(int arg0, int fkey_index)
+static int show_character_sheet(int arg0, int fkey_index)
 {
   uint16_t var_20;
-  struct player_rec *var_1E;
+  struct player_rec *player_selected = NULL;
   uint16_t var_1C;
   uint16_t var_1A;
   uint16_t var_18;
-  uint8_t  var_16;
+  bool done = false;
   uint16_t var_12;
   uint16_t var_E;
   struct ui_region *var_C;
-  uint16_t var_6;
-  uint8_t  var_4;
+  uint16_t mode = PANEL_STATS;
   uint8_t  var_2;
   int16_t  key_signed;
-
-  var_1E = 0;
-  var_16 = 0;
 
   var_2 = (fkey_index != 0 || byte_1ED26 != 0) ? 1 : 0;
 
   var_C = active_region;
-  var_6 = 0;
 
-  while (var_16 == 0) {
+  while (!done) {
     struct player_rec *si = &g_game_state.players[arg0];
-    if (var_1E != si) {
-      var_1E = si;
+    if (player_selected != si) {
+      player_selected = si;
       var_18 = 0;
       var_1C = 0;
       var_1A = 0;
@@ -3093,35 +3111,32 @@ static int sub_CC58(int arg0, int fkey_index)
 
     ui_region_set_active(&region_1CB4, true);
 
-//    sub_C68D(var_1E, (var_6 == 1) ? true : false);
-
     // The second argument to this function probably should not be
     // hardcoded as true. It controls whether the player's name should be
     // highlighted, but we need to figure out how it gets set here. It is
     // tied to var_6.
-    sub_C68D(var_1E, true);
+    sub_C68D(player_selected, mode == PANEL_STATS);
 
-    var_E = draw_inventory_list(var_1E, &var_18, &var_12);
+    var_E = draw_inventory_list(player_selected, &var_18, &var_12);
 
-    draw_active_skills(arg0, &var_1C, 0, (var_6 == 1) ? 1 : 0);
-    draw_passive_skills(arg0, &var_1A, 0, (var_6 == 2) ? 1 : 0);
+    draw_active_skills(arg0, &var_1C, 0, (mode == PANEL_ACTIVE) ? 1 : 0);
+    draw_passive_skills(arg0, &var_1A, 0, (mode == PANEL_PASSIVE) ? 1 : 0);
 
     ui_region_refresh(&whole_screen);
 
-    if (var_6 == 0) {
-      var_E = draw_inventory_list(var_1E, &var_18, &var_12);
+    if (mode == 0) {
+      var_E = draw_inventory_list(player_selected, &var_18, &var_12);
 
-      var_4 = vga_waitkey();
+      uint8_t key = sys_readkey();
 
-      if (var_4 == 0xFF) {
-        var_16 = 1;
+      if (key == KEY_ESC) {
+        done = true;
         continue;
       }
 
-      // Writes to end of player record, ?
-      ((unsigned char *)(uintptr_t)var_1E)[0x144] = 0x0A;
+      player_selected->cmd_type = 0x0A;
 
-      key_signed = (int16_t)(int8_t)var_4;
+      key_signed = (int16_t)(int8_t)key;
 
       if (key_signed == 'A') {
         goto handle_char_action;
@@ -3135,13 +3150,13 @@ handle_key_lt_A:
       if (key_signed == (int16_t)0xFFFC) {
         if ((int16_t)(var_12 - var_18) > (int16_t)var_E)
           var_18 += 8;
-        var_E = draw_inventory_list(var_1E, &var_18, &var_12);
+        var_E = draw_inventory_list(player_selected, &var_18, &var_12);
         continue;
       }
 
       if (key_signed <= (int16_t)0xFFFC) {
         if (key_signed >= (int16_t)0xFFFA && key_signed <= (int16_t)0xFFFB) {
-          sub_CAE6(var_4, &var_6, 2, 1);
+          choose_left_right(key, &mode, 2, 1);
           continue;
         }
         goto handle_generic_key;
@@ -3150,12 +3165,12 @@ handle_key_lt_A:
       if (key_signed == (int16_t)0xFFFD) {
         if (var_18 >= 8)
           var_18 -= 8;
-        var_E = draw_inventory_list(var_1E, &var_18, &var_12);
+        var_E = draw_inventory_list(player_selected, &var_18, &var_12);
         continue;
       }
 
       if (key_signed >= (int16_t)0x3B && key_signed <= (int16_t)0x3F) {
-        handle_fkeys(var_4, (uint16_t *)&arg0, 6, var_2, 1);
+        handle_fkeys(key, (uint16_t *)&arg0, 6, var_2, 1);
         continue;
       }
 
@@ -3176,8 +3191,8 @@ handle_key_gt_A:
         if (target == 0) {
           goto handle_char_action;
         } else if (target == 2) {
-          if (((unsigned char *)(uintptr_t)var_1E)[0x58] != 0)
-            sub_CA0B(var_1E);
+          if (player_selected->affliction != 0)
+            sub_CA0B(player_selected);
           continue;
         } else {
           goto handle_generic_key;
@@ -3186,7 +3201,7 @@ handle_key_gt_A:
 
 handle_char_action:
       {
-        unsigned char *p = (unsigned char *)(uintptr_t)var_1E;
+        unsigned char *p = (unsigned char *)(uintptr_t)player_selected;
         if (key_signed == 'D') {
           p[0x145] = 2;
         } else if (key_signed > 'D') {
@@ -3215,17 +3230,17 @@ action_check:
         sub_CBDF(arg0);
         return arg0;
       }
-      var_1E = 0;
+      player_selected = NULL;
       continue;
 
 handle_generic_key:
-      if (var_4 >= 0x3B && var_4 <= 0x3F) {
-        handle_fkeys(var_4, (uint16_t *)&arg0, 6, var_2, 1);
+      if (key >= 0x3B && key <= 0x3F) {
+        handle_fkeys(key, (uint16_t *)&arg0, 6, var_2, 1);
         continue;
       }
 
-      if (var_4 >= '0' && var_4 <= '9') {
-        uint16_t digit = var_4 - '0';
+      if (key >= '0' && key <= '9') {
+        uint16_t digit = key - '0';
         var_20 = digit;
 
         if (digit == 0 || digit > var_E)
@@ -3233,12 +3248,12 @@ handle_generic_key:
 
         var_20 = table_3240[digit + var_18];
 
-        ((unsigned char *)(uintptr_t)var_1E)[0x145] = (uint8_t)var_20;
+        player_selected->cmd_arg = (uint8_t)var_20;
 
         if (byte_1ED26 == 0) {
           if (sub_1FB7(arg0, (uint8_t)var_20, fkey_index)) {
             unsigned char *p =
-                (unsigned char *)(uintptr_t)var_1E;
+                (unsigned char *)(uintptr_t)player_selected;
             if (fkey_index != 0) {
               if (p[0x144] == 0x0D || p[0x144] == 0x0C)
                 return arg0;
@@ -3255,46 +3270,45 @@ handle_generic_key:
 
       continue;
 
-    } else if (var_6 == 1) {
+    } else if (mode == 1) {
       int result1 = draw_active_skills(arg0, &var_1C, 1, 1);
       var_20 = result1;
 
       if (handle_fkeys(result1 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
         continue;
 
-      if (sub_CAE6(var_20, &var_6, 0, 2))
+      if (choose_left_right(var_20, &mode, 0, 2))
         continue;
 
       if ((int16_t)var_20 < 0) {
         if (var_20 == 0xFFFF)
-          var_16 = 1;
+          done = true;
         continue;
       }
 
       if (sub_CB58(arg0)) {
-        unsigned char *p = (unsigned char *)(uintptr_t)var_1E;
-        p[0x145] = (uint8_t)table_3240[var_20];
+        player_selected->cmd_arg = (uint8_t)table_3240[var_20];
 
-        uint8_t val = p[0x145];
+        uint8_t val = player_selected->cmd_arg;
         if (val == 0 || val == 0x0B || val == 4) {
           if (byte_1ED26 != 0)
             continue;
 
-          if (!sub_C052(arg0, 1, (fkey_index == 0) ? 1 : 0))
+          if (!use_medic_skill(arg0, 1, (fkey_index == 0) ? 1 : 0))
             continue;
 
           return arg0;
         }
 
-        p[0x144] = 0x0A;
-        p[0x145] += 0x0C;
+        player_selected->cmd_type = 0x0A;
+        player_selected->cmd_arg += 0x0C;
 
         if (fkey_index == 0) {
           sub_CBDF(arg0);
           return arg0;
         }
 
-        if (p[0x145] == 0x1A || p[0x145] == 0x19)
+        if (player_selected->cmd_arg == 0x1A || player_selected->cmd_arg == 0x19)
           return arg0;
 
         sub_CBDF(arg0);
@@ -3303,7 +3317,7 @@ handle_generic_key:
 
       continue;
 
-    } else if (var_6 == 2) {
+    } else if (mode == 2) {
       uint16_t result2 = draw_passive_skills(arg0, &var_1A, 1, 1);
       var_20 = result2;
 
@@ -3311,11 +3325,11 @@ handle_generic_key:
         continue;
 
       if (var_20 == 0xFFFF) {
-        var_16 = 1;
+        done = true;
         continue;
       }
 
-      sub_CAE6(var_20, &var_6, 1, 0);
+      choose_left_right(var_20, &mode, 1, 0);
       continue;
     }
   }

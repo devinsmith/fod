@@ -100,7 +100,10 @@ struct player_rec {
   uint8_t unknown_59[9];  // 0x59
 
   struct item_rec items[32]; // 0x62
-  uint8_t unknown_122[42]; // 0x122
+  uint8_t unknown_122[34]; // 0x122-0x143
+  uint8_t cmd_type;        // 0x144
+  uint8_t cmd_arg;         // 0x145
+  uint8_t unknown_146[6];  // 0x146-0x14B
 } __attribute__((packed));
 
 static_assert(offsetof(struct player_rec, profession) == 0x0E, "profession");
@@ -114,6 +117,10 @@ static_assert(offsetof(struct player_rec, condition) == 0x44, "condition");
 static_assert(offsetof(struct player_rec, weapon_idx) == 0x4A, "weapon_idx");
 static_assert(offsetof(struct player_rec, affliction) == 0x58, "affliction");
 static_assert(offsetof(struct player_rec, items) == 0x62, "items");
+static_assert(offsetof(struct player_rec, unknown_122) == 0x122, "unknown_122");
+static_assert(offsetof(struct player_rec, cmd_type) == 0x144, "cmd_type");
+static_assert(offsetof(struct player_rec, cmd_arg) == 0x145, "cmd_arg");
+static_assert(offsetof(struct player_rec, unknown_146) == 0x146, "unknown_146");
 static_assert(sizeof(struct player_rec) == 332, "player_rec size");
 
 // FOD: DSEG:0x231E - 0x31DE
@@ -167,6 +174,7 @@ int get_player_condition_status(struct player_rec *player);
 int check_party_condition(int arg0);
 void set_current_player_name(int player_idx);
 void set_direction(int direction);
+void print_incapacitated(int player_num, uint16_t arg2);
 
 const char *get_item_name(int item_id);
 

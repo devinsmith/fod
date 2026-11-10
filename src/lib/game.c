@@ -207,6 +207,11 @@ static void read_player_rec(struct player_rec *player)
   for (int i = 0; i < 32; i++) {
     read_item_rec(&player->items[i]);
   }
+
+  read_bytes(player->unknown_122, sizeof(player->unknown_122));
+  player->cmd_type = read_uint8();
+  player->cmd_arg = read_uint8();
+  read_bytes(player->unknown_146, sizeof(player->unknown_146));
 }
 
 // seg000:0x0105
@@ -608,4 +613,22 @@ void party_remove_member(int member)
     g_game_state.party_order[i] = g_game_state.party_order[i + 1];
     g_game_state.players[i] = g_game_state.players[i + 1];
   }
+}
+
+// KEH: seg000:CB19
+// Print incapacitated message
+void print_incapacitated(int player_num, uint16_t arg2)
+{
+  char buffer[42];
+
+  struct player_rec *current_player = &g_game_state.players[player_num];
+
+  snprintf(buffer, sizeof(buffer), "%s is incapacitated.", current_player->name);
+
+  if (arg2 == 0) {
+    ui_display_msg(buffer);
+    return;
+  }
+
+  sub_B2F0(buffer, 0, 2);
 }

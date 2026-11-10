@@ -647,26 +647,28 @@ int ui_scroll_list_menu(void *ud, uint16_t max_count,
 
     switch (key) {
 #if 0
-    case KEY_PGDN:
+    case KEY_DOWN:
         if ((int)max_count - (int)*scroll_offset > shown) {
             *scroll_offset += LIST_PAGE_SIZE;
             redraw = true;
         }
         break;
 
-    case KEY_PGUP:
+    case KEY_UP:
         if (*scroll_offset >= LIST_PAGE_SIZE) {
             *scroll_offset -= LIST_PAGE_SIZE;
             redraw = true;
         }
         break;
-
-    case KEY_EXTRA_A:
-    case KEY_EXTRA_B:
-        if (highlight)
-            return key;
-        break;
 #endif
+
+    case KEY_RIGHT:
+    case KEY_LEFT:
+      if (highlight) {
+        return key;
+      }
+      break;
+
     case KEY_ESC:
       return key;
 
@@ -1437,6 +1439,59 @@ void ui_party_refresh()
   }
 }
 
+// KEH: seg000:0xB29B - display message
+void ui_display_msg(const char *msg)
+{
+  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, true);
+  ui_active_region_clear();
+
+  // B2BC
+  uint16_t ax = active_region->max_y_cursor_pos;
+  ax -= active_region->initial_y_cursor_pos;
+  active_region->data_24 = ax;
+
+  byte_1834 = 1;
+
+  ui_region_print_str(msg, 0, 0);
+
+  ui_region_refresh_active();
+
+  int key;
+  do {
+    key = sys_readkey();
+  } while (key != KEY_CONFIRM);
+
+  byte_1834 = 0;
+}
+
+// KEH: seg000:0xB2F0 - display message
+void sub_B2F0(const char *msg, int arg2, int y_pos)
+{
+  struct ui_region *saved_region = active_region;
+
+  ui_region_set_active(&region_1CEC, false);
+  ui_active_region_clear();
+  uint16_t len = strlen(msg);
+
+  uint16_t cx = active_region->max_x_cursor_pos;
+  cx -= active_region->initial_x_cursor_pos;
+
+  if (cx <= len) {
+    // Msg too long for region?
+    // B333
+    printf("%s: 0xB333 unimplemented\n", __func__);
+  } else {
+    ui_region_print_centered_str(msg, y_pos);
+  }
+
+  ui_region_refresh_active();
+  sys_readkey();
+  ui_active_region_clear();
+  ui_region_refresh_active();
+
+  ui_region_set_active(saved_region, false);
+}
+
 // KEH: seg000:0xB3DF
 void sub_B3DF(int arg)
 {
@@ -1489,4 +1544,19 @@ struct ui_region message_region = {
   draw_borders_0,
   0x00,
   NULL // rect offset 0x0C-0x12
+};
+
+// KEH: DSEG:0x1CD0
+struct ui_region region_1CD0 = {
+  0x0E, // Initial X cursor position
+  0x01, // Initial Y cursor position
+  0x26, // Max X cursor position
+  0x0C, // Max Y cursor position
+  0x0E, // Cursor index x
+  0x01, // Cursor index y
+  { 0x38, 0x8, 0x64, 0x60 }, // ui rect
+  0x00,
+  NULL,
+  0x00,
+  NULL
 };

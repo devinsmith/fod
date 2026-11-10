@@ -78,6 +78,7 @@ extern struct ui_rect whole_screen;
 extern struct ui_region popup_region;
 extern struct ui_region datetime_region;
 extern struct ui_region message_region;
+extern struct ui_region region_1CD0;
 extern bool do_expand;
 extern bool bool_DAE6;
 
@@ -94,6 +95,8 @@ void screen_draw(const unsigned char *bytes);
 void ui_region_print_str(const char *str, int x_pos, int y_pos);
 void ui_region_print_centered_str(const char *str, int y_pos);
 void ui_print_positioned_str(const uint8_t *str);
+void ui_display_msg(const char *msg);
+void sub_B2F0(const char *msg, int arg2, int y_pos);
 
 int ui_draw_scroll_list_page(void *ud,
     uint16_t scroll_offset,

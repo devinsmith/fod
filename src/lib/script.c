@@ -58,21 +58,6 @@ uint16_t word_D9D0 = 0;
 // KEH DSEG:0x12BB9 - flag set after consume_key
 static uint8_t byte_12BB9 = 0;
 
-// KEH: DSEG:0x1CD0
-static struct ui_region region_1CD0 = {
-  0x0E, // Initial X cursor position
-  0x01, // Initial Y cursor position
-  0x26, // Max X cursor position
-  0x0C, // Max Y cursor position
-  0x0E, // Cursor index x
-  0x01, // Cursor index y
-  { 0x38, 0x8, 0x64, 0x60 }, // ui rect
-  0x00,
-  NULL,
-  0x00,
-  NULL
-};
-
 // Number of script opcodes is 76?
 
 // KEH: DSEG:0x1981-0x19CC
@@ -338,59 +323,6 @@ void list_cb_print_name_value(uint16_t row, uint16_t index, void *ud)
   ui_region_print_str(buf, 0, row + 1);
 }
 
-// KEH: seg000:0xB29B - display message
-void sub_B29B(const char *msg)
-{
-  ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, true);
-  ui_active_region_clear();
-
-  // B2BC
-  uint16_t ax = active_region->max_y_cursor_pos;
-  ax -= active_region->initial_y_cursor_pos;
-  active_region->data_24 = ax;
-
-  byte_1834 = 1;
-
-  ui_region_print_str(msg, 0, 0);
-
-  ui_region_refresh_active();
-
-  int key;
-  do {
-    key = sys_readkey();
-  } while (key != KEY_CONFIRM);
-
-  byte_1834 = 0;
-}
-
-// KEH: seg000:0xB2F0 - display message
-static void sub_B2F0(const char *msg, int arg2, int y_pos)
-{
-  struct ui_region *saved_region = active_region;
-
-  ui_region_set_active(&region_1CEC, false);
-  ui_active_region_clear();
-  uint16_t len = strlen(msg);
-
-  uint16_t cx = active_region->max_x_cursor_pos;
-  cx -= active_region->initial_x_cursor_pos;
-
-  if (cx <= len) {
-    // Msg too long for region?
-    // B333
-    printf("%s: 0xB333 unimplemented\n", __func__);
-  } else {
-    ui_region_print_centered_str(msg, y_pos);
-  }
-
-  ui_region_refresh_active();
-  sys_readkey();
-  ui_active_region_clear();
-  ui_region_refresh_active();
-
-  ui_region_set_active(saved_region, false);
-}
-
 static void sub_CB19(int player_num, uint16_t arg2)
 {
   char buffer[42];
@@ -400,7 +332,7 @@ static void sub_CB19(int player_num, uint16_t arg2)
   snprintf(buffer, sizeof(buffer), "%s is incapacitated.", current_player->name);
 
   if (arg2 == 0) {
-    sub_B29B(buffer);
+    ui_display_msg(buffer);
     return;
   }
 
@@ -562,9 +494,9 @@ static void sub_7140()
     if (key == '1') {
       // Retrieve member (71AE)
       if (level_map->npc_stored == 0) {
-        sub_B29B("\rThere's no one here!");
+        ui_display_msg("\rThere's no one here!");
       } else if (g_game_state.party_size == 5) {
-        sub_B29B("\rYour party is full!");
+        ui_display_msg("\rYour party is full!");
       } else {
         // 0x71CC
         printf("%s: Retrieval not implemented (0x71CC)\n", __func__);
@@ -588,9 +520,9 @@ static void sub_7140()
     } else if (key == '2') {
       // Store a member (72BD)
       if (g_game_state.party_size == 1) {
-        sub_B29B("\rWith you gone, who's gonna type?");
+        ui_display_msg("\rWith you gone, who's gonna type?");
       } else if (level_map->npc_stored == 3) {
-        sub_B29B("\rWe're full right now!");
+        ui_display_msg("\rWe're full right now!");
       } else {
         int choice = ui_scroll_list_menu(NULL, g_game_state.party_size,
             &var_10, "Who will stay?", list_cb_print_player_names, false);
