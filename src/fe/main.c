@@ -2939,7 +2939,7 @@ static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, voi
 }
 
 // KEH: seg000:C84A
-static int draw_active_skills(int player_num, uint16_t *counter, uint16_t arg2, uint16_t arg3)
+static int draw_active_skills(int player_num, uint16_t *counter, bool handle_input, uint16_t arg3)
 {
   uint16_t var_2;
 
@@ -2958,10 +2958,8 @@ static int draw_active_skills(int player_num, uint16_t *counter, uint16_t arg2, 
     }
   }
 
-  if (arg2 != 0) {
-    ui_scroll_list_menu(player, var_2, counter, "Active", draw_active_skill_row, true);
-    printf("Done\n");
-    return 0;
+  if (handle_input) {
+    return ui_scroll_list_menu(player, var_2, counter, "Active", draw_active_skill_row, true);
   }
 
   ui_draw_scroll_list_page(
@@ -2977,7 +2975,7 @@ static int draw_active_skills(int player_num, uint16_t *counter, uint16_t arg2, 
 }
 
 // KEH: seg000:C8ED
-static uint16_t draw_passive_skills(int player_num, uint16_t *counter, uint16_t arg2,
+static int draw_passive_skills(int player_num, uint16_t *counter, bool handle_input,
                           uint16_t arg3)
 {
   uint16_t var_2;
@@ -2997,10 +2995,8 @@ static uint16_t draw_passive_skills(int player_num, uint16_t *counter, uint16_t 
     }
   }
 
-  if (arg2 != 0) {
-//    return sub_1682(player, var_2, counter, "Active", draw_skill_row, true);
-    printf("%s: unimplemented CS:C949\n", __func__);
-    return 0;
+  if (handle_input) {
+    return ui_scroll_list_menu(player, var_2, counter, "Passive", draw_passive_skill_row, true);
   }
 
   ui_draw_scroll_list_page(
@@ -3083,7 +3079,7 @@ enum panel { PANEL_STATS = 0, PANEL_ACTIVE = 1, PANEL_PASSIVE = 2 };
 // Returns arg0 on action completion, or -1 on ESC/exit.
 static int show_character_sheet(int arg0, int fkey_index)
 {
-  uint16_t var_20;
+  int tmp;
   struct player_rec *player_selected = NULL;
   uint16_t var_1C;
   uint16_t var_1A;
@@ -3119,16 +3115,16 @@ static int show_character_sheet(int arg0, int fkey_index)
 
     var_E = draw_inventory_list(player_selected, &var_18, &var_12);
 
-    draw_active_skills(arg0, &var_1C, 0, (mode == PANEL_ACTIVE) ? 1 : 0);
-    draw_passive_skills(arg0, &var_1A, 0, (mode == PANEL_PASSIVE) ? 1 : 0);
+    draw_active_skills(arg0, &var_1C, false, (mode == PANEL_ACTIVE) ? 1 : 0);
+    draw_passive_skills(arg0, &var_1A, false, (mode == PANEL_PASSIVE) ? 1 : 0);
 
     ui_region_refresh(&whole_screen);
 
-    if (mode == 0) {
+    switch (mode) {
+    case PANEL_STATS:
       var_E = draw_inventory_list(player_selected, &var_18, &var_12);
 
       uint8_t key = sys_readkey();
-
       if (key == KEY_ESC) {
         done = true;
         continue;
@@ -3216,9 +3212,9 @@ handle_char_action:
           else
             goto action_check;
         } else {
-          if (key_signed == 'A')
-            p[0x145] = 4;
-          else if (key_signed == 'C')
+          if (key_signed == 'A') {
+            player_selected->cmd_arg = 4;
+          } else if (key_signed == 'C')
             p[0x145] = 5;
           else
             goto action_check;
@@ -3241,17 +3237,16 @@ handle_generic_key:
 
       if (key >= '0' && key <= '9') {
         uint16_t digit = key - '0';
-        var_20 = digit;
 
         if (digit == 0 || digit > var_E)
           continue;
 
-        var_20 = table_3240[digit + var_18];
+        tmp = table_3240[digit + var_18];
 
-        player_selected->cmd_arg = (uint8_t)var_20;
+        player_selected->cmd_arg = (uint8_t)tmp;
 
         if (byte_1ED26 == 0) {
-          if (sub_1FB7(arg0, (uint8_t)var_20, fkey_index)) {
+          if (sub_1FB7(arg0, (uint8_t)tmp, fkey_index)) {
             unsigned char *p =
                 (unsigned char *)(uintptr_t)player_selected;
             if (fkey_index != 0) {
@@ -3270,28 +3265,27 @@ handle_generic_key:
 
       continue;
 
-    } else if (mode == 1) {
-      int result1 = draw_active_skills(arg0, &var_1C, 1, 1);
-      var_20 = result1;
+    case PANEL_ACTIVE:
+      tmp = draw_active_skills(arg0, &var_1C, true, 1);
 
-      if (handle_fkeys(result1 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
+      if (handle_fkeys(tmp + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
         continue;
 
-      if (choose_left_right(var_20, &mode, 0, 2))
+      if (choose_left_right(tmp, &mode, 0, 2))
         continue;
 
-      if ((int16_t)var_20 < 0) {
-        if (var_20 == 0xFFFF)
+      if (tmp < 0) {
+        if (tmp == -1)
           done = true;
         continue;
       }
 
       if (sub_CB58(arg0)) {
-        player_selected->cmd_arg = (uint8_t)table_3240[var_20];
+        player_selected->cmd_arg = (uint8_t)table_3240[tmp];
 
         uint8_t val = player_selected->cmd_arg;
         if (val == 0 || val == 0x0B || val == 4) {
-          if (byte_1ED26 != 0)
+          if (bool_DAE6)
             continue;
 
           if (!use_medic_skill(arg0, 1, (fkey_index == 0) ? 1 : 0))
@@ -3315,22 +3309,20 @@ handle_generic_key:
         return arg0;
       }
 
-      continue;
+      break;
+    case PANEL_PASSIVE:
+      tmp = draw_passive_skills(arg0, &var_1A, true, 1);
 
-    } else if (mode == 2) {
-      uint16_t result2 = draw_passive_skills(arg0, &var_1A, 1, 1);
-      var_20 = result2;
-
-      if (handle_fkeys(result2 + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
+      if (handle_fkeys(tmp + 0x46, (uint16_t *)&arg0, 6, var_2, 1))
         continue;
 
-      if (var_20 == 0xFFFF) {
+      if (tmp == -1) {
         done = true;
         continue;
       }
 
-      choose_left_right(var_20, &mode, 1, 0);
-      continue;
+      choose_left_right(tmp, &mode, 1, 0);
+      break;
     }
   }
 
