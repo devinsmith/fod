@@ -632,3 +632,29 @@ void print_incapacitated(int player_num, uint16_t arg2)
 
   sub_B2F0(buffer, 0, 2);
 }
+
+// KEH: seg000:7D9B
+// Calculates an armor class maybe?
+uint16_t sub_7D9B(struct player_rec *player)
+{
+  uint16_t sum = 0;
+
+  // Look at equipted armor items.
+  for (int i = 0; i < 3; i++) {
+    uint8_t item_id = player->armor_idx[i];
+
+    if (item_id != 0xFF) {
+      printf("%s: 0x7DBE unimplemented (item: 0x%02X)\n", __func__, item_id);
+      // Manipulates sum
+    }
+  }
+
+  if (sum == 0) {
+    // 0x7DE1
+    // Deal with player's profession?
+    uint8_t prof_val = arch_offset[(player->profession << 7) + 0x7A];
+    return prof_val;
+  }
+
+  return sum;
+}

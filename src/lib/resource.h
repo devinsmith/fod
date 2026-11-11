@@ -31,6 +31,7 @@ enum resource_file {
   RESOURCE_GANI,
   RESOURCE_BORDERS,
   RESOURCE_TILES,
+  RESOURCE_HDSPCT,
   RESOURCE_LAST
 };
 
@@ -40,6 +41,7 @@ struct resource {
 };
 
 extern struct resource *tile_res;
+extern struct resource *hds_res;
 
 /**
  * @brief Initializes the resource manager.

@@ -16,6 +16,7 @@ set(SOURCES
   anim.c anim.h
   bufio.c bufio.h
   compress.c compress.h
+  cmdmenu.c cmdmenu.h
   cursor.c cursor.h
   fileio.c fileio.h
   game.c game.h

@@ -29,6 +29,9 @@
 
 struct resource *tile_res;
 
+// DSEG:0x37E8
+struct resource *hds_res;
+
 static bool check_file(const char *filename, const char *hash)
 {
   bool is_valid = false;
@@ -109,7 +112,8 @@ static bool check_files()
     check_file("borders", "ace004a244b9f55039e55092ec802869c544008f") &&
     check_file("gani", "ee540a8ab0fcdc9172fac79fcc0d09a0979bdfe9") &&
     check_file("font", "acc08c29b1df9d4049d8c2b28b69e3897e5779a1") &&
-    check_file("tiles", "3a3b9d2e46f7869b0e60750191a6af68a784d7db");
+    check_file("tiles", "3a3b9d2e46f7869b0e60750191a6af68a784d7db") &&
+    check_file("hdspct", "5660bbe471c75b76800656e5652d5b41f2546d00");
 }
 
 struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
@@ -132,6 +136,9 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
     break;
   case RESOURCE_BORDERS:
     fname = "borders";
+    break;
+  case RESOURCE_HDSPCT:
+    fname = "hdspct";
     break;
   default:
     break;

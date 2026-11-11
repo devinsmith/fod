@@ -175,6 +175,7 @@ int check_party_condition(int arg0);
 void set_current_player_name(int player_idx);
 void set_direction(int direction);
 void print_incapacitated(int player_num, uint16_t arg2);
+uint16_t sub_7D9B(struct player_rec *player);
 
 const char *get_item_name(int item_id);
 
