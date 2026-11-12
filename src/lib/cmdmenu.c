@@ -16,6 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -28,9 +29,6 @@
 
 // Border drawing sub-routines.
 static void sub_DAB0();
-
-// KEH DSEG:0x1ED26
-static uint8_t byte_1ED26 = 0;
 
 // KEH DSEG:0x12D80 - UI flag (set to 8 during header print, then reset to 0)
 static uint16_t word_12D80 = 0;
@@ -50,7 +48,7 @@ static const char *condition_names[] = {
 static uint16_t table_CDC0[32];
 
 // KEH DSEG:0x3240 - table mapping encounter result to dword_1EC1A index
-static uint16_t table_3240[100];
+static uint16_t skill_cmd_tbl[100];
 
 // KEH: DSEG:0x15F8/0x15F9/0x15FA - skill display tables
 // Each entry: { x_coord, y_coord, skill_name_string }
@@ -148,9 +146,21 @@ static struct ui_region region_1CB4 = {
 };
 
 enum panel { PANEL_STATS = 0, PANEL_ACTIVE = 1, PANEL_PASSIVE = 2 };
+enum menu_state { MENU_RUN, MENU_CANCEL, MENU_RETURN };
 
 struct cmd_menu {
-  uint16_t mode;
+  uint16_t player_idx; // The 0 based index of the player being worked on.
+  bool flag;  // Unknown
+  bool no_confirm; // Unknown
+  struct player_rec *player; // Selected player
+  uint16_t scroll;
+  uint16_t total;
+  uint16_t page_count;
+  uint16_t active_state;
+  uint16_t passive_state;
+  enum panel mode; // The mode the panel is in, see enum panel.
+  enum menu_state state;
+  int result;
 };
 
 static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2)
@@ -447,20 +457,21 @@ static uint8_t sub_CBDF(uint16_t arg0)
   return 0;
 }
 
-static uint8_t sub_CB58(int player_num)
+static bool sub_CB58(int player_num)
 {
+  // Player has at least one health point?
   struct player_rec *current_player = &g_game_state.players[player_num];
   if (current_player->condition >= 1) {
-    return 1;
+    return true;
   }
 
   print_incapacitated(player_num, 1);
-  return 0;
+  return false;
 }
 
 // KEH: seg000:CAE6
-static bool choose_left_right(uint16_t key,
-    uint16_t *dst, uint16_t left_val,
+static bool change_panel(uint16_t key,
+    enum panel *dst, uint16_t left_val,
     uint16_t right_val)
 {
   bool handled = false;
@@ -476,270 +487,206 @@ static bool choose_left_right(uint16_t key,
   return handled;
 }
 
+static void menu_return(struct cmd_menu *m, int16_t v)
+{
+  m->state = MENU_RETURN;
+  m->result = v;
+}
+
+static void menu_page(struct cmd_menu *m, int dir)
+{
+  if (dir < 0) {
+    if (m->scroll < 8) return;
+    m->scroll -= 8;
+  } else {
+    if (m->total - m->scroll <= m->page_count) return;
+    m->scroll += 8;
+  }
+  m->page_count = draw_inventory_list(m->player, &m->scroll, &m->total);
+}
+
+/* letter-command tail: CDE4 / CDF1 / CE4F */
+static void menu_commit(struct cmd_menu *m)
+{
+  if (!sub_CB58(m->player_idx)) {
+    m->player = NULL;                /* forces scroll reset next iteration */
+    return;
+  }
+  menu_return(m, sub_CBDF(m->player_idx));
+}
+
+/* digit key: pick entry n on the current page (CF06..CEE2) */
+static void stats_pick_entry(struct cmd_menu *m, int8_t key)
+{
+  if (key < 0 || !isdigit((unsigned char)key)) return;
+
+  int16_t n = key & 0x0F;
+  if (n <= 0 || n > m->page_count) return;
+
+  int16_t entry = (int16_t)skill_cmd_tbl[m->scroll + n - 1];
+  m->player->cmd_arg = (uint8_t)entry;
+
+  if (bool_DAE6) { menu_return(m, m->player_idx); return; }
+  if (!sub_1FB7(m->player_idx, entry, m->flag)) return;
+
+  uint8_t t = m->player->cmd_type;     /* presumably set by sub_1FB7 */
+  if ((m->flag && (t == 0x0C || t == 0x0D)) || t == 6)
+    menu_return(m, m->player_idx);
+  else
+    menu_return(m, sub_CBDF(m->player_idx));
+}
+
+static void panel_stats(struct cmd_menu *m)
+{
+  const char cmd_keys[] = "SIDWACL";   /* index == cmd_arg */
+
+  m->page_count = draw_inventory_list(m->player, &m->scroll, &m->total);
+
+  uint8_t key = sys_readkey();
+  if (key == KEY_ESC) {
+    m->state = MENU_CANCEL;
+    return;
+  }
+
+  m->player->cmd_type = 0x0A;
+
+  /* S/I/D/W/A/C/L */
+  const char *c = strchr(cmd_keys, key);
+  if (c) {
+    m->player->cmd_arg = (uint8_t)(c - cmd_keys);
+    menu_commit(m);
+    return;
+  }
+
+  switch (key) {
+  case 'V':
+    if (m->player->affliction) sub_CA0B(m->player);
+    break;
+  case KEY_LEFT:
+  case KEY_RIGHT:
+    change_panel(key, &m->mode, PANEL_PASSIVE, PANEL_ACTIVE);
+    break;
+  case KEY_UP: menu_page(m, -1); break;
+  case KEY_DOWN: menu_page(m, +1); break;
+  case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:     /* F1-F5 */
+    handle_fkeys(key, &m->player_idx, 6, m->no_confirm, 1);
+    break;
+  default:
+    stats_pick_entry(m, key);
+    break;
+  }
+}
+
+static void panel_active(struct cmd_menu *m)
+{
+  struct player_rec *p = m->player;
+
+  int16_t sel = draw_active_skills(m->player_idx, &m->active_state, true, 1);
+
+  if (handle_fkeys(sel + 0x46, &m->player_idx, 6, m->no_confirm, 1))
+    return;
+
+  if (change_panel(sel, &m->mode, PANEL_STATS, PANEL_PASSIVE))
+    return;
+
+  if (sel < 0) {
+    if (sel == -1) {
+      m->state = MENU_CANCEL;
+    }
+    return;
+  }
+
+  if (!sub_CB58(m->player_idx)) {
+    return;
+  }
+
+  p->cmd_arg = (uint8_t)skill_cmd_tbl[sel];
+
+  if (p->cmd_arg == 0 || p->cmd_arg == 0x0B || p->cmd_arg == 4) {
+    if (bool_DAE6) return;
+
+    if (use_medic_skill(m->player_idx, 1, !m->flag)) {
+      menu_return(m, m->player_idx);
+    }
+    return;
+  }
+
+  p->cmd_type = 0x0A;
+  p->cmd_arg += 0x0C;
+
+  if (m->flag && (p->cmd_arg == 0x19 || p->cmd_arg == 0x1A)) {
+    menu_return(m, m->player_idx);
+  } else {
+    menu_return(m, sub_CBDF(m->player_idx));
+  }
+}
+
+static void panel_passive(struct cmd_menu *m)
+{
+  int16_t sel = draw_passive_skills(m->player_idx, &m->passive_state, true, 1);
+
+  if (handle_fkeys(sel + 0x46, &m->player_idx, 6, m->no_confirm, 1)) {
+    return;
+  }
+
+  if (sel == -1) {
+    m->state = MENU_CANCEL;
+    return;
+  }
+
+  change_panel(sel, &m->mode, PANEL_ACTIVE, PANEL_STATS);
+}
+
 // KEH: seg000:0xCC58
 // F-key handler - character skill/action menu.
-// arg0 = menu page (always 0 from game loop)
-// fkey_index = which F-key was pressed (0=F1..4=F5)
-// Returns arg0 on action completion, or -1 on ESC/exit.
-int show_character_sheet(int arg0, int fkey_index)
+// Returns player index on action completion, or -1 on ESC/exit.
+int show_character_sheet(int player_idx, bool flag)
 {
   struct cmd_menu m = {
-    .mode = PANEL_STATS
+    .player_idx = player_idx,
+    .flag = flag,
+    .no_confirm = flag || bool_DAE6,
+    .mode = PANEL_STATS,
+    .state = MENU_RUN
   };
 
-  int tmp;
-  struct player_rec *player_selected = NULL;
-  uint16_t var_1C;
-  uint16_t var_1A;
-  uint16_t var_18;
-  bool done = false;
-  uint16_t var_12;
-  uint16_t var_E;
-  struct ui_region *var_C;
-  bool no_confirm;
-  int16_t  key_signed;
+  struct ui_region *saved_region;
 
-  no_confirm = (fkey_index != 0) || bool_DAE6;
+  saved_region = active_region;
 
-  var_C = active_region;
-
-  while (!done) {
-    struct player_rec *si = &g_game_state.players[arg0];
-    if (player_selected != si) {
-      player_selected = si;
-      var_18 = 0;
-      var_1C = 0;
-      var_1A = 0;
+  while (m.state == MENU_RUN) {
+    if (m.player != &g_game_state.players[m.player_idx]) {
+      m.player = &g_game_state.players[m.player_idx];
+      m.scroll = m.active_state = m.passive_state = 0;
     }
 
     ui_region_set_active(&region_1CB4, true);
-
-    // The second argument to this function probably should not be
-    // hardcoded as true. It controls whether the player's name should be
-    // highlighted, but we need to figure out how it gets set here. It is
-    // tied to var_6.
-    sub_C68D(player_selected, m.mode == PANEL_STATS);
-
-    var_E = draw_inventory_list(player_selected, &var_18, &var_12);
-
-    draw_active_skills(arg0, &var_1C, false, (m.mode == PANEL_ACTIVE) ? 1 : 0);
-    draw_passive_skills(arg0, &var_1A, false, (m.mode == PANEL_PASSIVE) ? 1 : 0);
+    sub_C68D(m.player, m.mode == PANEL_STATS);
+    m.page_count = draw_inventory_list(m.player, &m.scroll, &m.total);
+    draw_active_skills(m.player_idx, &m.active_state, false, (m.mode == PANEL_ACTIVE) ? 1 : 0);
+    draw_passive_skills(m.player_idx, &m.passive_state, false, (m.mode == PANEL_PASSIVE) ? 1 : 0);
 
     ui_region_refresh(&whole_screen);
 
     switch (m.mode) {
     case PANEL_STATS:
-      var_E = draw_inventory_list(player_selected, &var_18, &var_12);
-
-      uint8_t key = sys_readkey();
-      if (key == KEY_ESC) {
-        done = true;
-        continue;
-      }
-
-      player_selected->cmd_type = 0x0A;
-
-      key_signed = (int16_t)(int8_t)key;
-      switch (key_signed) {
-      case 'A':
-        player_selected->cmd_arg = 4;
-        break;
-      }
-
-      if (key_signed == 'A') {
-        goto handle_char_action;
-      } else if (key_signed > 'A') {
-        goto handle_key_gt_A;
-      } else {
-        goto handle_key_lt_A;
-      }
-
-handle_key_lt_A:
-      if (key_signed == (int16_t)0xFFFC) {
-        if ((int16_t)(var_12 - var_18) > (int16_t)var_E)
-          var_18 += 8;
-        var_E = draw_inventory_list(player_selected, &var_18, &var_12);
-        continue;
-      }
-
-      if (key_signed <= (int16_t)0xFFFC) {
-        if (key_signed >= (int16_t)0xFFFA && key_signed <= (int16_t)0xFFFB) {
-          choose_left_right(key, &m.mode, 2, 1);
-          continue;
-        }
-        goto handle_generic_key;
-      }
-
-      if (key_signed == (int16_t)0xFFFD) {
-        if (var_18 >= 8)
-          var_18 -= 8;
-        var_E = draw_inventory_list(player_selected, &var_18, &var_12);
-        continue;
-      }
-
-      if (key_signed >= (int16_t)0x3B && key_signed <= (int16_t)0x3F) {
-        handle_fkeys(key, (uint16_t *)&arg0, 6, no_confirm, 1);
-        continue;
-      }
-
-      goto handle_generic_key;
-
-handle_key_gt_A:
-      {
-        int table_idx = key_signed - 'C';
-        if (table_idx < 0 || table_idx > 20)
-          goto handle_generic_key;
-
-        static const uint8_t key_targets[21] = {
-          0, 0, 1, 1, 1, 1, 0, 1, 1, 0,
-          1, 1, 1, 1, 1, 1, 0, 1, 1, 2, 0
-        };
-
-        int target = key_targets[table_idx];
-        if (target == 0) {
-          goto handle_char_action;
-        } else if (target == 2) {
-          if (player_selected->affliction != 0)
-            sub_CA0B(player_selected);
-          continue;
-        } else {
-          goto handle_generic_key;
-        }
-      }
-
-handle_char_action:
-      {
-        unsigned char *p = (unsigned char *)(uintptr_t)player_selected;
-        if (key_signed == 'D') {
-          p[0x145] = 2;
-        } else if (key_signed > 'D') {
-          if (key_signed == 'I')
-            p[0x145] = 1;
-          else if (key_signed == 'L')
-            p[0x145] = 6;
-          else if (key_signed == 'S')
-            p[0x145] = 0;
-          else if (key_signed == 'W')
-            p[0x145] = 3;
-          else
-            goto action_check;
-        } else {
-          if (key_signed == 'A') {
-            player_selected->cmd_arg = 4;
-          } else if (key_signed == 'C')
-            p[0x145] = 5;
-          else
-            goto action_check;
-        }
-      }
-
-action_check:
-      if (sub_CB58(arg0)) {
-        sub_CBDF(arg0);
-        return arg0;
-      }
-      player_selected = NULL;
-      continue;
-
-handle_generic_key:
-      if (key >= 0x3B && key <= 0x3F) {
-        handle_fkeys(key, (uint16_t *)&arg0, 6, no_confirm, 1);
-        continue;
-      }
-
-      if (key >= '0' && key <= '9') {
-        uint16_t digit = key - '0';
-
-        if (digit == 0 || digit > var_E)
-          continue;
-
-        tmp = table_3240[digit + var_18];
-
-        player_selected->cmd_arg = (uint8_t)tmp;
-
-        if (byte_1ED26 == 0) {
-          if (sub_1FB7(arg0, (uint8_t)tmp, fkey_index)) {
-            unsigned char *p =
-                (unsigned char *)(uintptr_t)player_selected;
-            if (fkey_index != 0) {
-              if (p[0x144] == 0x0D || p[0x144] == 0x0C)
-                return arg0;
-            }
-            if (p[0x144] == 6)
-              return arg0;
-            sub_CBDF(arg0);
-            return arg0;
-          }
-          continue;
-        }
-        return arg0;
-      }
-
-      continue;
+      panel_stats(&m);
+      break;
 
     case PANEL_ACTIVE:
-      tmp = draw_active_skills(arg0, &var_1C, true, 1);
-
-      if (handle_fkeys(tmp + 0x46, (uint16_t *)&arg0, 6, no_confirm, 1))
-        continue;
-
-      if (choose_left_right(tmp, &m.mode, 0, 2))
-        continue;
-
-      if (tmp < 0) {
-        if (tmp == -1)
-          done = true;
-        continue;
-      }
-
-      if (sub_CB58(arg0)) {
-        player_selected->cmd_arg = (uint8_t)table_3240[tmp];
-
-        uint8_t val = player_selected->cmd_arg;
-        if (val == 0 || val == 0x0B || val == 4) {
-          if (bool_DAE6)
-            continue;
-
-          if (!use_medic_skill(arg0, 1, (fkey_index == 0) ? 1 : 0))
-            continue;
-
-          return arg0;
-        }
-
-        player_selected->cmd_type = 0x0A;
-        player_selected->cmd_arg += 0x0C;
-
-        if (fkey_index == 0) {
-          sub_CBDF(arg0);
-          return arg0;
-        }
-
-        if (player_selected->cmd_arg == 0x1A || player_selected->cmd_arg == 0x19)
-          return arg0;
-
-        sub_CBDF(arg0);
-        return arg0;
-      }
-
+      panel_active(&m);
       break;
     case PANEL_PASSIVE:
-      tmp = draw_passive_skills(arg0, &var_1A, true, 1);
-
-      if (handle_fkeys(tmp + 0x46, (uint16_t *)&arg0, 6, no_confirm, 1))
-        continue;
-
-      if (tmp == -1) {
-        done = true;
-        continue;
-      }
-
-      choose_left_right(tmp, &m.mode, 1, 0);
+      panel_passive(&m);
       break;
     }
   }
 
-  ui_region_set_active(var_C, false);
-  return -1;
+  if (m.state == MENU_CANCEL) {
+    ui_region_set_active(saved_region, false);
+    return -1;
+  }
+  return m.result; // No restoring region
 }
 
 // KEH:seg000:0xDAB0

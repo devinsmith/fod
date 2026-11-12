@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-int show_character_sheet(int arg0, int fkey_index);
+int show_character_sheet(int player_idx, bool flag);
 
 #ifdef __cplusplus
 }

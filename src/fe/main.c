@@ -2412,7 +2412,7 @@ static void sub_39FE(int arg1, int arg2)
           int fkey_index = key_pressed - 0x3B;
           // byte_1D15B would be max party index - check bounds
           if (fkey_index < g_game_state.party_size) {
-            var_10 = show_character_sheet(fkey_index, 0);
+            var_10 = show_character_sheet(fkey_index, false);
             sub_27CC(var_10);
           }
         } else if (key_signed == -1) {
