@@ -341,9 +341,6 @@ static int sub_4F1A(int arg0);
 static void sub_5691(int arg0, int arg1);
 static void sub_138D(int arg0);
 
-static void sub_C68D(struct player_rec *player_ptr, bool flag);
-static void sub_C5F4(struct player_rec *player_ptr, bool flag);
-static uint8_t sub_CBDF(uint16_t arg0);
 static void sub_1834(uint16_t cell, int arg2, int npc_num);
 static void set_party_position(int x, int y);
 static void sub_12E9(void);
