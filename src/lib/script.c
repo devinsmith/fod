@@ -281,7 +281,7 @@ static void level_cell_op(struct map_cell *cell, uint8_t op, uint16_t arg, uint1
     break;
   case 0x1B:
   case 0x1E:
-    cell->w6 = arg;
+    cell->script_offset = arg;
     break;
   default:
     break;
@@ -552,7 +552,7 @@ static void sub_7140()
 
 // KEH: seg000:0x98F4
 // Processes scripted data referenced by ptr for a given event/command type.
-int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
+bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
     int arg5)
 {
   word_D1D8 = 0xFFFF;
@@ -562,7 +562,7 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
   // Compute data pointer from index table
   uint16_t index = cell_val;
   if (index == 0xFFFF) {
-    return 0;
+    return false;
   }
 
   uint16_t table_val = *((uint16_t *)scr_decompressed + index);
@@ -577,7 +577,7 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
 
   uint16_t bitmask = 1 << (uint8_t)cmd_type;
   if (!(unknown & bitmask)) {
-    return 0;
+    return false;
   }
 
   // vga_pollkey?
@@ -624,7 +624,7 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
     if (token_type != cmd_type) {
       // 99E2 (probably not correct)
       do_expand = false;
-      return 1;
+      return true;
     }
     uint16_t token_op   = token_buf[1]; // 0xCE
 
@@ -770,10 +770,10 @@ int loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
     default:
       // Check out 0xB1A7 for script op codes.
       printf("%s: Unhandled token operation: 0x%02X (token_type: 0x%02X)\n", __func__, token_op, token_type);
-      return 0;
+      return false;
       break;
     }
   }
 
-  return 1;
+  return true;
 }

@@ -22,6 +22,7 @@
 
 #include "cmdmenu.h"
 #include "game.h"
+#include "level.h"
 #include "platform.h"
 #include "resource.h"
 #include "script.h"
@@ -32,6 +33,24 @@ static void sub_DAB0();
 
 // KEH DSEG:0x12D80 - UI flag (set to 8 during header print, then reset to 0)
 static uint16_t word_12D80 = 0;
+
+// KEH: DSEG:0xD201
+static int8_t target_dir;
+// KEH: DSEG:0xD1E3
+static int8_t target_x;
+// KEH: DSEG:0xD1E8
+static int8_t target_y;
+
+// KEH: DSEG:0x1DC
+struct delta_pt { int8_t dx, dy; };
+struct delta_pt dir_delta[6] = {
+  {  0,  0 },   // unused?
+  {  0, -1 },   // 1: up
+  {  0,  1 },   // 2: down
+  {  1,  0 },   // 3: right
+  { -1,  0 },   // 4: left
+  {  0,  0 },   // 5: "here" (space), target = party's own cell
+};
 
 // KEH: DSEG:0x01D0 - condition status name table (string pointers)
 static const char *condition_names[] = {
@@ -451,10 +470,111 @@ static void sub_CA0B(struct player_rec *player_ptr)
   printf("%s: unimplemented\n", __func__);
 }
 
-static uint8_t sub_CBDF(uint16_t arg0)
+// KEH: seg000:0A87
+static int sub_A87(uint16_t xpos, uint16_t ypos)
 {
-  printf("%s: unimplemented\n", __func__);
-  return 0;
+  int dir = -1;
+  uint16_t map_w, map_h;
+
+  do {
+    uint8_t key = sys_readkey();
+
+    switch (key) {
+    case KEY_RIGHT:
+      map_w = level_map->map_width;
+      if (xpos < (map_w - 1)) {
+        dir = 3;
+      }
+      break;
+    case KEY_LEFT:
+      if (xpos > 0) {
+        dir = 4;
+      }
+      break;
+    case KEY_DOWN:
+      map_h = level_map->map_height;
+      if (ypos < (map_h - 1)) {
+        dir = 2;
+      }
+      break;
+    case KEY_UP:
+      if (ypos > 0) {
+        dir = 1;
+      }
+      break;
+    case KEY_CONFIRM:
+      dir = 5;
+      break;
+    case KEY_ESC:
+      return -1;
+    }
+  } while (dir == -1);
+
+  target_dir = (int8_t)dir;
+  target_x = dir_delta[dir].dx + xpos;
+  target_y = dir_delta[dir].dy + ypos;
+
+  return dir;
+}
+
+// KEH: seg000:B45
+static void draw_which_way(void)
+{
+  ui_region_set_active(&message_region, 0);
+  ui_active_region_clear();
+
+  ui_region_print_str("Which way?", 1, 1);
+
+  ui_region_print_centered_str("^",         0);
+  ui_region_print_centered_str("< space >", 1);
+  ui_region_print_centered_str("v",         2);
+
+  ui_region_refresh_active();
+}
+
+// KEH: seg000:B95
+// Track which cell was targetted?
+static int sub_B95(uint16_t xpos, uint16_t ypos)
+{
+  redraw_map_view();
+  draw_which_way();
+
+  int which_way = sub_A87(xpos, ypos);
+
+  ui_active_region_clear();
+  ui_region_newline_or_scroll();
+
+  if (which_way == -1) {
+    return 0;
+  }
+
+  int idx = level_map->map_width * target_y + target_x;
+  return idx;
+}
+
+static int sub_CBDF(int player_idx)
+{
+  struct player_rec *p = &g_game_state.players[player_idx];
+
+  if (bool_DAE6) {
+    return player_idx;
+  }
+
+  ui_refresh_all();
+
+  int result;
+
+  if (p->cmd_arg == 0x0B) {
+    printf("%s: unimplemented (2D0A) (%d)\n", __func__, player_idx);
+  } else {
+    result = sub_B95(g_game_state.x_pos, g_game_state.y_pos);
+  }
+
+  p->unknown_148 = result;
+  if (p->unknown_148 != 0) {
+    return player_idx;
+  }
+  return -1;
 }
 
 static bool sub_CB58(int player_num)

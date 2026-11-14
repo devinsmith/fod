@@ -211,7 +211,9 @@ static void read_player_rec(struct player_rec *player)
   read_bytes(player->unknown_122, sizeof(player->unknown_122));
   player->cmd_type = read_uint8();
   player->cmd_arg = read_uint8();
-  read_bytes(player->unknown_146, sizeof(player->unknown_146));
+  player->unknown_146 = read_uint8();
+  player->unknown_147 = read_uint8();
+  player->unknown_148 = read_uint32();
 }
 
 // seg000:0x0105

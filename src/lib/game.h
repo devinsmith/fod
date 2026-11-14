@@ -103,7 +103,11 @@ struct player_rec {
   uint8_t unknown_122[34]; // 0x122-0x143
   uint8_t cmd_type;        // 0x144
   uint8_t cmd_arg;         // 0x145
-  uint8_t unknown_146[6];  // 0x146-0x14B
+  uint8_t unknown_146;     // 0x146
+  uint8_t unknown_147;     // 0x147
+
+  // Contains segment:offset of level map cell
+  uint32_t unknown_148;    // 0x148-0x14B
 } __attribute__((packed));
 
 static_assert(offsetof(struct player_rec, profession) == 0x0E, "profession");

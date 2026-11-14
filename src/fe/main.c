@@ -139,6 +139,9 @@ static uint8_t byte_D1E3;
 // KEH: DSEG:D1E8
 static uint8_t byte_D1E8;
 
+// KEH: DSEG:0xDBC6
+static uint8_t byte_DBC6;
+
 // KEH: DSEG:D9DA
 static unsigned char *ptr_D9DA = NULL;
 
@@ -1934,7 +1937,7 @@ exit_loop:
 
   // If encounter was completed, mark tile as cleared
   if (var_4 != 0) {
-    sub_1834(level_map_player_pos->w6, 5, 0);
+    sub_1834(level_map_player_pos->script_offset, 5, 0);
   }
 }
 
@@ -2255,10 +2258,10 @@ static void sub_253F(int direction, int arg2)
     struct map_cell *saved_pos = level_map_player_pos;
 
     // byte_CDAE = 1;
-    // byte_DBC6 = 0;
+    byte_DBC6 = 0;
     draw_map_center_tile();
 
-    sub_1834(level_map_player_pos->w6, 1, 0);
+    sub_1834(level_map_player_pos->script_offset, 1, 0);
 
     // Recalculate level_map_player_pos for new position
     uint16_t new_offset = level_map->map_width;
@@ -2303,7 +2306,7 @@ static void sub_253F(int direction, int arg2)
       }
 
       sub_12E9();
-      sub_1834(level_map_player_pos->w6, 0, 0);
+      sub_1834(level_map_player_pos->script_offset, 0, 0);
 
       if (arg2 == 0) {
         sub_1339();
@@ -2497,13 +2500,65 @@ static void sub_39FE(int arg1, int arg2)
   level_map_free();
 }
 
+// KEH: seg000:0x189E
+static void sub_189E(int player_idx, uint8_t arg2, uint16_t mode, uint8_t arg6)
+{
+  struct player_rec *p = &g_game_state.players[player_idx];
+
+  struct map_cell *cell = &level_map->cells[p->unknown_148];
+
+  bool ok = loc_98F4(cell->script_offset, mode, player_idx, p->cmd_arg, arg2);
+  if (ok) {
+    printf("%s: OK unimplemented\n", __func__);
+  } else {
+    ui_region_print_str("\rThat has no effect.\r", -1, -1);
+    ui_region_refresh_active();
+  }
+}
+
+static void sub_7CB()
+{
+  if (byte_DBC6 == 0) {
+    return;
+  }
+
+  // 0x7D2
+  printf("%s: 0x7D2 unimplemented\n", __func__);
+}
+
+// KEH: seg000:0x1CEA
+static void sub_1CEA(int player_idx, uint8_t arg)
+{
+  struct player_rec *p = &g_game_state.players[player_idx];
+
+  switch (p->cmd_type) {
+  case 0x0A:
+    sub_189E(player_idx, 0, 3, arg);
+    break;
+  case 0x0B:
+    printf("%s: Unhandled case 0x0B\n", __func__);
+    break;
+  case 0x0E:
+    printf("%s: Unhandled case 0x0E\n", __func__);
+    break;
+  default:
+    break;
+  }
+}
+
 // KEH: seg000:0x27CC
 // Processes result after an action (movement, interaction, etc.)
-static void sub_27CC(int arg0)
+static void sub_27CC(int player_idx)
 {
-  // TODO: Implement post-action processing
-  printf("%s: unimplemented\n", __func__);
   ui_refresh_all();
+  if (player_idx == -1) {
+    return;
+  }
+
+  // 27D8
+  byte_DBC6 = 0;
+  sub_1CEA(player_idx, 0);
+  sub_7CB();
 }
 
 // KEH: seg000:0xD5BA

@@ -37,7 +37,7 @@ struct map_cell {
   uint8_t b2;
   uint8_t b3;
   uint16_t w4;
-  uint16_t w6;
+  uint16_t script_offset;
 };
 
 static_assert(sizeof(struct map_cell) == 8, "map_cell must be 8 bytes");
@@ -64,7 +64,7 @@ struct level_map {
   uint16_t offset_40C;       // 0x40C
   uint16_t unknown_40E[3];   // 0x40E, 0x410, 0x412: maybe more offsets
   struct map_cell cells[];   // 0x414
-} __attribute__((packed));
+};
 
 static_assert(offsetof(struct level_map, boundary_msg)   == 0x0D,  "boundary_msg");
 static_assert(offsetof(struct level_map, npc_stored)     == 0x1E,  "npc_stored");
