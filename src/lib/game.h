@@ -82,7 +82,7 @@ struct player_rec {
   uint8_t rank; // 0x4E
   uint8_t unknown_4F[3];  // 0x4F
 
-  uint8_t unknown_52; // 0x52
+  uint8_t inventory_count; // 0x52
   uint8_t unknown_53[4]; // 0x53
 
   uint8_t unknown_57; // 0x57 (player drunk?)

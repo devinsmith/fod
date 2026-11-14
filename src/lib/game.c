@@ -195,7 +195,7 @@ static void read_player_rec(struct player_rec *player)
   /* Read rank and affliction */
   player->rank = read_uint8();
   advance_reader(3); // 0x89, 0x8A, 0x8B
-  player->unknown_52 = read_uint8();
+  player->inventory_count = read_uint8();
 
   advance_reader(4); // 0x8D, 0x8E, 0x8F, 0x90
   player->unknown_57 = read_uint8();
@@ -284,7 +284,7 @@ bool load_game_state()
     for (int i = 0; i < 5; i++) {
       g_game_state.party_order[i] = 0;
       g_game_state.players[i].name[0] = '\0';
-      g_game_state.players[i].unknown_52 = 6; // ???
+      g_game_state.players[i].inventory_count = 6;
 
       // Initialize items array
       for (int n = 0; n < 32; n++) {

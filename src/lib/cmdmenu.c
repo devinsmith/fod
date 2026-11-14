@@ -62,12 +62,9 @@ static const char *condition_names[] = {
   "Dead",
 };
 
-// KEH: DSEG: 0xCDC0
+// KEH: DSEG: 0xCDC0 (could also be 0x3240)
 // We don't know how big this is.
-static uint16_t table_CDC0[32];
-
-// KEH DSEG:0x3240 - table mapping encounter result to dword_1EC1A index
-static uint16_t skill_cmd_tbl[100];
+static uint16_t item_entry_table[100];
 
 // KEH: DSEG:0x15F8/0x15F9/0x15FA - skill display tables
 // Each entry: { x_coord, y_coord, skill_name_string }
@@ -182,9 +179,14 @@ struct cmd_menu {
   int result;
 };
 
-static uint8_t sub_1FB7(uint16_t arg0, uint16_t arg1, uint16_t arg2)
+static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, uint16_t arg2)
 {
-  printf("%s: unimplemented\n", __func__);
+  struct player_rec *player /* var_1A */ = &g_game_state.players[player_idx];
+  struct item_rec *item = &player->items[item_slot];
+
+  const char *item_name = get_item_name(item->item_id);
+
+  printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot, item_name);
   return 0;
 }
 
@@ -311,7 +313,7 @@ static void draw_inventory_row(uint16_t row_number, uint16_t item_index, void *u
 {
   char buf[46];
   struct player_rec *player = ud;
-  uint16_t item_id = table_CDC0[item_index];
+  uint16_t item_id = item_entry_table[item_index];
   bool is_equipped = is_item_equipped(player, item_id);
   char marker = is_equipped ? '*': ' ';
 
@@ -338,10 +340,10 @@ static uint16_t draw_inventory_list(struct player_rec *player_ptr, uint16_t *scr
   // Handle inventory?
 
   // ?
-  for (int i = 0; i < player_ptr->unknown_52; i++) {
-    table_CDC0[i] = i;
+  for (int i = 0; i < player_ptr->inventory_count; i++) {
+    item_entry_table[i] = i;
   }
-  *max_count = player_ptr->unknown_52;
+  *max_count = player_ptr->inventory_count;
 
   /*
       if (*scroll_offset == *max_count && *max_count > 0)
@@ -356,7 +358,7 @@ static uint16_t draw_inventory_list(struct player_rec *player_ptr, uint16_t *scr
 static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, void *ud)
 {
   char buf[42];
-  uint16_t skill_index = table_CDC0[item_index];
+  uint16_t skill_index = item_entry_table[item_index];
   struct player_rec *player = ud;
 
   const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x126;
@@ -369,7 +371,7 @@ static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, void
 static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, void *ud)
 {
   char buf[42];
-  uint16_t skill_index = table_CDC0[item_index];
+  uint16_t skill_index = item_entry_table[item_index];
   struct player_rec *player = ud;
 
   const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x286;
@@ -394,7 +396,7 @@ static int draw_active_skills(int player_num, uint16_t *counter, bool handle_inp
   // to 16 skills.
   for (uint16_t i = 0; i < hds_res->bytes[2]; i++) {
     if (player->active_skills[i] != 0) {
-      table_CDC0[var_2++] = i;
+      item_entry_table[var_2++] = i;
     }
   }
 
@@ -431,7 +433,7 @@ static int draw_passive_skills(int player_num, uint16_t *counter, bool handle_in
   // to 16 skills.
   for (uint16_t i = 0; i < hds_res->bytes[4]; i++) {
     if (player->passive_skills[i] != 0) {
-      table_CDC0[var_2++] = i;
+      item_entry_table[var_2++] = i;
     }
   }
 
@@ -643,7 +645,7 @@ static void stats_pick_entry(struct cmd_menu *m, int8_t key)
   int16_t n = key & 0x0F;
   if (n <= 0 || n > m->page_count) return;
 
-  int16_t entry = (int16_t)skill_cmd_tbl[m->scroll + n - 1];
+  int16_t entry = (int16_t)item_entry_table[m->scroll + n - 1];
   m->player->cmd_arg = (uint8_t)entry;
 
   if (bool_DAE6) { menu_return(m, m->player_idx); return; }
@@ -720,7 +722,7 @@ static void panel_active(struct cmd_menu *m)
     return;
   }
 
-  p->cmd_arg = (uint8_t)skill_cmd_tbl[sel];
+  p->cmd_arg = (uint8_t)item_entry_table[sel];
 
   if (p->cmd_arg == 0 || p->cmd_arg == 0x0B || p->cmd_arg == 4) {
     if (bool_DAE6) return;
