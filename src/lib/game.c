@@ -212,7 +212,7 @@ static void read_player_rec(struct player_rec *player)
   player->cmd_type = read_uint8();
   player->cmd_arg = read_uint8();
   player->unknown_146 = read_uint8();
-  player->unknown_147 = read_uint8();
+  player->selected_item = read_uint8();
   player->unknown_148 = read_uint32();
 }
 
@@ -419,136 +419,136 @@ void set_current_player_name(int player_idx)
   // XXX:Should this function also return this for callers?
 };
 
-// This comes from "globals", 0x2A bytes in, Each item string can be 24 bytes
-static const char *item_names[] = {
-    "Null Item",
-    "Dollars",
-    ".22 Handgun",
-    ".45 Colt Pistol",
-    "9mm Browning Pistol",
-    "Ochoa's Rifle",
-    "Elephant Gun",
-    "Shotgun",
-    "Uzi",
-    "Clown MegaUzi",
-    "Clown Mega Uzi",
-    "AK-47 Assault Rifle",
-    ".22 Clip",
-    ".38 Clip",
-    ".45 Clip (7)",
-    ".45 Clip (30)",
-    ".50 Clip",
-    "5.56mm Clip (20)",
-    "5.56mm Clip (30)",
-    "7.62mm Clip (5)",
-    "7.62mm Clip (18)",
-    "7.62mm Clip (30)",
-    "9mm Clip (13)",
-    "9mm Clip (30)",
-    "9mm Clip (40)",
-    "Shotgun Shells",
-    "Grenade",
-    "Plastic Explosives",
-    "TNT",
-    "Gas Balloons",
-    "Flamethrower",
-    "Napalm Cannister",
-    "Machete",
-    "Meat Cleaver",
-    "Carving Knife",
-    "Cane Knife",
-    "Scalpel",
-    "Pool Cue",
-    "Garcia Sunday Vest",
-    "Shagreen Vest",
-    "Shagreen suit",
-    "Leather Vest",
-    "Leather Suit",
-    "Flak Vest",
-    "Flak Suit",
-    "Rad Suit",
-    "Obeah Necklace",
-    "Kevlar Vest",
-    "Kevlar Suit",
-    "Leather Cap",
-    "Riot Helmet",
-    "Kevlar Derby",
-    "Flo's Chapeau",
-    "Strongbox Key",
-    "Jewelry",
-    "Canteen",
-    "Canteen, Sea Water",
-    "Empty Canteen",
-    "Vial of Sea Water",
-    "Empty Vial",
-    "DeSoto Rum",
-    "DeSoto's XXX Finest",
-    "Chateau Pierrot",
-    "Empty Bottle",
-    "Bottle of Sea Water",
-    "Broken Bottle",
-    "Brewhoe Nostrum",
-    "Voodoo Tonic",
-    "Voodoo Elixir",
-    "Voodoo Cologne",
-    "Guard's Journal",
-    "Imelda's Letters",
-    "Mario's Diary",
-    "DeSoto Vault Key",
-    "Clown Master Key",
-    "Red Key",
-    "Black Key",
-    "Garcia's Key",
-    "Van Gogh painting",
-    "Pollack painting",
-    "Ojnab painting",
-    "Velvet Elvis",
-    "Bust of Beethoven",
-    "Mutant Badge",
-    "Clown Make up",
-    "Silverware",
-    "Spark Plug",
-    "Bandage",
-    "50' Rope",
-    ".38 Police Special",
-    "Remington 700 Rifle",
-    "M16A1 Assault Rifle",
-    "MAC10",
-    "Shovel",
-    "Mechanic Toolkit",
-    "Electronics Tools",
-    "Obeah Talisman",
-    "DeSoto Amulet",
-    "Miami PD Badge",
-    "Vial, Healing Water",
-    "Vial, Sea Water",
-    "Vial, alcohol",
-    "Canteen, Heal Water",
-    "Canteen, alcohol",
-    "Bottle, Heal Water",
-    "Bottle of alcohol",
-    "Bottle, blue tap",
-    "Bottle, green tap",
-    "Bottle, violet tap",
-    "Canteen, blue tap",
-    "Canteen, green tap",
-    "Canteen, violet tap",
-    "Vial, blue tap",
-    "Vial, green tap",
-    "Vial, violet tap",
-    "Imelda's brooch",
-    "Personal Radio",
-    "Rubber Boots",
+static const struct item_def item_defs[] = {
+    { "Null Item", 0x20, 0x00, 0x00, 0x00 },
+    { "Dollars", 0xC0, 0x00, 0x00, 0x00 },
+    { ".22 Handgun", 0xC1, 0x00, 0x00, 0x00 },
+    { ".45 Colt Pistol", 0xC1, 0x01, 0x00, 0x00 },
+    { "9mm Browning Pistol", 0xC1, 0x02, 0x00, 0x00 },
+    { "Ochoa's Rifle", 0xC1, 0x03, 0x00, 0x00 },
+    { "Elephant Gun", 0xC1, 0x04, 0x00, 0x00 },
+    { "Shotgun", 0xC1, 0x05, 0x00, 0x00 },
+    { "Uzi", 0xC1, 0x06, 0x00, 0x00 },
+    { "Clown MegaUzi", 0xC1, 0x07, 0x00, 0x00 },
+    { "Clown Mega Uzi", 0xC1, 0x08, 0x00, 0x00 },
+    { "AK-47 Assault Rifle", 0xC1, 0x09, 0x00, 0x00 },
+    { ".22 Clip", 0xC0, 0x00, 0x00, 0x00 },
+    { ".38 Clip", 0xC0, 0x00, 0x00, 0x00 },
+    { ".45 Clip (7)", 0xC0, 0x00, 0x00, 0x00 },
+    { ".45 Clip (30)", 0xC0, 0x00, 0x00, 0x00 },
+    { ".50 Clip", 0xC0, 0x00, 0x00, 0x00 },
+    { "5.56mm Clip (20)", 0xC0, 0x00, 0x00, 0x00 },
+    { "5.56mm Clip (30)", 0xC0, 0x00, 0x00, 0x00 },
+    { "7.62mm Clip (5)", 0xC0, 0x00, 0x00, 0x00 },
+    { "7.62mm Clip (18)", 0xC0, 0x00, 0x00, 0x00 },
+    { "7.62mm Clip (30)", 0xC0, 0x00, 0x00, 0x00 },
+    { "9mm Clip (13)", 0xC0, 0x00, 0x00, 0x00 },
+    { "9mm Clip (30)", 0xC0, 0x00, 0x00, 0x00 },
+    { "9mm Clip (40)", 0xC0, 0x00, 0x00, 0x00 },
+    { "Shotgun Shells", 0xC0, 0x00, 0x00, 0x00 },
+    { "Grenade", 0xC1, 0x0A, 0x00, 0x00 },
+    { "Plastic Explosives", 0xC1, 0x0B, 0x00, 0x00 },
+    { "TNT", 0xC1, 0x0C, 0x00, 0x00 },
+    { "Gas Balloons", 0xC0, 0x00, 0x23, 0x07 },
+    { "Flamethrower", 0xC1, 0x0D, 0x00, 0x00 },
+    { "Napalm Cannister", 0xC0, 0x00, 0x00, 0x00 },
+    { "Machete", 0xC1, 0x0E, 0x00, 0x00 },
+    { "Meat Cleaver", 0xC1, 0x0F, 0x00, 0x00 },
+    { "Carving Knife", 0xC1, 0x10, 0x00, 0x00 },
+    { "Cane Knife", 0xC1, 0x11, 0x00, 0x00 },
+    { "Scalpel", 0xC1, 0x12, 0x00, 0x00 },
+    { "Pool Cue", 0xC1, 0x13, 0x00, 0x00 },
+    { "Garcia Sunday Vest", 0xC6, 0x02, 0x00, 0x00 },
+    { "Shagreen Vest", 0xC6, 0x02, 0x00, 0x00 },
+    { "Shagreen suit", 0xC2, 0x03, 0x00, 0x00 },
+    { "Leather Vest", 0xC6, 0x01, 0x00, 0x00 },
+    { "Leather Suit", 0xC2, 0x02, 0x00, 0x00 },
+    { "Flak Vest", 0xC6, 0x03, 0x00, 0x00 },
+    { "Flak Suit", 0xC2, 0x04, 0x00, 0x00 },
+    { "Rad Suit", 0xC2, 0x05, 0x00, 0x00 },
+    { "Obeah Necklace", 0xCA, 0x01, 0x00, 0x00 },
+    { "Kevlar Vest", 0xC6, 0x04, 0x00, 0x00 },
+    { "Kevlar Suit", 0xC2, 0x05, 0x00, 0x00 },
+    { "Leather Cap", 0xCA, 0x01, 0x00, 0x00 },
+    { "Riot Helmet", 0xCA, 0x02, 0x00, 0x00 },
+    { "Kevlar Derby", 0xCA, 0x02, 0x00, 0x00 },
+    { "Flo's Chapeau", 0xCA, 0x03, 0x00, 0x00 },
+    { "Strongbox Key", 0xC0, 0x00, 0x23, 0x07 },
+    { "Jewelry", 0xC0, 0x00, 0x14, 0x07 },
+    { "Canteen", 0xC0, 0x00, 0x00, 0x00 },
+    { "Canteen, Sea Water", 0xC0, 0x00, 0x00, 0x00 },
+    { "Empty Canteen", 0xC0, 0x00, 0x00, 0x00 },
+    { "Vial of Sea Water", 0xC0, 0x00, 0x00, 0x00 },
+    { "Empty Vial", 0xC0, 0x00, 0x00, 0x00 },
+    { "DeSoto Rum", 0xC4, 0x00, 0x00, 0x00 },
+    { "DeSoto's XXX Finest", 0xC4, 0x00, 0x00, 0x00 },
+    { "Chateau Pierrot", 0xC4, 0x00, 0x00, 0x00 },
+    { "Empty Bottle", 0xC0, 0x00, 0x00, 0x00 },
+    { "Bottle of Sea Water", 0xC0, 0x00, 0x00, 0x00 },
+    { "Broken Bottle", 0xC0, 0x00, 0x00, 0x00 },
+    { "Brewhoe Nostrum", 0xC0, 0x00, 0x0A, 0x00 },
+    { "Voodoo Tonic", 0xC0, 0x00, 0x05, 0x00 },
+    { "Voodoo Elixir", 0xC0, 0x00, 0x05, 0x00 },
+    { "Voodoo Cologne", 0xC0, 0x00, 0x00, 0x00 },
+    { "Guard's Journal", 0xC0, 0x00, 0x23, 0x07 },
+    { "Imelda's Letters", 0xC0, 0x00, 0x00, 0x00 },
+    { "Mario's Diary", 0xC0, 0x00, 0x19, 0x07 },
+    { "DeSoto Vault Key", 0xC0, 0x00, 0x23, 0x07 },
+    { "Clown Master Key", 0xC0, 0x00, 0x2D, 0x07 },
+    { "Red Key", 0xC0, 0x00, 0x2D, 0x07 },
+    { "Black Key", 0xC0, 0x00, 0x2D, 0x07 },
+    { "Garcia's Key", 0xC0, 0x00, 0x32, 0x07 },
+    { "Van Gogh painting", 0xC0, 0x00, 0x23, 0x07 },
+    { "Pollack painting", 0xC0, 0x00, 0x23, 0x07 },
+    { "Ojnab painting", 0xC0, 0x00, 0x23, 0x07 },
+    { "Velvet Elvis", 0xC0, 0x00, 0x55, 0x07 },
+    { "Bust of Beethoven", 0xC0, 0x00, 0x00, 0x00 },
+    { "Mutant Badge", 0xDC, 0x00, 0x00, 0x03 },
+    { "Clown Make up", 0xC0, 0x00, 0x4B, 0x07 },
+    { "Silverware", 0xC0, 0x00, 0x00, 0x00 },
+    { "Spark Plug", 0xC0, 0x00, 0x00, 0x00 },
+    { "Bandage", 0xC0, 0x00, 0x00, 0x00 },
+    { "50' Rope", 0xC0, 0x00, 0x00, 0x00 },
+    { ".38 Police Special", 0xC1, 0x14, 0x00, 0x00 },
+    { "Remington 700 Rifle", 0xC1, 0x15, 0x00, 0x00 },
+    { "M16A1 Assault Rifle", 0xC1, 0x16, 0x00, 0x00 },
+    { "MAC10", 0xC1, 0x17, 0x00, 0x00 },
+    { "Shovel", 0xC0, 0x00, 0x00, 0x00 },
+    { "Mechanic Toolkit", 0xC0, 0x00, 0x00, 0x00 },
+    { "Electronics Tools", 0xC0, 0x00, 0x00, 0x00 },
+    { "Obeah Talisman", 0xDC, 0x00, 0x00, 0x01 },
+    { "DeSoto Amulet", 0xDC, 0x00, 0x00, 0x00 },
+    { "Miami PD Badge", 0xDC, 0x00, 0x00, 0x02 },
+    { "Vial, Healing Water", 0xC8, 0x00, 0x00, 0x00 },
+    { "Vial, Sea Water", 0xC0, 0x00, 0x00, 0x00 },
+    { "Vial, alcohol", 0xC0, 0x00, 0x00, 0x00 },
+    { "Canteen, Heal Water", 0xC8, 0x00, 0x00, 0x00 },
+    { "Canteen, alcohol", 0xC0, 0x00, 0x00, 0x00 },
+    { "Bottle, Heal Water", 0xC8, 0x00, 0x00, 0x00 },
+    { "Bottle of alcohol", 0xC0, 0x00, 0x00, 0x00 },
+    { "Bottle, blue tap", 0xC0, 0x00, 0x00, 0x00 },
+    { "Bottle, green tap", 0xC0, 0x00, 0x00, 0x00 },
+    { "Bottle, violet tap", 0xC8, 0x00, 0x00, 0x00 },
+    { "Canteen, blue tap", 0xC0, 0x00, 0x00, 0x00 },
+    { "Canteen, green tap", 0xC0, 0x00, 0x00, 0x00 },
+    { "Canteen, violet tap", 0xC8, 0x00, 0x00, 0x00 },
+    { "Vial, blue tap", 0xC0, 0x00, 0x00, 0x00 },
+    { "Vial, green tap", 0xC0, 0x00, 0x00, 0x00 },
+    { "Vial, violet tap", 0xC8, 0x00, 0x00, 0x00 },
+    { "Imelda's brooch", 0xC0, 0x00, 0x23, 0x07 },
+    { "Personal Radio", 0xC0, 0x00, 0x23, 0x07 },
+    { "Rubber Boots", 0xC0, 0x00, 0x23, 0x07 },
 };
-const size_t item_names_count = sizeof(item_names) / sizeof(item_names[0]);
 
-const char *get_item_name(int item_id)
+const size_t item_defs_count = sizeof(item_defs) / sizeof(item_defs[0]);
+
+const struct item_def *get_item_def(int item_id)
 {
-  if (item_id > item_names_count) {
-    return item_names[0];
+  if (item_id > item_defs_count) {
+    return &item_defs[0];
   }
 
-  return item_names[item_id];
+  return &item_defs[item_id];
 }
 
 /* KEH: (seg000:7D9B) -- calculate armor class */
@@ -659,4 +659,22 @@ uint16_t sub_7D9B(struct player_rec *player)
   }
 
   return sum;
+}
+
+// KEH: seg000:6F6B
+// Can this player act even though they are unconcious. Acts based on Will Power (WP)
+//
+// Will Power is defined as mental toughness. WP is the ability to exert mind
+// over matter, even to the point of remaining able to fight after you have
+// been rendered unconscious.
+bool player_has_willpower(const struct player_rec *player)
+{
+  int hp = player->condition;
+  uint8_t will_power = player->attributes[3];
+
+  if (will_power > 15) {
+    hp += will_power - 15;
+  }
+
+  return hp > 0;
 }

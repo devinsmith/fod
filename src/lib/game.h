@@ -104,7 +104,7 @@ struct player_rec {
   uint8_t cmd_type;        // 0x144
   uint8_t cmd_arg;         // 0x145
   uint8_t unknown_146;     // 0x146
-  uint8_t unknown_147;     // 0x147
+  uint8_t selected_item;   // 0x147
 
   // Contains segment:offset of level map cell
   uint32_t unknown_148;    // 0x148-0x14B
@@ -162,6 +162,15 @@ struct game_state {
   uint8_t unknown_flags_table[255];
 };
 
+// Item definition: 24 bytes, table from globals + 0x2A
+struct item_def {
+  char name[20];         // NUL-terminated
+  uint8_t flags;         // 0x14
+  uint8_t weapon_type;   // 0x15
+  uint8_t unk_16;        // 0x16
+  uint8_t unk_17;        // 0x17
+};
+
 extern struct game_state g_game_state;
 extern const char *current_player_name;
 extern int current_direction;
@@ -172,6 +181,7 @@ extern uint16_t g_cached_id[];
 bool load_game_state();
 bool save_game_state();
 
+bool player_has_willpower(const struct player_rec *p);
 bool is_near_player(int radius, int xpos, int ypos);
 uint16_t player_armor_class(const struct player_rec *p);
 int get_player_condition_status(struct player_rec *player);
@@ -181,7 +191,7 @@ void set_direction(int direction);
 void print_incapacitated(int player_num, uint16_t arg2);
 uint16_t sub_7D9B(struct player_rec *player);
 
-const char *get_item_name(int item_id);
+const struct item_def *get_item_def(int item_id);
 
 void party_remove_member(int member);
 

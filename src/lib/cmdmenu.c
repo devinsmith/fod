@@ -179,14 +179,30 @@ struct cmd_menu {
   int result;
 };
 
-static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, uint16_t arg2)
+static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, bool in_combat)
 {
+  char buffer[64];
+
   struct player_rec *player /* var_1A */ = &g_game_state.players[player_idx];
   struct item_rec *item = &player->items[item_slot];
 
-  const char *item_name = get_item_name(item->item_id);
+  const struct item_def *item_def = get_item_def(item->item_id);
 
-  printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot, item_name);
+  bool can_take_action = in_combat ? player_has_willpower(player) : (player->condition > 0);
+
+  // XXX:LOOP
+  printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot, item_def->name);
+
+  player->selected_item = item->item_id;
+
+  ui_region_set_active(&popup_region, true);
+  snprintf(buffer, sizeof(buffer), "Do what with your\r%s:\r\r", item_def->name);
+  ui_region_print_str(buffer, 0, 0);
+
+  if (can_take_action) {
+
+  }
+
   return 0;
 }
 
@@ -274,7 +290,7 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
   } else {
     // TODO: Figure out equipped item name (Weapon).
     printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->weapon_idx);
-    snprintf(buffer, sizeof(buffer), "Weap: %s", get_item_name(player_ptr->weapon_idx));
+    snprintf(buffer, sizeof(buffer), "Weap: %s", get_item_def(player_ptr->weapon_idx)->name);
   }
   ui_region_print_str(buffer, 0, 5);
 
@@ -327,7 +343,7 @@ static void draw_inventory_row(uint16_t row_number, uint16_t item_index, void *u
     ui_set_inverse(true);
   }
 
-  ui_region_print_str(get_item_name(item->item_id), -1, -1);
+  ui_region_print_str(get_item_def(item->item_id)->name, -1, -1);
 
   ui_set_inverse(false);
 }
