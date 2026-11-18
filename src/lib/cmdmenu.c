@@ -22,6 +22,7 @@
 
 #include "cmdmenu.h"
 #include "game.h"
+#include "item.h"
 #include "level.h"
 #include "platform.h"
 #include "resource.h"
@@ -182,25 +183,53 @@ struct cmd_menu {
 static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, bool in_combat)
 {
   char buffer[64];
+  int ingest = 0;
 
   struct player_rec *player /* var_1A */ = &g_game_state.players[player_idx];
   struct item_rec *item = &player->items[item_slot];
 
   const struct item_def *item_def = get_item_def(item->item_id);
 
-  bool can_take_action = in_combat ? player_has_willpower(player) : (player->condition > 0);
+  bool can_take_action = in_combat ? player_has_willpower(player)
+    : (player->condition > 0);
 
   // XXX:LOOP
-  printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot, item_def->name);
+  printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot,
+      item_def->name);
 
+  // Build the menu
   player->selected_item = item->item_id;
 
+  int n_targets = 0;
+  int target_list[6];
+
   ui_region_set_active(&popup_region, true);
-  snprintf(buffer, sizeof(buffer), "Do what with your\r%s:\r\r", item_def->name);
+  snprintf(buffer, sizeof(buffer), "Do what with your\r%s:\r\r",
+      item_def->name);
   ui_region_print_str(buffer, 0, 0);
 
   if (can_take_action) {
+    if (!in_combat || !(item_def->flags & ITEM_WEAPON) || player->weapon_idx == item_slot) {
+      ui_region_print_str("U)se\r", 0, -1);
+    }
+    if (!in_combat) {
+      if (!(item_def->flags & (ITEM_WEAPON | ITEM_ARMOR))) {
+        ingest = (item_def->flags & 0x0C) >> 2;
+      }
+      if (ingest > 0) {
+        ui_region_print_str("I)ngest\r", 0, -1);
+      }
+    }
+    ui_region_print_str("D)rop\r", 0, -1);
+  }
 
+  for (uint16_t i = 0; i < g_game_state.party_size; i++) {
+    if (i != player_idx && g_game_state.players[i].condition > 0) {
+      target_list[n_targets++] = i;
+    }
+  }
+  if (n_targets > 0) {
+    ui_region_print_str("T)rade\r", 0, -1);
   }
 
   return 0;

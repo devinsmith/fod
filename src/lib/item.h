@@ -1,0 +1,46 @@
+/*
+ * Fountain of Dreams - Reverse Engineering Project
+ *
+ * Copyright (c) 2026 Devin Smith <devin@devinsmith.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#ifndef ITEM_H
+#define ITEM_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define ITEM_WEAPON 0x01
+#define ITEM_ARMOR  0x02
+
+// Item definition: 24 bytes, table from globals + 0x2A
+struct item_def {
+  char name[20];         // NUL-terminated
+  uint8_t flags;         // 0x14
+  uint8_t weapon_type;   // 0x15
+  uint8_t unk_16;        // 0x16
+  uint8_t unk_17;        // 0x17
+};
+
+const struct item_def *get_item_def(int item_id);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ITEM_H */

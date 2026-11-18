@@ -162,15 +162,6 @@ struct game_state {
   uint8_t unknown_flags_table[255];
 };
 
-// Item definition: 24 bytes, table from globals + 0x2A
-struct item_def {
-  char name[20];         // NUL-terminated
-  uint8_t flags;         // 0x14
-  uint8_t weapon_type;   // 0x15
-  uint8_t unk_16;        // 0x16
-  uint8_t unk_17;        // 0x17
-};
-
 extern struct game_state g_game_state;
 extern const char *current_player_name;
 extern int current_direction;
@@ -190,8 +181,6 @@ void set_current_player_name(int player_idx);
 void set_direction(int direction);
 void print_incapacitated(int player_num, uint16_t arg2);
 uint16_t sub_7D9B(struct player_rec *player);
-
-const struct item_def *get_item_def(int item_id);
 
 void party_remove_member(int member);
 
