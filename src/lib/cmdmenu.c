@@ -184,6 +184,7 @@ static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, bool in_combat)
 {
   char buffer[64];
   int ingest = 0;
+  int slot_idx;
 
   struct player_rec *player /* var_1A */ = &g_game_state.players[player_idx];
   struct item_rec *item = &player->items[item_slot];
@@ -197,39 +198,66 @@ static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, bool in_combat)
   printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot,
       item_def->name);
 
-  // Build the menu
-  player->selected_item = item->item_id;
+  for (;;) {
+    // Build the menu
+    player->selected_item = item->item_id;
 
-  int n_targets = 0;
-  int target_list[6];
+    int n_targets = 0;
+    bool is_equipped = false, can_equip = false, is_ranged = false;
+    int target_list[6];
 
-  ui_region_set_active(&popup_region, true);
-  snprintf(buffer, sizeof(buffer), "Do what with your\r%s:\r\r",
-      item_def->name);
-  ui_region_print_str(buffer, 0, 0);
+    ui_region_set_active(&popup_region, true);
+    snprintf(buffer, sizeof(buffer), "Do what with your\r%s:\r\r",
+        item_def->name);
+    ui_region_print_str(buffer, 0, 0);
 
-  if (can_take_action) {
-    if (!in_combat || !(item_def->flags & ITEM_WEAPON) || player->weapon_idx == item_slot) {
-      ui_region_print_str("U)se\r", 0, -1);
-    }
-    if (!in_combat) {
-      if (!(item_def->flags & (ITEM_WEAPON | ITEM_ARMOR))) {
-        ingest = (item_def->flags & 0x0C) >> 2;
+    if (can_take_action) {
+      if (!in_combat || !(item_def->flags & ITEM_WEAPON) || player->weapon_idx == item_slot) {
+        ui_region_print_str("U)se\r", 0, -1);
       }
-      if (ingest > 0) {
-        ui_region_print_str("I)ngest\r", 0, -1);
+      if (!in_combat) {
+        if (!(item_def->flags & (ITEM_WEAPON | ITEM_ARMOR))) {
+          ingest = (item_def->flags & 0x0C) >> 2;
+        }
+        if (ingest > 0) {
+          ui_region_print_str("I)ngest\r", 0, -1);
+        }
+      }
+      ui_region_print_str("D)rop\r", 0, -1);
+    }
+
+    for (uint16_t i = 0; i < g_game_state.party_size; i++) {
+      if (i != player_idx && g_game_state.players[i].condition > 0) {
+        target_list[n_targets++] = i;
       }
     }
-    ui_region_print_str("D)rop\r", 0, -1);
-  }
-
-  for (uint16_t i = 0; i < g_game_state.party_size; i++) {
-    if (i != player_idx && g_game_state.players[i].condition > 0) {
-      target_list[n_targets++] = i;
+    if (n_targets > 0) {
+      ui_region_print_str("T)rade\r", 0, -1);
     }
-  }
-  if (n_targets > 0) {
-    ui_region_print_str("T)rade\r", 0, -1);
+
+    if (can_take_action) {
+      if (item_def->flags & ITEM_WEAPON) {
+        if (!in_combat) {
+          ui_region_print_str("E)quip-unequip weapon\r", 0, -1);
+          if (player->weapon_idx == item_slot) is_equipped = true;
+          else                                 can_equip = true;
+        }
+        const struct weapon_type *wt = get_weapon_type(item_def->weapon_type);
+        is_ranged = wt->flags & 1;
+      } else if (!in_combat && (item_def->flags & ITEM_ARMOR)) {
+        ui_region_print_str("E)quip-unequip armor\r", 0, -1);
+        for (int j = 0; j < 3; j++) {
+          if (player->armor_idx[j] == item_slot) { slot_idx = j; is_equipped = true; break; }
+        }
+        can_equip = !is_equipped;
+        if (can_equip) slot_idx = (item_def->flags & 0x0C) >> 2;
+      }
+      if (!in_combat && is_ranged) ui_region_print_str("L)oad/unjam", 0, -1);
+    }
+
+    ui_region_refresh_active();
+    int key = (int8_t)sys_readkey();
+    if ((uint8_t)key == KEY_ESC) return 0;
   }
 
   return 0;

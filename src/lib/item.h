@@ -37,7 +37,15 @@ struct item_def {
   uint8_t unk_17;        // 0x17
 };
 
+// Weapon type is 60 bytes, but mostly unknown.
+struct weapon_type {
+  unsigned char unknown_00[0x1A];
+  uint8_t flags;      // 0x1A, bit 0 = ranged / takes ammo
+  unsigned char unknown_1B[0x3C-0x1B];
+};
+
 const struct item_def *get_item_def(int item_id);
+const struct weapon_type *get_weapon_type(int item_id);
 
 #ifdef __cplusplus
 }
