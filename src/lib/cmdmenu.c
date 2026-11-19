@@ -180,7 +180,9 @@ struct cmd_menu {
   int result;
 };
 
-static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, bool in_combat)
+// KEH: seg000:0x1FB7
+static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
+    bool in_combat)
 {
   char buffer[64];
   int ingest = 0;
@@ -255,6 +257,7 @@ static uint8_t sub_1FB7(uint16_t player_idx, uint16_t item_slot, bool in_combat)
       if (!in_combat && is_ranged) ui_region_print_str("L)oad/unjam", 0, -1);
     }
 
+    // 0x222C
     ui_region_refresh_active();
     int key = (int8_t)sys_readkey();
     if ((uint8_t)key == KEY_ESC) return 0;
@@ -722,13 +725,14 @@ static void stats_pick_entry(struct cmd_menu *m, int8_t key)
   m->player->cmd_arg = (uint8_t)entry;
 
   if (bool_DAE6) { menu_return(m, m->player_idx); return; }
-  if (!sub_1FB7(m->player_idx, entry, m->flag)) return;
+  if (!inventory_action_menu(m->player_idx, entry, m->flag)) return;
 
-  uint8_t t = m->player->cmd_type;     /* presumably set by sub_1FB7 */
-  if ((m->flag && (t == 0x0C || t == 0x0D)) || t == 6)
+  uint8_t t = m->player->cmd_type;     /* presumably set by inventory action */
+  if ((m->flag && (t == 0x0C || t == 0x0D)) || t == 6) {
     menu_return(m, m->player_idx);
-  else
+  } else {
     menu_return(m, sub_CBDF(m->player_idx));
+  }
 }
 
 static void panel_stats(struct cmd_menu *m)
