@@ -389,7 +389,7 @@ void game_mem_alloc()
   // Fountain of Dreams does most of its work within this scratch
   // buffer. I'm not sure if it really needs to be this big, but that's how much
   // is allocated in the disassembly.
-  scratch = malloc(286544); // 286,544 bytes.
+  scratch = (unsigned char *)malloc(286544); // 286,544 bytes.
   if (scratch == NULL) {
     fprintf(stderr, "You do not have enough memory to run Fountain of Dreams.\n");
     exit(0);
@@ -425,7 +425,7 @@ static void sub_02E5(bool saved_game)
   long arch_size = file_size(fp);
   printf("archtype %ld bytes\n", arch_size);
 
-  arch_bytes = malloc(arch_size);
+  arch_bytes = (unsigned char *)malloc(arch_size);
   fread(arch_bytes, 1, arch_size, fp);
 
   fclose(fp);
@@ -1752,7 +1752,7 @@ static void sub_22(int arg)
   g_cached_id[2] = 0xFFFF;
 
   // We know indexed_record_rw can only read a max of 64k.
-  unsigned char *scr_data = malloc(1 << 16);
+  unsigned char *scr_data = (unsigned char *)malloc(1 << 16);
 
   indexed_record_rw(level_scr_file, scr_data, arg - 1, level_scr_bytes, false);
   hexdump(scr_data, 32);
@@ -1764,7 +1764,7 @@ static void sub_22(int arg)
   if (scr_decompressed != NULL) {
     free(scr_decompressed);
   }
-  scr_decompressed = malloc(word_DBD6);
+  scr_decompressed = (unsigned char *)malloc(word_DBD6);
   decompress(scr_data + 4, scr_decompressed, word_DBD6);
   free(scr_data);
 
@@ -1784,15 +1784,16 @@ void sub_7E5B(uint16_t val1, uint16_t var2, void *ud)
 // XXX/TODO: THIS IS VERY BROKEN
 static void sub_7FA8(int x, int y)
 {
-  const char *var_12;
-  uint8_t var_E;
-  uint8_t var_4;
-  uint16_t var_A;
-  uint16_t var_8;
-  int16_t var_6;
+  uint16_t scroll_pos = 0; // var_12
+  bool done = false; // var_E;
+  bool cleared = false; // var_4
+  int16_t item_count; // var_6
+  uint16_t selected_player; // var_A
+  int16_t sel;   // var_8: menu result
+  uint16_t entry_idx; // var_8 (reused): index into loot table
   struct player_rec *player;
-  uint16_t var_14;
-  uint16_t var_16;
+  uint16_t shown_player; // var_14
+  uint16_t item_id; // var_16;
 
   // Calculate tile entry offset from level_map_large
   // offset = (y * map_width + x) * 8 + 0x414
@@ -1800,132 +1801,108 @@ static void sub_7FA8(int x, int y)
   uint16_t tile_offset = y * map_width + x;
   level_map_player_pos = &level_map->cells[tile_offset];
 
-  // Check if this tile has the interaction flag (bit 7 of byte at offset +2)
+  // Check if this tile has the loot (bit 7 of byte at offset +2)
   if ((level_map_player_pos->b2 & 0x80) == 0) {
     return;
   }
 
-  // Initialize locals
-  var_12 = NULL;
-  var_E = 0;
-  var_4 = 0;
-
   // Get encounter/entity index for this tile
-  var_A = check_party_condition(1);
-  var_14 = var_A;
+  selected_player = shown_player = check_party_condition(1);
 
   // Look up player/entity data pointer and encounter layout value
-  player = &g_game_state.players[var_A];
-  sub_E2B8(table_1ACE[var_A], 1);
+  player = &g_game_state.players[selected_player];
+  sub_E2B8(table_1ACE[selected_player], 1);
 
   // Set active region to encounter UI
   ui_region_set_active(&popup_region, true);
 
+  item_count = sub_7ED0(x, y);
+
   // Main encounter loop
-  while (1) {
-    // Check if interaction is complete
-    if (var_E != 0)
-      goto exit_loop;
+  while (item_count > 0 && !done) {
 
     // If encounter changed, re-lookup data and update animations
-    if (var_A != var_14) {
-      sub_E2B8(table_1ACE[var_14], 1);
-      sub_E2B8(table_1ACE[var_A], 1);
-      var_14 = var_A;
-      player = &g_game_state.players[var_A];
+    if (selected_player != shown_player) {
+      sub_E2B8(table_1ACE[shown_player], 1);
+      sub_E2B8(table_1ACE[selected_player], 1);
+      shown_player = selected_player;
+      player = &g_game_state.players[selected_player];
     }
 
-    // TODO:Process interaction with the entity BROKEN
-    var_8 = ui_scroll_list_menu(player, var_6, NULL, "You find these items:", sub_7E5B, false);
-
-    if ((int16_t)var_8 < 0) {
+    sel = ui_scroll_list_menu(player, item_count, &scroll_pos, "You find these items:", sub_7E5B, false);
+    if (sel < 0) {
       // Negative result: special case
-      if (var_8 == 0xFFFF) {
-        var_E = 1;
-        goto loop_continue;
+      if (sel == -1) {
+        done = true;
+      } else {
+        // Call menu/dialog handler
+        handle_fkeys(sel + 0x46, &selected_player, 1, 0, 1);
       }
-      // Call menu/dialog handler
-      handle_fkeys(var_8 + 0x46, &var_A, 1, 0, 1);
-      goto loop_continue;
-    }
+    } else {
+      bool used_up = false;
 
-    // Positive result: look up item/treasure index
-    var_8 = table_3240[var_8];
+      // Positive result: look up item/treasure index
+      entry_idx = table_3240[sel]; // XXX: check item_entry_table
 
-    // Calculate pointer to item data entry (each entry is 6 bytes)
-    unsigned char *item_data = ptr_1EC1A + ((uint32_t)var_8 * 6);
+      // Calculate pointer to item data entry (each entry is 6 bytes)
+      unsigned char *item_data = ptr_1EC1A + ((uint32_t)sel * 6);
 
-    if (item_data[4] == 1) {
-      // Money reward: add to 32-bit counter
-      {
+      if (item_data[4] == 1) {
+        // Money reward: add to 32-bit counter
         uint16_t money_add = *(uint16_t *)item_data;
         uint32_t old_val = ((uint32_t)word_1D13A << 16) | word_1D138;
         old_val += money_add;
         word_1D138 = (uint16_t)old_val;
         word_1D13A = (uint16_t)(old_val >> 16);
-      }
+        used_up = true;
+      } else {
 
-      var_6 = sub_7F34(var_8, x, y);
-      if (var_6 == 0) {
-        var_E = 1;
-      }
-      goto loop_continue;
-    }
+        // Non-money reward (item)
+        item_id = item_data[4];
 
-    // Non-money reward (item)
-    var_16 = item_data[4];
+        // Display item/graphic
+        sub_7B02(player, word_1E41A + item_id * 0x18 + 0x2A, 0);
 
-    // Display item/graphic
-    sub_7B02(player, word_1E41A + var_16 * 0x18 + 0x2A, 0);
+        // Check if item is restricted
+        if (sub_6D6B(item_id)) {
+          sub_6D96(item_id);
+        } else if (player->inventory_count < 32) {
+          // Check inventory space (counter at offset 0x52, max 0x20 items)
+          printf("%s: This code is a bit broken, needs review\n", __func__);
+          unsigned char *player_data = (unsigned char *)(intptr_t)player;
 
-    // Check if item is restricted
-    if (sub_6D6B(var_16)) {
-      sub_6D96(var_16);
-      goto loop_continue;
-    }
+          // Add item to inventory at offset 0x62 + count * 6
+          sub_D6AA(player_data + 0x62 + player_data[0x52] * 6, item_id);
+          player->inventory_count++;
 
-    // Check inventory space (counter at offset 0x52, max 0x20 items)
-    // XXX: THIS IS NOT CORRECT!!
-    {
-      printf("%s: This code is a bit broken, needs review\n", __func__);
-      unsigned char *player_data = (unsigned char *)(intptr_t)player;
-
-      if (player_data[0x52] < 0x20) {
-        // Add item to inventory at offset 0x62 + count * 6
-        sub_D6AA(player_data + 0x62 + player_data[0x52] * 6, var_16);
-        player_data[0x52]++;
-
-        // Re-load item_data and decrement available count
-        item_data = ptr_1EC1A + ((uint32_t)var_8 * 6);
-        (*(uint16_t *)item_data)--;
-
-        if (*(uint16_t *)item_data == 0) {
-          // Out of this item, process next
-          var_6 = sub_7F34(var_8, x, y);
-          if (var_6 == 0) {
-            var_E = 1;
-          }
+          // Re-load item_data and decrement available count
+          item_data = ptr_1EC1A + ((uint32_t)sel * 6);
+          (*(uint16_t *)item_data)--;
+          // XXX: Check entry count
+          used_up = true;
+        } else {
+          // Inventory full - display message with entity name
+          snprintf(str_buffer, sizeof(str_buffer), "%s\rhas too much to carry\ralready", player->name);
+          ui_display_msg(str_buffer);
         }
-        goto loop_continue;
       }
 
-      // Inventory full - display message with entity name
-      snprintf(str_buffer, sizeof(str_buffer), "%s", player->name);
-      ui_display_msg(str_buffer);
+      if (used_up) {
+        // Remove the exhausted entry; 0 means the pile is now empty
+        if (sub_7F34(entry_idx, x, y) == 0) {
+          done = true;
+        }
+      }
     }
 
-loop_continue:
-    var_6 = sub_7ED0(x, y);
-    if (var_6 <= 0)
-      break;
+    item_count = sub_7ED0(x, y);
   }
 
-exit_loop:
   // Clean up encounter display
-  sub_E2B8(table_1ACE[var_14], 1);
+  sub_E2B8(table_1ACE[shown_player], 1);
 
-  if (var_6 == 0) {
-    var_4 = 1;
+  if (item_count == 0) {
+    cleared = true;
   }
 
   // Restore message region and refresh map
@@ -1933,7 +1910,7 @@ exit_loop:
   redraw_map_view();
 
   // If encounter was completed, mark tile as cleared
-  if (var_4 != 0) {
+  if (cleared) {
     sub_1834(level_map_player_pos->script_offset, 5, 0);
   }
 }

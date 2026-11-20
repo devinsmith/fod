@@ -34,7 +34,7 @@ struct npc_entry {
 
 extern unsigned char *npc_base;
 extern unsigned char *ptr_D1DE;
-extern char *npc_names[3];
+extern const char *npc_names[3];
 
 #ifdef __cplusplus
 }

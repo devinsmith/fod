@@ -32,4 +32,4 @@ unsigned char *ptr_D1DE = NULL;
 // This is a variable that keeps track of up to 3 names of NPC
 // characters. It's usually only populated with 1 name, but in the case
 // of a battle it might have up to 3 names populated.
-char *npc_names[3];
+const char *npc_names[3];
