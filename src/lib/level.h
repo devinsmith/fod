@@ -61,7 +61,7 @@ struct level_map {
   uint16_t npc_offset;       // 0x406
   uint16_t offset_408;       // 0x408
   uint16_t offset_40A;       // 0x40A
-  uint16_t offset_40C;       // 0x40C
+  uint16_t loot_offset;      // 0x40C
   uint16_t unknown_40E[3];   // 0x40E, 0x410, 0x412: maybe more offsets
   struct map_cell cells[];   // 0x414
 };

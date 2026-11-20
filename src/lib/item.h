@@ -21,9 +21,14 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// 6 byte entry in the loot table at 0xD9DA
+struct loot_entry {
+  uint16_t count;    // +0  money amount, or number of this item remaining
+  uint8_t  unk2;     // +2
+  uint8_t  unk3;     // +3
+  uint8_t  item_id;  // +4  1 == money
+  uint8_t  unk5;     // +5
+} __attribute__((packed));
 
 #define ITEM_WEAPON 0x01
 #define ITEM_ARMOR  0x02
@@ -46,9 +51,5 @@ struct weapon_type {
 
 const struct item_def *get_item_def(int item_id);
 const struct weapon_type *get_weapon_type(int item_id);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* ITEM_H */

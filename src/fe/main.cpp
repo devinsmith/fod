@@ -27,6 +27,7 @@
 #include "fileio.h"
 #include "game.h"
 #include "hexdump.h"
+#include "item.h"
 #include "level.h"
 #include "npc.h"
 #include "platform.h"
@@ -142,7 +143,7 @@ static uint8_t byte_D1E8;
 static uint8_t byte_DBC6;
 
 // KEH: DSEG:D9DA
-static unsigned char *ptr_D9DA = NULL;
+static unsigned char *loot_data = NULL;
 
 // KEH: DSEG: 0xD9D8
 static uint16_t word_D9B8 = 0;
@@ -305,13 +306,6 @@ static uint32_t dword_1EC04 = 0;
 static uint8_t byte_1E4BE = 0;
 // KEH DSEG:0x1F01A
 static uint16_t word_1F01A = 0;
-
-// KEH DSEG:0x1D138
-static uint16_t word_1D138 = 0;
-// KEH DSEG:0x1D13A
-static uint16_t word_1D13A = 0;
-// KEH DSEG:0x1EC1A - far pointer to encounter/item data (array of 6-byte entries)
-static unsigned char *ptr_1EC1A = NULL;
 
 // KEH DSEG:0x1E41A - base offset for item table lookups
 static uint16_t word_1E41A = 0;
@@ -1451,7 +1445,7 @@ static void sub_8C(int arg0)
   word_D9B8 = *(uint16_t *)(base + 0x404);
 
   // [0x406] used by sub_D8CD: array of 0x68-byte npc entries
-  npc_base = level_map_large + *(uint16_t *)(base + 0x406);
+  npc_base = level_map_large + level_map->npc_offset;
 
   // [0x408]
   word_D9D4 = *(uint16_t *)(base + 0x408);
@@ -1460,7 +1454,7 @@ static void sub_8C(int arg0)
   ptr_D1DE = level_map_large + *(uint16_t *)(base + 0x40A);
 
   // [0x40C] encounter/item data
-  ptr_D9DA = level_map_large + *(uint16_t *)(base + 0x40C);
+  loot_data = level_map_large + level_map->loot_offset;
 
   // Compute level_map_player_pos from party position
   {
@@ -1793,6 +1787,7 @@ static void sub_7FA8(int x, int y)
   struct player_rec *player;
   uint16_t shown_player; // var_14
   uint16_t item_id; // var_16;
+  struct loot_entry *entry;
 
   // Calculate tile entry offset from level_map_large
   // offset = (y * map_width + x) * 8 + 0x414
@@ -1842,22 +1837,15 @@ static void sub_7FA8(int x, int y)
 
       // Positive result: look up item/treasure index
       entry_idx = table_3240[sel]; // XXX: check item_entry_table
+      entry = &((struct loot_entry *)loot_data)[entry_idx];
 
-      // Calculate pointer to item data entry (each entry is 6 bytes)
-      unsigned char *item_data = ptr_1EC1A + ((uint32_t)sel * 6);
-
-      if (item_data[4] == 1) {
-        // Money reward: add to 32-bit counter
-        uint16_t money_add = *(uint16_t *)item_data;
-        uint32_t old_val = ((uint32_t)word_1D13A << 16) | word_1D138;
-        old_val += money_add;
-        word_1D138 = (uint16_t)old_val;
-        word_1D13A = (uint16_t)(old_val >> 16);
+      if (entry->item_id == 1) {
+        g_game_state.money += entry->count;
         used_up = true;
       } else {
 
         // Non-money reward (item)
-        item_id = item_data[4];
+        item_id = entry->item_id;
 
         // Display item/graphic
         sub_7B02(player, word_1E41A + item_id * 0x18 + 0x2A, 0);
@@ -1867,18 +1855,15 @@ static void sub_7FA8(int x, int y)
           sub_6D96(item_id);
         } else if (player->inventory_count < 32) {
           // Check inventory space (counter at offset 0x52, max 0x20 items)
-          printf("%s: This code is a bit broken, needs review\n", __func__);
           unsigned char *player_data = (unsigned char *)(intptr_t)player;
 
           // Add item to inventory at offset 0x62 + count * 6
           sub_D6AA(player_data + 0x62 + player_data[0x52] * 6, item_id);
           player->inventory_count++;
 
-          // Re-load item_data and decrement available count
-          item_data = ptr_1EC1A + ((uint32_t)sel * 6);
-          (*(uint16_t *)item_data)--;
-          // XXX: Check entry count
-          used_up = true;
+          if (--entry->count == 0) {
+            used_up = true;
+          }
         } else {
           // Inventory full - display message with entity name
           snprintf(str_buffer, sizeof(str_buffer), "%s\rhas too much to carry\ralready", player->name);
