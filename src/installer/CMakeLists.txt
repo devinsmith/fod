@@ -12,7 +12,7 @@ if(ENABLE_SANITIZERS)
 endif()
 
 # C and C++ sources are freely mixed.
-set(SOURCES main.c)
+set(SOURCES main.cpp)
 
 add_executable(${TARGET_NAME} ${SOURCES})
 list(APPEND INC_DIRS ${SDL2_INCLUDE_DIRS})

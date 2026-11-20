@@ -355,7 +355,7 @@ static uint8_t translate_key(const SDL_Event *e)
 static uint8_t *
 get_fb_mem()
 {
-  return surface->pixels;
+  return (uint8_t *)surface->pixels;
 }
 
 static bool pollkey(unsigned int ms)

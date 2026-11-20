@@ -135,7 +135,7 @@ void level_mark_entity_cells()
 void level_map_init()
 {
   // It's unclear how large this should be.
-  level_map_large = malloc(0x10000);
+  level_map_large = (unsigned char *)malloc(0x10000);
   level_map = (struct level_map *)level_map_large;
 }
 

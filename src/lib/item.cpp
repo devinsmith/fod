@@ -145,7 +145,7 @@ const size_t item_defs_count = sizeof(item_defs) / sizeof(item_defs[0]);
 
 const struct item_def *get_item_def(int item_id)
 {
-  if (item_id > item_defs_count) {
+  if (item_id > (int)item_defs_count) {
     return &item_defs[0];
   }
 
@@ -153,7 +153,7 @@ const struct item_def *get_item_def(int item_id)
 }
 
 // KEH: DSEG 0xCFC8
-// This comes from weapons file.
+// This comes from the weapons file.
 static const struct weapon_type weapon_types[] = {
   { {0x0}, 0x0, {0x0} }
 };
@@ -162,7 +162,7 @@ const size_t weapon_types_count = sizeof(weapon_types) / sizeof(weapon_types[0])
 
 const struct weapon_type *get_weapon_type(int item_id)
 {
-  if (item_id > weapon_types_count) {
+  if (item_id > (int)weapon_types_count) {
     return &weapon_types[0];
   }
 

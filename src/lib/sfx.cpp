@@ -169,7 +169,7 @@ void play_sound(int snd_num)
     return;
   }
 
-  if (snd_num > SFX_MAX_INDEX) {
+  if (snd_num > (int)SFX_MAX_INDEX) {
     return;
   }
 

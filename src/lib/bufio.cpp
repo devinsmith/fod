@@ -23,13 +23,11 @@
 struct buf_wri *
 buf_wri_init(size_t len)
 {
-  struct buf_wri *w;
-
-  w = malloc(sizeof(struct buf_wri));
+  struct buf_wri *w = (struct buf_wri *)malloc(sizeof(struct buf_wri));
   if (w == NULL)
     return NULL;
 
-  w->base = malloc(len);
+  w->base = (unsigned char *)malloc(len);
   if (w->base == NULL) {
     free(w);
     return NULL;
@@ -60,7 +58,7 @@ struct buf_rdr *buf_rdr_init(unsigned char *data, size_t len)
 {
   struct buf_rdr *r;
 
-  r = malloc(sizeof(struct buf_rdr));
+  r = (struct buf_rdr *)malloc(sizeof(struct buf_rdr));
   if (r == NULL) return NULL;
 
   r->data = data;

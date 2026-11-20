@@ -13,26 +13,26 @@ endif()
 
 # C and C++ sources are freely mixed.
 set(SOURCES
-  anim.c anim.h
-  bufio.c bufio.h
-  compress.c compress.h
-  cmdmenu.c cmdmenu.h
-  cursor.c cursor.h
-  fileio.c fileio.h
-  game.c game.h
-  hexdump.c hexdump.h
-  item.c item.h
-  level.c level.h
-  npc.c npc.h
-  platform.c platform.h
-  random.c random.h
-  resource.c resource.h
-  script.c script.h
-  services.c services.h
-  sfx.c sfx.h
-  sha1.c sha1.h
-  tables.c tables.h
-  ui.c ui.h)
+  anim.cpp anim.h
+  bufio.cpp bufio.h
+  compress.cpp compress.h
+  cmdmenu.cpp cmdmenu.h
+  cursor.cpp cursor.h
+  fileio.cpp fileio.h
+  game.cpp game.h
+  hexdump.cpp hexdump.h
+  item.cpp item.h
+  level.cpp level.h
+  npc.cpp npc.h
+  platform.cpp platform.h
+  random.cpp random.h
+  resource.cpp resource.h
+  script.cpp script.h
+  services.cpp services.h
+  sfx.cpp sfx.h
+  sha1.cpp sha1.h
+  tables.cpp tables.h
+  ui.cpp ui.h)
 
 add_library(${TARGET_NAME} STATIC ${SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src)

@@ -292,7 +292,7 @@ void ui_load_fonts()
   printf("Total fonts in font file: %d\n", size);
   size = size << 5; // 4 * 8
 
-  font_bytes = malloc(size);
+  font_bytes = (unsigned char *)malloc(size);
   if (font_bytes == NULL) {
     fclose(fp);
     fprintf(stderr, "Couldn't read font, exiting!\n");

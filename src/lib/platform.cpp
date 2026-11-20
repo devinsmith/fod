@@ -47,7 +47,7 @@ static struct key_buffer {
 static int
 display_start(int game_width, int game_height)
 {
-  if ((framebuffer = calloc(VGA_WIDTH * VGA_HEIGHT, 1)) == NULL) {
+  if ((framebuffer = (unsigned char *)calloc(VGA_WIDTH * VGA_HEIGHT, 1)) == NULL) {
     fprintf(stderr, "Framebuffer could not be allocated.\n");
     return -1;
   }

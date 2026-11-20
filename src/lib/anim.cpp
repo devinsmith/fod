@@ -218,7 +218,7 @@ static void sub_8880(int stat)
         uint16_t high_bytes = *(uint16_t *)(read_buf+ 2);
         uint32_t uncompressed_size = (high_bytes << 16) + low_bytes;
         printf("%s: Animation uncompressed size: 0x%04X, %d bytes\n", __func__, uncompressed_size, uncompressed_size);
-        g_anim_buf[slot] = malloc(uncompressed_size);
+        g_anim_buf[slot] = (unsigned char *)malloc(uncompressed_size);
         decompress(read_buf + 4, g_anim_buf[slot], uncompressed_size);
         g_cached_id[slot] = id;
         slot_free[slot]   = 0;
@@ -235,7 +235,7 @@ static void sub_8880(int stat)
 }
 
 // KEH: seg000:0xB360
-void sub_B360(int stat, char *entry)
+void sub_B360(int stat, const char *entry)
 {
   // XXX: Rather than setting g_anim_count or g_wanted_id, why not pass
   // these to sub_8880

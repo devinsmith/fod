@@ -27,14 +27,14 @@ extern "C" {
 
 // This is 32 bytes, but we don't know the different properties.
 struct service_type {
-  char *name;     // 16 bytes
+  const char *name;     // 16 bytes
   uint32_t price;  // 0x16
   uint8_t req_kind; // 0x1A
   int req_value;  // 0x1C
 };
 
 struct npc_service {
-  char *name; // At 0x14, terminated by 0
+  const char *name; // At 0x14, terminated by 0
   uint8_t anim_id; // At 0x28
   uint16_t count; // 0x2A
   struct service_type services[7]; // Not all NPCs offer 7 services.

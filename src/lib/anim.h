@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-  /* 12-byte record at DS:BEC2 + 12*i */
+/* 12-byte record at DS:BEC2 + 12*i */
 struct anim_entry {
   struct ui_region *region;   /* +0x00: copied from word_1E74[i + bias]   */
   uint16_t pos;          /* +0x02: u16 read from anim data at offset 1        */
@@ -45,7 +45,7 @@ extern unsigned char level_ani_bytes[];
 extern struct ui_region region_1CEC;
 extern struct anim_entry g_anim_entry[];
 
-void sub_B360(int stat, char *entry);
+void sub_B360(int stat, const char *entry);
 void anim_update(bool force);
 
 #ifdef __cplusplus

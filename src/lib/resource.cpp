@@ -34,15 +34,13 @@ struct resource *hds_res;
 
 static bool check_file(const char *filename, const char *hash)
 {
-  bool is_valid = false;
   unsigned char *bytes = NULL;
-  FILE *fp;
 
-  fp = fopen(filename, "rb");
+  FILE *fp = fopen(filename, "rb");
   if (fp == NULL) {
     fprintf(stderr, "Failed to open file '%s' for reading. Can't proceed.\n",
         filename);
-    goto done;
+    return false;
   }
 
   fseek(fp, 0, SEEK_END);
@@ -50,23 +48,25 @@ static bool check_file(const char *filename, const char *hash)
   if (filesize == -1) {
     fprintf(stderr, "Failed to find file size for file %s. Can't proceed.\n",
         filename);
-    goto done;
+    fclose(fp);
+    return false;
   }
   rewind(fp);
 
   if (filesize > 0xFFFF) {
     fprintf(stderr, "File %s is likely too large (%zu bytes). Can't proceed.\n",
         filename, filesize);
-    goto done;
+    fclose(fp);
+    return false;
   }
 
   /* Skip hash check */
   if (hash == NULL) {
-    is_valid = true;
-    goto done;
+    fclose(fp);
+    return true;
   }
 
-  bytes = malloc(filesize);
+  bytes = (unsigned char *)malloc(filesize);
 
   size_t tb = 0;
   while (!feof(fp)) {
@@ -76,7 +76,9 @@ static bool check_file(const char *filename, const char *hash)
   if (tb != (size_t)filesize) {
     fprintf(stderr, "Failed to read all of file '%s'. "
         "Read %zu out of %zu bytes. Can't proceed.\n", filename, tb, filesize);
-    goto done;
+    free(bytes);
+    fclose(fp);
+    return false;
   }
 
   // Sha1
@@ -89,19 +91,18 @@ static bool check_file(const char *filename, const char *hash)
   if (strcmp(digest, hash) != 0) {
     fprintf(stderr, "File %s has hash mismatch. Expected %s, Actual %s\n",
         filename, hash, digest);
-    goto done;
-
+    free(bytes);
+    fclose(fp);
+    return false;
   }
 
-  is_valid = true;
-done:
   if (fp != NULL) {
     fclose(fp);
   }
   if (bytes != NULL) {
     free(bytes);
   }
-  return is_valid;
+  return true;
 }
 
 static bool check_files()
@@ -161,7 +162,7 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
     fseek(fp, 0, SEEK_SET);
   }
 
-  unsigned char *data = malloc(sz);
+  unsigned char *data = (unsigned char *)malloc(sz);
   if (data == NULL) {
     errx(1, "no memory");
   }
@@ -174,7 +175,7 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
 
   fclose(fp);
 
-  struct resource* res = malloc(sizeof(struct resource));
+  struct resource* res = (struct resource *)malloc(sizeof(struct resource));
 
   if (compressed) {
     uint16_t low_bytes = *(uint16_t *)data;
@@ -186,7 +187,7 @@ struct resource *resource_load(enum resource_file rfile, long offset, size_t sz)
     printf("Decompressing %s from %zu to %d bytes (%.0f%%)\n", fname, sz,
         uncompressed_size, pct_inc);
 
-    unsigned char *dest = malloc(uncompressed_size);
+    unsigned char *dest = (unsigned char *)malloc(uncompressed_size);
 
     decompress(data + 4, dest, uncompressed_size);
     free(data);

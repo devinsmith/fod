@@ -177,22 +177,22 @@ SHA1Final(uint8_t digest[SHA1_DIGEST_LENGTH], SHA1_CTX *context)
 char *
 SHA1End(SHA1_CTX *ctx, char *buf)
 {
-        int i;
-        char *p = buf;
-        unsigned char digest[20];
-        static const char hex[]="0123456789abcdef";
+  int i;
+  char *p = buf;
+  unsigned char digest[20];
+  static const char hex[]="0123456789abcdef";
 
-        /* buf may be NULL */
+  /* buf may be NULL */
 
-        if (p == NULL && (p = malloc(41)) == NULL)
-                return 0;
+  if (p == NULL && (p = (char *)malloc(41)) == NULL)
+    return 0;
 
-        SHA1Final(digest,ctx);
-        for (i = 0; i < 20; i++) {
-                p[i + i] = hex[((uint32_t)digest[i]) >> 4];
-                p[i + i + 1] = hex[digest[i] & 0x0f];
-        }
-        p[i + i] = '\0';
-        return(p);
+  SHA1Final(digest,ctx);
+  for (i = 0; i < 20; i++) {
+    p[i + i] = hex[((uint32_t)digest[i]) >> 4];
+    p[i + i + 1] = hex[digest[i] & 0x0f];
+  }
+  p[i + i] = '\0';
+  return(p);
 }
 

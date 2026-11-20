@@ -388,7 +388,7 @@ static bool is_item_equipped(struct player_rec *player, uint16_t item_id)
 static void draw_inventory_row(uint16_t row_number, uint16_t item_index, void *ud)
 {
   char buf[46];
-  struct player_rec *player = ud;
+  struct player_rec *player = static_cast<struct player_rec *>(ud);
   uint16_t item_id = item_entry_table[item_index];
   bool is_equipped = is_item_equipped(player, item_id);
   char marker = is_equipped ? '*': ' ';
@@ -435,7 +435,7 @@ static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, void
 {
   char buf[42];
   uint16_t skill_index = item_entry_table[item_index];
-  struct player_rec *player = ud;
+  struct player_rec *player = static_cast<struct player_rec *>(ud);
 
   const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x126;
 
@@ -448,7 +448,7 @@ static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, voi
 {
   char buf[42];
   uint16_t skill_index = item_entry_table[item_index];
-  struct player_rec *player = ud;
+  struct player_rec *player = static_cast<struct player_rec *>(ud);
 
   const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x286;
 
@@ -669,8 +669,8 @@ static bool sub_CB58(int player_num)
 
 // KEH: seg000:CAE6
 static bool change_panel(uint16_t key,
-    enum panel *dst, uint16_t left_val,
-    uint16_t right_val)
+    enum panel *dst, enum panel left_val,
+    enum panel right_val)
 {
   bool handled = false;
 

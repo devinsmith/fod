@@ -28,9 +28,9 @@
 
 static void extract_disk1(struct buf_rdr *rdr);
 static void do_install(void);
-static void extract_raw_file(struct buf_rdr *rdr, char *filename);
-static void extract_file(struct buf_rdr *rdr, char *filename);
-static struct buf_rdr *open_install_file(char *filename);
+static void extract_raw_file(struct buf_rdr *rdr, const char *filename);
+static void extract_file(struct buf_rdr *rdr, const char *filename);
+static struct buf_rdr *open_install_file(const char *filename);
 
 int
 main(void)
@@ -42,7 +42,7 @@ main(void)
 }
 
 static struct buf_rdr *
-open_install_file(char *filename)
+open_install_file(const char *filename)
 {
 	FILE *fp;
 	int size;
@@ -59,7 +59,7 @@ open_install_file(char *filename)
 	fseek(fp, 0, SEEK_SET);
 	printf("Opened %s %d bytes\n", filename, size);
 
-	data = malloc(size);
+	data = (unsigned char *)malloc(size);
 	if (data == NULL) {
 		errx(1, "no memory");
 	}
@@ -167,7 +167,7 @@ do_install(void)
 }
 
 static void
-extract_raw_file(struct buf_rdr *rdr, char *filename)
+extract_raw_file(struct buf_rdr *rdr, const char *filename)
 {
 	uint32_t u_bytes;
 	FILE *fp;
@@ -187,7 +187,7 @@ extract_raw_file(struct buf_rdr *rdr, char *filename)
 }
 
 static void
-extract_file(struct buf_rdr *rdr, char *filename)
+extract_file(struct buf_rdr *rdr, const char *filename)
 {
 	uint32_t c_bytes;
 	uint32_t u_bytes;
@@ -202,7 +202,7 @@ extract_file(struct buf_rdr *rdr, char *filename)
 	u_bytes = buf_get32le(rdr);
 	printf("Extracting %s (inflating %d to %d bytes)\n", filename, c_bytes, u_bytes);
 
-  unsigned char *dest = malloc(u_bytes);
+  unsigned char *dest = (unsigned char *)malloc(u_bytes);
 
 	decompress(rdr->data + rdr->offset, dest, u_bytes);
 
@@ -245,12 +245,12 @@ extract_disk1(struct buf_rdr *rdr)
 	c_bytes = buf_get32le(rdr);
 	u_bytes = buf_get32le(rdr);
 
-  unsigned char *dest = malloc(u_bytes);
+  unsigned char *dest = (unsigned char *)malloc(u_bytes);
 
   decompress(rdr->data + rdr->offset, dest, u_bytes);
 
 	/* No idea why the installer does this */
-	junk = malloc(0xec0 - (0x729 * 2));
+	junk = (unsigned char *)malloc(0xec0 - (0x729 * 2));
 	memset(junk, 0, 0xec0 - (0x729 * 2));
 	dest[6] = 3;
 

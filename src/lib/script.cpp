@@ -316,7 +316,7 @@ static void sub_B5FF(const struct player_rec *player)
 void list_cb_print_name_value(uint16_t row, uint16_t index, void *ud)
 {
   char buf[48];
-  struct npc_service *svc = ud;
+  struct npc_service *svc = static_cast<struct npc_service *>(ud);
 
   snprintf(buf, sizeof(buf), "%1d>%-16.16s %6d", row, svc->services[index].name, svc->services[index].price);
 
@@ -603,13 +603,15 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
   // 99EC
   struct data_cursor data_ptr = cursor;
   data_ptr.offset += 4;
-  int end_offset = cursor.offset + script_op_len;
+  unsigned int end_offset = cursor.offset + script_op_len;
 
 
   while (data_ptr.offset < end_offset) {
     uint16_t npc_id;
     unsigned char *npc_base;
     struct data_cursor tmp_cursor;
+    bool want_set, answer_set;
+    uint8_t val;
 
     // We don't know how big variables is.
     uint8_t variables[20];
@@ -626,7 +628,7 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
       do_expand = false;
       return true;
     }
-    uint16_t token_op   = token_buf[1]; // 0xCE
+    uint16_t token_op = token_buf[1]; // 0xCE
 
     // arg[0] = bp-0CCh
     // arg[1] = bp-0CAh
@@ -634,8 +636,6 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
 
     switch (token_op) {
     case 0x14:
-      bool want_set;
-
       // A71E
       switch (token_buf[2]) {
       case 0:
@@ -652,7 +652,7 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
         continue;
       }
 
-      bool answer_set = (variables[variable_idx] != 0); // [bp+si-132h]
+      answer_set = (variables[variable_idx] != 0); // [bp+si-132h]
       if (answer_set == want_set) {
         // A74D
         branch_token[variable_idx] = 1;
@@ -712,7 +712,7 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
         continue;
       }
 
-      uint8_t val = npc_base[0x49];
+      val = npc_base[0x49];
       if ((g_game_state.unknown_flags_table[val] & 0x02) == 0) {
         // AFB4
         if (token_op == 0x34) {
