@@ -96,6 +96,7 @@ void ui_region_print_str(const char *str, int x_pos, int y_pos);
 void ui_region_print_centered_str(const char *str, int y_pos);
 void ui_print_positioned_str(const uint8_t *str);
 void ui_display_msg(const char *msg);
+void ui_display_msg_pos(const char *msg, int x, int y);
 void sub_B2F0(const char *msg, int arg2, int y_pos);
 
 int ui_draw_scroll_list_page(void *ud,

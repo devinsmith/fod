@@ -31,9 +31,8 @@ extern "C" {
 // 6 bytes each?
 struct item_rec {
   uint8_t item_id;
-  uint8_t unknown;
-  uint8_t str_index; // Index to string
-  // usually extra properties are number of ammo for bullets, etc.
+  uint8_t ammo_type;
+  uint8_t ammo_count;
   uint8_t props[2];
   uint8_t flags; // extra flag properties.
 } __attribute__((packed));

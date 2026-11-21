@@ -1439,6 +1439,15 @@ void ui_party_refresh()
   }
 }
 
+// KEH: seg000:0x738A
+void ui_display_msg_pos(const char *msg, int x, int y)
+{
+  ui_active_region_clear();
+  ui_region_print_str(msg, x, y);
+  ui_region_refresh_active();
+  sys_readkey(); // Should this wait for a key press?
+}
+
 // KEH: seg000:0xB29B - display message
 void ui_display_msg(const char *msg)
 {

@@ -133,8 +133,8 @@ static void jump_to_offset(size_t offset)
 static void read_item_rec(struct item_rec *item)
 {
   item->item_id = read_uint8();
-  item->unknown = read_uint8();
-  item->str_index = read_uint8();
+  item->ammo_type = read_uint8();
+  item->ammo_count = read_uint8();
 
   for (int i = 0; i < 2; i++) {
     item->props[i] = read_uint8();

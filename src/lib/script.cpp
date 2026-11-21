@@ -92,17 +92,13 @@ static const uint8_t script_op_args[][6] = {
 // Given a cursor pointing at the start of a packed table of null-terminated
 // strings, skip past `index` of them and return a char* to the start of
 // string.
-char *get_nth_string(struct data_cursor *cursor, uint16_t index)
+const char *get_nth_string(const char_cursor *cursor, uint16_t index)
 {
-  char *p = (char *)cursor->base + cursor->offset;
+  const char *p = cursor->base + cursor->offset;
 
-  while (index != 0) {
+  while (index-- != 0) {
     // Find string end.
-    while (*p != '\0') {
-      p++;
-    }
-    p++;   // step past the null terminator, onto the next string
-    index--;
+    p += strlen(p) + 1;
   }
 
   return p;
@@ -115,14 +111,19 @@ static void sub_A79A(struct data_cursor *data, uint16_t index)
   ui_region_newline_or_scroll();
   active_region->data_24 = 0;
 
-  char *str = get_nth_string(data, index);
+  char_cursor c = {
+    .base = (const char *)data->base,
+    .offset = data->offset
+  };
+
+  const char *str = get_nth_string(&c, index);
 
   ui_region_print_str(str, -1, -1);
   ui_region_refresh_active();
 }
 
 // KEH: seg000:0x8F9D
-void sub_8F9D(struct data_cursor *string_table, uint16_t index)
+void sub_8F9D(struct char_cursor *string_table, uint16_t index)
 {
   ui_region_set_active(bool_DAE6 ? &region_1CD0 : &popup_region, true);
   active_region->data_24 = active_region->max_y_cursor_pos - active_region->initial_y_cursor_pos;
@@ -131,7 +132,7 @@ void sub_8F9D(struct data_cursor *string_table, uint16_t index)
   ui_region_print_str(s, 0, 0);
 }
 
-static void sub_987A(struct data_cursor *data, uint16_t index)
+static void sub_987A(struct char_cursor *data, uint16_t index)
 {
   struct ui_region *saved_region = active_region;
   sub_8F9D(data, index);
@@ -146,29 +147,30 @@ static void sub_987A(struct data_cursor *data, uint16_t index)
 }
 
 // KEH: seg000:0x8F63
-static void sub_8F63(struct data_cursor *data, uint16_t index)
+static void sub_8F63(char_cursor *data, uint16_t index)
 {
-  char *str = get_nth_string(data, index);
+  const char *str = get_nth_string(data, index);
   ui_region_set_active(active_region, true);
   ui_region_print_str(str, 0, 0);
 }
 
 // KEH: seg000:0x9780
 // Print a Y/N prompt, then block until the player presses Y or N.
-// Returns 1 for Y, 0 for N. Any other key is ignored.
-static uint8_t prompt_yes_no(int x, int y)
+// Returns true for Y, false for N. Any other key is ignored.
+static bool prompt_yes_no(int x, int y)
 {
   ui_region_print_str("Y)es  N)o", x, y);
   ui_region_refresh_active();
 
   for (;;) {
     uint8_t key = sys_readkey();
-    if (key == 'Y') return 1;
-    if (key == 'N') return 0;
+    if (key == 'Y') return true;
+    if (key == 'N') return false;
   }
 }
 
-static uint8_t sub_97D2(uint16_t index, struct data_cursor *data)
+// KEH: seg000:0x97D2
+bool str_table_prompt_yn(uint16_t index, char_cursor *data)
 {
   struct ui_region *saved_region = active_region;
 
@@ -178,7 +180,7 @@ static uint8_t sub_97D2(uint16_t index, struct data_cursor *data)
   ui_region_newline_or_scroll();
   ui_region_newline_or_scroll();
 
-  uint8_t yes = prompt_yes_no(0, -1);
+  bool yes = prompt_yes_no(0, -1);
 
   ui_region_set_active(saved_region, false);
 
@@ -609,7 +611,7 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
   while (data_ptr.offset < end_offset) {
     uint16_t npc_id;
     unsigned char *npc_base;
-    struct data_cursor tmp_cursor;
+    struct char_cursor tmp_cursor;
     bool want_set, answer_set;
     uint8_t val;
 
@@ -700,9 +702,9 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
       break;
     case 0x27:
       // AE69
-      tmp_cursor.base = cursor.base;
+      tmp_cursor.base = (const char *)cursor.base;
       tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
-      variables[variable_idx] = sub_97D2(token_buf[2], &tmp_cursor);
+      variables[variable_idx] = str_table_prompt_yn(token_buf[2], &tmp_cursor);
       break;
     case 0x34:
       // AF85
@@ -745,7 +747,7 @@ bool loc_98F4(uint16_t cell_val, int cmd_type, int party_idx, int arg4,
       break;
     case 0x39:
       // A7E6
-      tmp_cursor.base = cursor.base;
+      tmp_cursor.base = (const char *)cursor.base;
       tmp_cursor.offset = cursor.offset + *(uint16_t *)(cursor.base + cursor.offset + 2);
       sub_987A(&tmp_cursor, token_buf[2]);
       break;

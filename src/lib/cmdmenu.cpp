@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "cmdmenu.h"
+#include "cursor.h"
 #include "game.h"
 #include "item.h"
 #include "level.h"
@@ -180,6 +181,23 @@ struct cmd_menu {
   int result;
 };
 
+// KEH: seg000:0x1FA6
+static bool prompt_fix_jammed_weapon()
+{
+  char_cursor c = {
+    .base = "This weapon is jammed. \r\rDo you wish to fix it?",
+  };
+
+  return str_table_prompt_yn(0, &c);
+}
+
+// KEH: seg000:0x6DD4
+// Unjam weapon?
+static void sub_6DD4(int player_idx, int arg1)
+{
+  printf("%s: unimplemented\n", __func__);
+}
+
 // KEH: seg000:0x1FB7
 static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
     bool in_combat)
@@ -196,7 +214,6 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
   bool can_take_action = in_combat ? player_has_willpower(player)
     : (player->condition > 0);
 
-  // XXX:LOOP
   printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot,
       item_def->name);
 
@@ -261,6 +278,24 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
     ui_region_refresh_active();
     int key = (int8_t)sys_readkey();
     if ((uint8_t)key == KEY_ESC) return 0;
+
+    switch (key) {
+    case 'U':
+      if (!can_take_action) continue;
+      if (item->props[0] & 1) {
+        if (!prompt_fix_jammed_weapon()) continue;
+        if (!in_combat) { sub_6DD4(player_idx, 0); continue; }
+        player->cmd_type = 6;
+        return 1;
+      }
+      if (is_ranged && item->ammo_count == 0) {
+        ui_display_msg_pos("This weapon is empty.", 0, 1);
+        continue;
+      }
+      player->cmd_type = 0x0B;
+      return 1;
+      break;
+    }
   }
 
   return 0;

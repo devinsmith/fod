@@ -19,22 +19,21 @@
 #ifndef CURSOR_H
 #define CURSOR_H
 
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstdint>
+#include <cstddef>
 
 struct data_cursor {
-  unsigned char *base;
+  const unsigned char *base;
   unsigned int offset;
+};
+
+// Should this be called str_table ?
+struct char_cursor {
+  const char *base;
+  size_t offset = 0;
 };
 
 uint16_t cursor_read_u8(struct data_cursor *cursor);
 uint16_t cursor_read_u16(struct data_cursor *cursor);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* CURSOR_H */
