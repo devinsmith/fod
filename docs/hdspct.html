@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<html>
+  <head>
+    <title>Fountain of Dreams - HDSPCT</title>
+    <link href="style.css" type="text/css" rel="stylesheet" />
+  </head>
+  <body>
+    <h2><font color="#e00000">Fountain of Dreams - HDSPCT</font></h2>
+    <hr>
+    <span class="blue"><a name="HDSPCT">HDSPCT</a></span>
+
+    <p>The HDSPCT file seems to describe the different types of skills that are available in the game. There
+    are 32 skills, 16 active, and 16 passive (although not all of them are used). I have no idea why it's
+    called HDSPCT.</p>
+
+    <table border="1">
+    <thead>
+        <tr>
+            <th>Offset</th>
+            <th>Value</th>
+            <th>Purpose</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>0x00-0x01</td>
+            <td>0x0700</td>
+            <td>Unknown, but probably little ending 7</td>
+        </tr>
+        <tr>
+            <td>0x02-0x03</td>
+            <td>0x1000</td>
+            <td>Number of active skills (0x10 or 16 in this case)</td>
+        </tr>
+        <tr>
+            <td>0x04-0x05</td>
+            <td>0x1000</td>
+            <td>Number of passive skills (0x10 or 16 in this case)</td>
+        </tr>
+        <tr>
+            <td>0x06 - 0x125</td>
+            <td>Variable</td>
+            <td>Attribute data (Stength, IQ, Dexterity, etc.)</td>
+        </tr>
+        <tr>
+            <td>0x126-0x285</td>
+            <td>Variable</td>
+            <td>Active skill names and their properties (16 records by 22 bytes)</td>
+        </tr>
+        <tr>
+            <td>0x286-0x3E5</td>
+            <td>Variable</td>
+            <td>Passive skill names and their properties (16 records by 22 bytes)</td>
+        </tr>
+        <tr>
+            <td>0x3E6-0x49B</td>
+            <td>Variable</td>
+            <td>Condition and properties of the different conditions</td>
+        </tr>
+    </tbody>
+</table>
+
+  </body>
+</html>
+
