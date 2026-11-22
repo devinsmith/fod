@@ -32,6 +32,7 @@ set(SOURCES
   services.cpp services.h
   sfx.cpp sfx.h
   sha1.cpp sha1.h
+  skill.cpp skill.h
   tables.cpp tables.h
   ui.cpp ui.h)
 

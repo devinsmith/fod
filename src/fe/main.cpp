@@ -34,6 +34,7 @@
 #include "random.h"
 #include "resource.h"
 #include "script.h"
+#include "skill.h"
 #include "tables.h"
 #include "ui.h"
 
@@ -916,7 +917,7 @@ static void init_player(int arg1, int profession)
     g_game_state.players[arg1].skills[i] = al;
     //disk1_bytes[bx + i + 0x0124] = 0; ?
     al = prof_ptr[i+0x48];
-    g_game_state.players[arg1].skills[i + 16] = al;
+    g_game_state.players[arg1].skills[i + PASSIVE_SKILL_BASE] = al;
     //disk1_bytes[bx + i + 0x0134] = 0; ?
   }
 

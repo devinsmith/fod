@@ -29,6 +29,7 @@
 #include "random.h"
 #include "resource.h"
 #include "script.h"
+#include "skill.h"
 #include "ui.h"
 
 // Border drawing sub-routines.
@@ -508,8 +509,6 @@ static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, void
   snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->skills[skill_index], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
 }
-
-#define PASSIVE_SKILL_BASE 16
 
 // KEH: seg000:C53E
 static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, void *ud)

@@ -34,44 +34,6 @@ struct item_rec {
 
 static_assert(sizeof(struct item_rec) == 6, "item_rec must be 6 bytes");
 
-// Enumeration of all player skills (Active and passive)
-// These are offsets into the player_rec skills[] array below.
-enum player_skill {
-  // Active
-  SKILL_MEDIC             = 0x00,
-  SKILL_LOCKPICK          = 0x01,
-  SKILL_FORGERY           = 0x02,
-  SKILL_CLIMB             = 0x03,
-  SKILL_PHARMACY          = 0x04,
-  SKILL_BOMB_ALARM_DISARM = 0x05,
-  SKILL_MECHANICS         = 0x06,
-  SKILL_ELECTRONICS       = 0x07,
-  SKILL_CRYPTOGRAPHY      = 0x08,
-  SKILL_PICKPOCKET        = 0x09,
-  SKILL_FODDY_FOD         = 0x0A,
-  SKILL_DOCTOR            = 0x0B,
-  SKILL_CHAMELEON         = 0x0C,
-  SKILL_SHRIEK            = 0x0D,
-  SKILL_STUN              = 0x0E,
-  SKILL_CORRUPTION        = 0x0F,
-  // Passive
-  SKILL_PERCEPTION        = 0x10,
-  SKILL_STEALTH           = 0x11,
-  SKILL_LANGUAGES         = 0x12,
-  SKILL_DEMOLITIONS       = 0x13,
-  SKILL_BRAWLING          = 0x14,
-  SKILL_BLADES            = 0x15,
-  SKILL_HANDGUN           = 0x16,
-  SKILL_RIFLE             = 0x17,
-  SKILL_AUTO_WEAPON       = 0x18,
-  SKILL_BOATING           = 0x19,
-  SKILL_GUNSMITH          = 0x1A,
-  SKILL_SWIM              = 0x1B,
-  SKILL_EVASION           = 0x1C,
-  SKILL_GAMBLING          = 0x1D,
-  SKILL_MUTANT_RECOG      = 0x1E,
-  SKILL_CAMOUFLAGE        = 0x1F
-};
 
 enum player_attribute {
   ATTR_STRENGTH     = 0,
@@ -149,7 +111,7 @@ struct player_rec {
   // 0x42 = *Mutant Recog!!
   // 0x43 = *Camouflage
 
-  uint8_t skills[32]; // 0x24 (Indexed by enum player_skill)
+  uint8_t skills[32]; // 0x24 (Indexed by enum skill_type (see skill.h))
 
   uint16_t condition;        // 0x44
   uint16_t max_condition;    // 0x46
