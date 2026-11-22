@@ -1047,8 +1047,8 @@ void ui_draw_party_roster(uint16_t selected, bool highlight, bool full_refresh)
 
     // Get ammo
     int ammo = 0;
-    if (p->weapon_idx != 0xFF) {
-      printf("%s: 0x9CC unimplemented (Weapon: %d)\n", __func__, p->weapon_idx);
+    if (p->equipped_weapon != 0xFF) {
+      printf("%s: 0x9CC unimplemented (Weapon: %d)\n", __func__, p->equipped_weapon);
     }
 
     // XXX: need to look this up properly.

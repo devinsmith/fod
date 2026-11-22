@@ -195,13 +195,13 @@ static bool prompt_fix_jammed_weapon()
 
 // KEH: seg000:0x6DD4
 // Unjam weapon?
-static void unjam_weapon(int player_idx, int arg1)
+static void unjam_weapon(int player_idx, bool flag)
 {
   player_rec *p = &g_game_state.players[player_idx];
   uint8_t slot = p->cmd_arg; // Current item slot
   uint8_t item_id = p->items[slot].item_id;
 
-  uint8_t skill_up = 0;
+  bool skill_up = false;
 
   /* chance = skill * 20, capped at 100 (%) */
   uint16_t chance = p->skills[SKILL_GUNSMITH] * 20;
@@ -215,19 +215,35 @@ static void unjam_weapon(int player_idx, int arg1)
 
   char buffer[128];
 
-#if 0
   if (success) {
     p->items[slot].props[0] &= 0xFE; // Clear "jammed" bit
     snprintf(buffer, sizeof(buffer), "%s successfully unjams %s %s.\r\r",
         p->name, pronoun, item_name);
-    skill_up = sub_969F(player_idx, SKILL_GUNSMITH);
+    skill_up = skill_use_check(player_idx, SKILL_GUNSMITH);
   } else {
     snprintf(buffer, sizeof(buffer), "%s trashes %s %s while trying to fix it...",
         p->name, pronoun, item_name);
+    inv_remove_or_set_item(player_idx, slot, 0xFF); // destroy item
   }
-#endif
 
-  printf("%s: unimplemented\n", __func__);
+  if (flag) {
+    /* inline mode: no clear, no wait */
+    if (skill_up) {
+      skill_up_message(p, SKILL_GUNSMITH, true);
+    } else {
+      ui_region_print_str(buffer, -1, -1);
+    }
+  } else {
+    /* standalone mode: clear, print, wait for key */
+    ui_active_region_clear();
+    if (skill_up) {
+      skill_up_message(p, SKILL_GUNSMITH, true);
+    } else {
+      ui_region_print_str(buffer, 0, 1);
+    }
+    ui_region_refresh_active();
+    sys_readkey(); // Wait for key?
+  }
 }
 
 // KEH: seg000:0x1FB7
@@ -263,7 +279,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
     ui_region_print_str(buffer, 0, 0);
 
     if (can_take_action) {
-      if (!in_combat || !(item_def->flags & ITEM_WEAPON) || player->weapon_idx == item_slot) {
+      if (!in_combat || !(item_def->flags & ITEM_WEAPON) || player->equipped_weapon == item_slot) {
         ui_region_print_str("U)se\r", 0, -1);
       }
       if (!in_combat) {
@@ -290,7 +306,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
       if (item_def->flags & ITEM_WEAPON) {
         if (!in_combat) {
           ui_region_print_str("E)quip-unequip weapon\r", 0, -1);
-          if (player->weapon_idx == item_slot) is_equipped = true;
+          if (player->equipped_weapon == item_slot) is_equipped = true;
           else                                 can_equip = true;
         }
         const struct weapon_type *wt = get_weapon_type(item_def->weapon_type);
@@ -298,7 +314,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
       } else if (!in_combat && (item_def->flags & ITEM_ARMOR)) {
         ui_region_print_str("E)quip-unequip armor\r", 0, -1);
         for (int j = 0; j < 3; j++) {
-          if (player->armor_idx[j] == item_slot) { slot_idx = j; is_equipped = true; break; }
+          if (player->equipped_armor[j] == item_slot) { slot_idx = j; is_equipped = true; break; }
         }
         can_equip = !is_equipped;
         if (can_equip) slot_idx = (item_def->flags & 0x0C) >> 2;
@@ -412,12 +428,10 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
   snprintf(buffer, sizeof(buffer), "  AC %3u", armor_class);
   ui_region_print_str(buffer, 0, 4);
 
-  if (player_ptr->weapon_idx == 0xFF) {
+  if (player_ptr->equipped_weapon == 0xFF) {
     snprintf(buffer, sizeof(buffer), "Weap: Hands");
   } else {
-    // TODO: Figure out equipped item name (Weapon).
-    printf("%s: TODO: Figure out equipped item name, item is: %d\n", __func__, player_ptr->weapon_idx);
-    snprintf(buffer, sizeof(buffer), "Weap: %s", get_item_def(player_ptr->weapon_idx)->name);
+    snprintf(buffer, sizeof(buffer), "Weap: %s", get_item_def(player_ptr->equipped_weapon)->name);
   }
   ui_region_print_str(buffer, 0, 5);
 
@@ -438,12 +452,12 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
 // KEH: seg001:0182
 static bool is_item_equipped(struct player_rec *player, uint16_t item_id)
 {
-  if (player->weapon_idx == item_id) {
+  if (player->equipped_weapon == item_id) {
     return true;
   }
 
   for (int i = 0; i < 3; i++) {
-    if (player->armor_idx[i] == item_id) {
+    if (player->equipped_armor[i] == item_id) {
       return true;
     }
   }
@@ -504,7 +518,8 @@ static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, void
   uint16_t skill_index = item_entry_table[item_index];
   struct player_rec *player = static_cast<struct player_rec *>(ud);
 
-  const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x126;
+  const struct skill_def *sd = get_skill_def(skill_index);
+  const char *skill_name = sd->name;
 
   snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->skills[skill_index], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
@@ -517,7 +532,8 @@ static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, voi
   uint16_t skill_index = item_entry_table[item_index];
   struct player_rec *player = static_cast<struct player_rec *>(ud);
 
-  const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x286;
+  const struct skill_def *sd = get_skill_def(skill_index + PASSIVE_SKILL_BASE);
+  const char *skill_name = sd->name;
 
   snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->skills[skill_index + PASSIVE_SKILL_BASE], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
@@ -906,7 +922,7 @@ static void panel_passive(struct cmd_menu *m)
 // KEH: seg000:0xCC58
 // F-key handler - character skill/action menu.
 // Returns player index on action completion, or -1 on ESC/exit.
-int show_character_sheet(int player_idx, bool flag)
+int show_character_sheet(uint16_t player_idx, bool flag)
 {
   struct cmd_menu m = {
     .player_idx = player_idx,

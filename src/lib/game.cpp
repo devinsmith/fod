@@ -181,11 +181,11 @@ static void read_player_rec(struct player_rec *player)
   player->unknown_48 = read_uint8();
   player->unknown_49 = read_uint8();
 
-  player->weapon_idx = read_uint8();
+  player->equipped_weapon = read_uint8();
 
   /* Read equipped armor items */
   for (int i = 0; i < 3; i++) {
-    player->armor_idx[i] = read_uint8();
+    player->equipped_armor[i] = read_uint8();
   }
 
   /* Read rank and affliction */

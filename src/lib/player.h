@@ -122,8 +122,8 @@ struct player_rec {
 
   // Value of 0xFF = no item equipped
   // other values are indexes into items array.
-  uint8_t weapon_idx; // Item index of of equipped weapon (0x4A)
-  uint8_t armor_idx[3]; // Equipped armor items (0x4B-0x4D)
+  uint8_t equipped_weapon; // Item index of of equipped weapon (0x4A)
+  uint8_t equipped_armor[3]; // Equipped armor items (0x4B-0x4D)
 
   uint8_t rank; // 0x4E
   uint8_t unknown_4F;  // 0x4F
@@ -166,7 +166,7 @@ static_assert(offsetof(struct player_rec, attributes) == 0x18, "attributes");
 static_assert(offsetof(struct player_rec, attribute_points) == 0x23, "attribute_points");
 static_assert(offsetof(struct player_rec, skills) == 0x24, "skills");
 static_assert(offsetof(struct player_rec, condition) == 0x44, "condition");
-static_assert(offsetof(struct player_rec, weapon_idx) == 0x4A, "weapon_idx");
+static_assert(offsetof(struct player_rec, equipped_weapon) == 0x4A, "equipped_weapon");
 static_assert(offsetof(struct player_rec, gender) == 0x50, "gender");
 static_assert(offsetof(struct player_rec, affliction) == 0x58, "affliction");
 static_assert(offsetof(struct player_rec, items) == 0x62, "items");
@@ -182,5 +182,8 @@ uint16_t player_armor_class(const struct player_rec *p);
 int get_player_condition_status(struct player_rec *player);
 
 bool skill_use_check(uint16_t player_idx, int skill);
+void skill_up_message(struct player_rec *p, uint16_t skill, bool flag);
+void inv_remove_or_set_item(uint16_t player_idx, uint16_t slot, uint16_t value);
+
 
 #endif /* PLAYER_H */

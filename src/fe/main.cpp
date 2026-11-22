@@ -1648,7 +1648,7 @@ static void sub_EF7(void)
       if (entry[0x60] == 0xFF)
         continue;
 
-      uint16_t si = *(uint16_t *)&hds_res->bytes[0x3E8];
+      uint16_t si = *(uint16_t *)&hds_res->bytes[0x3E8]; // always 0xB ?
       entry[0x64] += entry[si + 0x18];
 
       while (entry[0x64] >= threat) {
@@ -2539,7 +2539,7 @@ static int sub_103C9()
   }
 
   for (int i = 0; i < g_game_state.party_size; i++) {
-    if (g_game_state.players[i].weapon_idx != 0xFF) {
+    if (g_game_state.players[i].equipped_weapon != 0xFF) {
       printf("%s: unimplemented (handle weapon?)\n", __func__);
     }
   }

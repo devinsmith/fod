@@ -19,17 +19,8 @@
 #ifndef CMDMENU_H
 #define CMDMENU_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int show_character_sheet(int player_idx, bool flag);
-
-#ifdef __cplusplus
-}
-#endif
+int show_character_sheet(uint16_t player_idx, bool flag);
 
 #endif /* CMDMENU_H */
