@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "game.h"
 #include "player.h"
 
 extern unsigned char *arch_offset; // currently in main.c
@@ -84,4 +85,19 @@ bool player_has_willpower(const struct player_rec *player)
   }
 
   return hp > 0;
+}
+
+// KEH: seg000:0x969F
+bool skill_use_check(uint16_t player_idx, int skill)
+{
+  struct player_rec *p = &g_game_state.players[player_idx];
+  bool improved = false;
+
+  // Active skills (0-15) are controlled by aptitude, passive (16+) by intelligence
+  int attr_idx = (skill > 15) ? ATTR_INTELLIGENCE : ATTR_APTITUDE;
+
+  p->skill_uses[skill]++;
+
+
+  return improved;
 }

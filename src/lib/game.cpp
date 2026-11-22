@@ -207,7 +207,9 @@ static void read_player_rec(struct player_rec *player)
     read_item_rec(&player->items[i]);
   }
 
-  read_bytes(player->unknown_122, sizeof(player->unknown_122));
+  player->unknown_122 = read_uint8();
+  player->unknown_123 = read_uint8();
+  read_bytes(player->skill_uses, sizeof(player->skill_uses));
   player->cmd_type = read_uint8();
   player->cmd_arg = read_uint8();
   player->unknown_146 = read_uint8();

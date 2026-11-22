@@ -73,6 +73,16 @@ enum player_skill {
   SKILL_CAMOUFLAGE        = 0x1F
 };
 
+enum player_attribute {
+  ATTR_STRENGTH     = 0,
+  ATTR_INTELLIGENCE = 1,
+  ATTR_DEXTERITY    = 2,
+  ATTR_WILLPOWER    = 3,
+  ATTR_APTITUDE     = 4,
+  ATTR_CHARISMA     = 5,
+  ATTR_LUCK         = 6
+};
+
 // Should be 332 bytes long.
 struct player_rec {
   char name[14]; // 0x00-0x0D (12 chars + NUL)
@@ -176,7 +186,9 @@ struct player_rec {
   uint8_t unknown_59[9];  // 0x59
 
   struct item_rec items[32]; // 0x62
-  uint8_t unknown_122[34]; // 0x122-0x143
+  uint8_t unknown_122;     // 0x122
+  uint8_t unknown_123;     // 0x123
+  uint8_t skill_uses[32];  // 0x124-0x143
   uint8_t cmd_type;        // 0x144
   uint8_t cmd_arg;         // 0x145
   uint8_t unknown_146;     // 0x146
@@ -197,6 +209,7 @@ static_assert(offsetof(struct player_rec, gender) == 0x50, "gender");
 static_assert(offsetof(struct player_rec, affliction) == 0x58, "affliction");
 static_assert(offsetof(struct player_rec, items) == 0x62, "items");
 static_assert(offsetof(struct player_rec, unknown_122) == 0x122, "unknown_122");
+static_assert(offsetof(struct player_rec, skill_uses) == 0x124, "skill_uses");
 static_assert(offsetof(struct player_rec, cmd_type) == 0x144, "cmd_type");
 static_assert(offsetof(struct player_rec, cmd_arg) == 0x145, "cmd_arg");
 static_assert(offsetof(struct player_rec, unknown_146) == 0x146, "unknown_146");
@@ -206,5 +219,6 @@ bool player_has_willpower(const struct player_rec *p);
 uint16_t player_armor_class(const struct player_rec *p);
 int get_player_condition_status(struct player_rec *player);
 
+bool skill_use_check(uint16_t player_idx, int skill);
 
 #endif /* PLAYER_H */
