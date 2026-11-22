@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<html>
+  <head>
+    <title>Fountain of Dreams - GANI</title>
+    <link href="style.css" type="text/css" rel="stylesheet" />
+  </head>
+  <body>
+    <h2><font color="#e00000">Fountain of Dreams - GANI</font></h2>
+    <hr>
+    <span class="blue"><a name="GANI">GANI</a></span>
+
+    <p>The GANI file seems to contain a single image of a flamingo. It is 1130 bytes,
+    and after decompression, inflates to 4236 bytes. The first two bytes seem to
+    describe the end offset of the image.</p>
+
+    <table border="1">
+    <thead>
+        <tr>
+            <th>Offset</th>
+            <th>Value</th>
+            <th>Purpose</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>0x00</td>
+            <td>0x01</td>
+            <td>Unknown (number of images?)</td>
+        </tr>
+        <tr>
+            <td>0x01-0x02</td>
+            <td>0x8910</td>
+            <td>Size of image (0x1089)</td>
+        </tr>
+        <tr>
+            <td>0x03</td>
+            <td>0x05</td>
+            <td>Unknown</td>
+        </tr>
+        <tr>
+            <td>0x04</td>
+            <td>0x00</td>
+            <td>Unknown</td>
+        </tr>
+        <tr>
+            <td>0x05</td>
+            <td>0x30</td>
+            <td>Number of words per line (48)</td>
+        </tr>
+        <tr>
+            <td>0x06</td>
+            <td>0x58</td>
+            <td>Height of image (88 pixels)</td>
+        </tr>
+        <tr>
+            <td>0x07</td>
+            <td>0x00</td>
+            <td>?</td>
+        </tr>
+        <tr>
+            <td>0x08</td>
+            <td>0x00</td>
+            <td>?</td>
+        </tr>
+        <tr>
+            <td>0x09 - 0x1088</td>
+            <td>variable</td>
+            <td>Image data of flamingo</td>
+        </tr>
+        <tr>
+            <td>0x1089</td>
+            <td>0x01</td>
+            <td>Number of times to copy image?</td>
+        </tr>
+        <tr>
+            <td>0x108A</td>
+            <td>0x00</td>
+            <td>?</td>
+        </tr>
+        <tr>
+            <td>0x108B</td>
+            <td>0xFF</td>
+            <td>?</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>This image (which is 96x88 pixels) in the file is shown below:</p>
+
+<p><img src="gani.png" alt="gani"></p>
+
+  </body>
+</html>
+
