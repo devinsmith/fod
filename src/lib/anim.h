@@ -24,10 +24,6 @@
 
 #include "ui.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* 12-byte record at DS:BEC2 + 12*i */
 struct anim_entry {
   struct ui_region *region;   /* +0x00: copied from word_1E74[i + bias]   */
@@ -47,9 +43,5 @@ extern struct anim_entry g_anim_entry[];
 
 void sub_B360(int stat, const char *entry);
 void anim_update(bool force);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* ANIM_H */

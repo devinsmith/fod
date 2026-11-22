@@ -47,9 +47,6 @@ int current_direction = 0;
 // KEH: DSEG:0x1A4A
 const char *current_player_name;
 
-
-extern unsigned char *arch_offset; // currently in main.c
-
 static void read_bytes(void *buffer, size_t count)
 {
   if (count + disk1_offset > disk1_size) {
@@ -154,8 +151,7 @@ static void read_player_rec(struct player_rec *player)
   player->profession = read_uint8();
   player->unknown_0F = read_uint8();
 
-  // Gender starts at 0x50
-  player->gender = read_uint8();
+  player->unknown_10 = read_uint8();
   player->unknown_11 = read_uint8();
 
   read_bytes(player->unknown_12, sizeof(player->unknown_12));
@@ -170,12 +166,12 @@ static void read_player_rec(struct player_rec *player)
 
   /* Read active skills */
   for (int i = 0; i < 16; i++) {
-    player->active_skills[i] = read_uint8();
+    player->skills[i] = read_uint8();
   }
 
   /* Read passive skills */
   for (int i = 0; i < 16; i++) {
-    player->passive_skills[i] = read_uint8();
+    player->skills[i + 16] = read_uint8();
   }
 
   /* Read condition values */
@@ -194,7 +190,10 @@ static void read_player_rec(struct player_rec *player)
 
   /* Read rank and affliction */
   player->rank = read_uint8();
-  advance_reader(3); // 0x89, 0x8A, 0x8B
+  player->unknown_4F = read_uint8();
+  // Gender starts at 0x50
+  player->gender = read_uint8();
+  player->unknown_51 = read_uint8();
   player->inventory_count = read_uint8();
 
   advance_reader(4); // 0x8D, 0x8E, 0x8F, 0x90
@@ -381,70 +380,6 @@ bool save_game_state()
   return true;
 }
 
-// KEH: seg000:0x90F6
-// Categorizes a player's condition:
-//   0 = Healthy
-//   1-4 = Injured
-//   5 = Critical
-int get_player_condition_status(struct player_rec *player)
-{
-  int16_t cond = (int16_t)player->condition;
-
-  if (cond >= 1) {
-    return 0;
-  }
-  if (cond > -60) {
-    return (abs(cond) / 15) + 1;
-  }
-  return 5;
-}
-
-// KEH: seg000:0xBB93 - check party condition
-int check_party_condition(int arg0)
-{
-  int i;
-
-  for (i = 0; i < g_game_state.party_size; i++) {
-    if (get_player_condition_status(&g_game_state.players[i]) < arg0) {
-      return i;
-    }
-  }
-  return g_game_state.party_size;
-}
-
-// KEH: seg000:0x98E3
-void set_current_player_name(int player_idx)
-{
-  current_player_name = g_game_state.players[player_idx].name;
-  // XXX:Should this function also return this for callers?
-};
-
-/* KEH: (seg000:7D9B) -- calculate armor class */
-uint16_t player_armor_class(const struct player_rec *player)
-{
-  uint16_t sum = 0;
-
-  // Look at equipted armor items.
-  for (int i = 0; i < 3; i++) {
-    uint8_t item_id = player->armor_idx[i];
-
-    if (item_id != 0xFF) {
-      printf("%s: 0x7DBE unimplemented (item: 0x%02X)\n", __func__, item_id);
-      // Manipulates sum
-      // sum += item_defs[p->items[p->eq_items[i]].item_id].armor; ?????
-    }
-  }
-
-  if (sum == 0) {
-    // 0x7DE1
-    // Deal with player's profession? Does each profession have an armor class?
-    uint8_t prof_val = arch_offset[(player->profession << 7) + 0x7A];
-    return prof_val;
-  }
-
-  return sum;
-}
-
 // KEH: seg000:0x073E
 // Returns true if (xpos, ypos) is within 'radius' of the player on
 // both axes (an axis-aligned square centered on the player, edges inclusive).
@@ -485,6 +420,26 @@ void party_remove_member(int member)
   }
 }
 
+// KEH: seg000:0xBB93 - check party condition
+int check_party_condition(int arg0)
+{
+  int i;
+
+  for (i = 0; i < g_game_state.party_size; i++) {
+    if (get_player_condition_status(&g_game_state.players[i]) < arg0) {
+      return i;
+    }
+  }
+  return g_game_state.party_size;
+}
+
+// KEH: seg000:0x98E3
+void set_current_player_name(int player_idx)
+{
+  current_player_name = g_game_state.players[player_idx].name;
+  // XXX:Should this function also return this for callers?
+};
+
 // KEH: seg000:CB19
 // Print incapacitated message
 void print_incapacitated(int player_num, uint16_t arg2)
@@ -503,46 +458,21 @@ void print_incapacitated(int player_num, uint16_t arg2)
   sub_B2F0(buffer, 0, 2);
 }
 
-// KEH: seg000:7D9B
-// Calculates an armor class maybe?
-uint16_t sub_7D9B(struct player_rec *player)
+static const char *poss_pronoun_tbl[] = {
+  "its", "his", "her"
+};
+
+static const char *obj_pronoun_tbl[] = {
+  "it", "him", "her"
+};
+
+const char *get_possessive_pronoun(uint8_t gender)
 {
-  uint16_t sum = 0;
-
-  // Look at equipted armor items.
-  for (int i = 0; i < 3; i++) {
-    uint8_t item_id = player->armor_idx[i];
-
-    if (item_id != 0xFF) {
-      printf("%s: 0x7DBE unimplemented (item: 0x%02X)\n", __func__, item_id);
-      // Manipulates sum
-    }
-  }
-
-  if (sum == 0) {
-    // 0x7DE1
-    // Deal with player's profession?
-    uint8_t prof_val = arch_offset[(player->profession << 7) + 0x7A];
-    return prof_val;
-  }
-
-  return sum;
+  return poss_pronoun_tbl[gender & 3];
 }
 
-// KEH: seg000:6F6B
-// Can this player act even though they are unconcious. Acts based on Will Power (WP)
-//
-// Will Power is defined as mental toughness. WP is the ability to exert mind
-// over matter, even to the point of remaining able to fight after you have
-// been rendered unconscious.
-bool player_has_willpower(const struct player_rec *player)
+const char *get_object_pronoun(uint8_t gender)
 {
-  int hp = player->condition;
-  uint8_t will_power = player->attributes[3];
-
-  if (will_power > 15) {
-    hp += will_power - 15;
-  }
-
-  return hp > 0;
+  return obj_pronoun_tbl[gender & 3];
 }
+

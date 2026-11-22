@@ -913,10 +913,10 @@ static void init_player(int arg1, int profession)
   // Copy skills (active and passive) from profession.
   for (int i = 0; i < 16; i++) {
     al = prof_ptr[i+0x38];
-    g_game_state.players[arg1].active_skills[i] = al;
+    g_game_state.players[arg1].skills[i] = al;
     //disk1_bytes[bx + i + 0x0124] = 0; ?
     al = prof_ptr[i+0x48];
-    g_game_state.players[arg1].passive_skills[i] = al;
+    g_game_state.players[arg1].skills[i + 16] = al;
     //disk1_bytes[bx + i + 0x0134] = 0; ?
   }
 

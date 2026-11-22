@@ -26,6 +26,7 @@
 #include "item.h"
 #include "level.h"
 #include "platform.h"
+#include "random.h"
 #include "resource.h"
 #include "script.h"
 #include "ui.h"
@@ -193,8 +194,38 @@ static bool prompt_fix_jammed_weapon()
 
 // KEH: seg000:0x6DD4
 // Unjam weapon?
-static void sub_6DD4(int player_idx, int arg1)
+static void unjam_weapon(int player_idx, int arg1)
 {
+  player_rec *p = &g_game_state.players[player_idx];
+  uint8_t slot = p->cmd_arg; // Current item slot
+  uint8_t item_id = p->items[slot].item_id;
+
+  uint8_t skill_up = 0;
+
+  /* chance = skill * 20, capped at 100 (%) */
+  uint16_t chance = p->skills[SKILL_GUNSMITH] * 20;
+  if (chance > 100) {
+    chance = 100;
+  }
+
+  bool success = chance >= game_random_range(1, 100);
+  const char *pronoun = get_possessive_pronoun(p->gender);
+  const char *item_name = get_item_def(item_id)->name;
+
+  char buffer[128];
+
+#if 0
+  if (success) {
+    p->items[slot].props[0] &= 0xFE; // Clear "jammed" bit
+    snprintf(buffer, sizeof(buffer), "%s successfully unjams %s %s.\r\r",
+        p->name, pronoun, item_name);
+    skill_up = sub_969F(player_idx, SKILL_GUNSMITH);
+  } else {
+    snprintf(buffer, sizeof(buffer), "%s trashes %s %s while trying to fix it...",
+        p->name, pronoun, item_name);
+  }
+#endif
+
   printf("%s: unimplemented\n", __func__);
 }
 
@@ -284,7 +315,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
       if (!can_take_action) continue;
       if (item->props[0] & 1) {
         if (!prompt_fix_jammed_weapon()) continue;
-        if (!in_combat) { sub_6DD4(player_idx, 0); continue; }
+        if (!in_combat) { unjam_weapon(player_idx, 0); continue; }
         player->cmd_type = 6;
         return 1;
       }
@@ -349,7 +380,7 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
   uint16_t var_4;
   char buffer[128];
 
-  uint16_t armor_class = sub_7D9B(player_ptr);
+  uint16_t armor_class = player_armor_class(player_ptr);
 
   ui_region_set_active(&region_1B2C, false);
   ui_active_region_clear();
@@ -474,9 +505,11 @@ static void draw_active_skill_row(uint16_t row_number, uint16_t item_index, void
 
   const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x126;
 
-  snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->active_skills[skill_index], skill_name);
+  snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->skills[skill_index], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
 }
+
+#define PASSIVE_SKILL_BASE 16
 
 // KEH: seg000:C53E
 static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, void *ud)
@@ -487,7 +520,7 @@ static void draw_passive_skill_row(uint16_t row_number, uint16_t item_index, voi
 
   const char *skill_name = (char *)hds_res->bytes + 0x16 * skill_index + 0x286;
 
-  snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->passive_skills[skill_index], skill_name);
+  snprintf(buf, sizeof(buf), "%1d>%2d %-.9s", row_number, player->skills[skill_index + PASSIVE_SKILL_BASE], skill_name);
   ui_region_print_str(buf, 0, row_number + 1);
 }
 
@@ -505,8 +538,8 @@ static int draw_active_skills(int player_num, uint16_t *counter, bool handle_inp
   // Build a list of active skill indexes.
   // This shouldn't go more than 16, since player->active_skills is limited
   // to 16 skills.
-  for (uint16_t i = 0; i < hds_res->bytes[2]; i++) {
-    if (player->active_skills[i] != 0) {
+  for (uint16_t i = 0; i < 16; i++) {
+    if (player->skills[i] != 0) {
       item_entry_table[var_2++] = i;
     }
   }
@@ -542,8 +575,8 @@ static int draw_passive_skills(int player_num, uint16_t *counter, bool handle_in
   // Build a list of passive skill indexes.
   // This shouldn't go more than 16, since player->passive_skills is limited
   // to 16 skills.
-  for (uint16_t i = 0; i < hds_res->bytes[4]; i++) {
-    if (player->passive_skills[i] != 0) {
+  for (uint16_t i = 0; i < 16; i++) {
+    if (player->skills[PASSIVE_SKILL_BASE + i] != 0) {
       item_entry_table[var_2++] = i;
     }
   }

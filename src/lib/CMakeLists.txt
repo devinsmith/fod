@@ -25,6 +25,7 @@ set(SOURCES
   level.cpp level.h
   npc.cpp npc.h
   platform.cpp platform.h
+  player.cpp player.h
   random.cpp random.h
   resource.cpp resource.h
   script.cpp script.h

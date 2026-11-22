@@ -20,111 +20,10 @@
 #define GAME_H
 
 #include <assert.h> // For static_assert macro
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// 6 bytes each?
-struct item_rec {
-  uint8_t item_id;
-  uint8_t ammo_type;
-  uint8_t ammo_count;
-  uint8_t props[2];
-  uint8_t flags; // extra flag properties.
-} __attribute__((packed));
-
-static_assert(sizeof(struct item_rec) == 6, "item_rec must be 6 bytes");
-
-// Should be 332 bytes long.
-struct player_rec {
-  char name[14]; // 0x00-0x0D (12 chars + NUL)
-  uint8_t profession; // 0x0E
-  uint8_t unknown_0F; // 0x0F
-  uint8_t gender; // 0x10
-  uint8_t unknown_11; // 0x11
-  uint8_t unknown_12[6];  // 0x12-0x17
-
-  // 0x18 - 0x22
-  // 0 - Strength - 0x18
-  // 1 - Intelligence - 0x19
-  // 2 - Dexterity - 0x1A
-  // 3 - Willpower - 0x1B
-  // 4 - Aptitude - 0x1C
-  // 5 - Charisma - 0x1D
-  // 6 - Luck - 0x1E
-  // Unknown - 0x1F
-  // Unknown - 0x20
-  // Unknown - 0x21
-  // Unknown - 0x22
-  uint8_t attributes[11]; // 0x18
-
-  uint8_t attribute_points; // 0x23
-
-  uint8_t active_skills[16]; // 0x24
-  uint8_t passive_skills[16]; // 0x34
-  uint16_t condition;        // 0x44
-  uint16_t max_condition;    // 0x46
-
-  // Padding bytes? (unknown)
-  uint8_t unknown_48;      // 0x48
-  uint8_t unknown_49;      // 0x49
-
-  // Value of 0xFF = no item equipped
-  // other values are indexes into items array.
-  uint8_t weapon_idx; // Item index of of equipped weapon (0x4A)
-  uint8_t armor_idx[3]; // Equipped armor items (0x4B-0x4D)
-
-  uint8_t rank; // 0x4E
-  uint8_t unknown_4F[3];  // 0x4F
-
-  uint8_t inventory_count; // 0x52
-  uint8_t unknown_53[4]; // 0x53
-
-  uint8_t unknown_57; // 0x57 (player drunk?)
-  uint8_t affliction; // 0x58 - bit encoded
-  /*  00000001 - Poisoned
-      00000010 - Irradiated
-      00000100 - Rabid
-      00001000 - Envenomed
-      00010000 - Condition 5
-      00100000 - Condition 6
-      01000000 - Condition 7
-      10000000 - Mutant
-   */
-
-  uint8_t unknown_59[9];  // 0x59
-
-  struct item_rec items[32]; // 0x62
-  uint8_t unknown_122[34]; // 0x122-0x143
-  uint8_t cmd_type;        // 0x144
-  uint8_t cmd_arg;         // 0x145
-  uint8_t unknown_146;     // 0x146
-  uint8_t selected_item;   // 0x147
-
-  // Contains segment:offset of level map cell
-  uint32_t unknown_148;    // 0x148-0x14B
-} __attribute__((packed));
-
-static_assert(offsetof(struct player_rec, profession) == 0x0E, "profession");
-static_assert(offsetof(struct player_rec, gender) == 0x10, "gender");
-static_assert(offsetof(struct player_rec, unknown_12) == 0x12, "unknown_12");
-static_assert(offsetof(struct player_rec, attributes) == 0x18, "attributes");
-static_assert(offsetof(struct player_rec, attribute_points) == 0x23, "attribute_points");
-static_assert(offsetof(struct player_rec, active_skills) == 0x24, "active_skills");
-static_assert(offsetof(struct player_rec, passive_skills) == 0x34, "passive_skills");
-static_assert(offsetof(struct player_rec, condition) == 0x44, "condition");
-static_assert(offsetof(struct player_rec, weapon_idx) == 0x4A, "weapon_idx");
-static_assert(offsetof(struct player_rec, affliction) == 0x58, "affliction");
-static_assert(offsetof(struct player_rec, items) == 0x62, "items");
-static_assert(offsetof(struct player_rec, unknown_122) == 0x122, "unknown_122");
-static_assert(offsetof(struct player_rec, cmd_type) == 0x144, "cmd_type");
-static_assert(offsetof(struct player_rec, cmd_arg) == 0x145, "cmd_arg");
-static_assert(offsetof(struct player_rec, unknown_146) == 0x146, "unknown_146");
-static_assert(sizeof(struct player_rec) == 332, "player_rec size");
+#include "player.h"
 
 // FOD: DSEG:0x231E - 0x31DE
 // KEH: DSEG:0xBEEA - ?
@@ -171,20 +70,15 @@ extern uint16_t g_cached_id[];
 bool load_game_state();
 bool save_game_state();
 
-bool player_has_willpower(const struct player_rec *p);
 bool is_near_player(int radius, int xpos, int ypos);
-uint16_t player_armor_class(const struct player_rec *p);
-int get_player_condition_status(struct player_rec *player);
 int check_party_condition(int arg0);
 void set_current_player_name(int player_idx);
 void set_direction(int direction);
 void print_incapacitated(int player_num, uint16_t arg2);
-uint16_t sub_7D9B(struct player_rec *player);
 
 void party_remove_member(int member);
 
-#ifdef __cplusplus
-}
-#endif
+const char *get_possessive_pronoun(uint8_t gender);
+const char *get_object_pronoun(uint8_t gender);
 
 #endif /* GAME_H */
