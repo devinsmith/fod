@@ -38,6 +38,12 @@ static void sub_DAB0();
 // KEH DSEG:0x12D80 - UI flag (set to 8 during header print, then reset to 0)
 static uint16_t word_12D80 = 0;
 
+// KEH: DSEG:0xBF21
+static uint8_t byte_BF21 = 0;
+
+// KEH: DSEG:0xBEF2
+static uint8_t byte_BEF2 = 0;
+
 // KEH: DSEG:0xD201
 static int8_t target_dir;
 // KEH: DSEG:0xD1E3
@@ -246,6 +252,84 @@ static void unjam_weapon(int player_idx, bool flag)
   }
 }
 
+static bool sub_CB58(int player_num)
+{
+  // Player has at least one health point?
+  struct player_rec *current_player = &g_game_state.players[player_num];
+  if (current_player->condition >= 1) {
+    return true;
+  }
+
+  print_incapacitated(player_num, 1);
+  return false;
+}
+
+// KEH: seg000:BF55
+static void draw_player_name(uint16_t row_number, uint16_t item_index, void *ud)
+{
+  (void)ud;
+
+  char buf[46];
+  struct player_rec *p = &g_game_state.players[item_index];
+
+  snprintf(buf, sizeof(buf), "F%1d> %-19.19s", row_number, p->name);
+  ui_region_print_str(buf, 0, row_number + 2);
+}
+
+// KEH: seg000:0xC42B
+static void ingest_item(uint16_t player_idx, bool ingest_flag, uint16_t item_slot)
+{
+  struct player_rec *p = &g_game_state.players[player_idx];
+  bool done = false;
+  char msg_buf[256];
+
+  ui_region_set_active(&popup_region, true);
+  ui_region_refresh_active();
+
+  while (!done) {
+    ui_draw_scroll_list_page(p, 0, g_game_state.party_size,
+        "Who will ingest this?", draw_player_name, false, true);
+
+    int sel = ui_pick_party_member();
+    if (sel == -1) {
+      break;
+    }
+
+    if (sel < 0) {
+      continue;
+    }
+
+    player_rec *target = &g_game_state.players[sel];
+    if (!sub_CB58(sel)) {
+      // Player not healthy/alive.
+      continue;
+    }
+
+    // Remove the user's inventory, not the target's
+    inv_remove_or_set_item(player_idx, item_slot, 0xFF);
+
+    if (ingest_flag) {
+      target->unknown_57 = 0x18; // Player drunk?
+      snprintf(msg_buf, sizeof(msg_buf),
+          "%s, although plagued by pink elephants, will not be bothered by any mutations for 2 days.",
+          target->name);
+    } else {
+      snprintf(msg_buf, sizeof(msg_buf), "%s will not be bothered by any mutations for 2 days.",
+          target->name);
+    }
+    ui_display_msg(msg_buf);
+
+    if (target->affliction & 0x80) {
+      target->attributes[9] = 0x30;
+      target->unknown_53[2] = (byte_BF21 + 2) % 7; // 0x55
+      target->unknown_53[3] = byte_BEF2;
+    }
+    target->unknown_53[0] = 0;
+
+    done = true;
+  }
+}
+
 // KEH: seg000:0x1FB7
 static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
     bool in_combat)
@@ -343,6 +427,22 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
       player->cmd_type = 0x0B;
       return 1;
       break;
+    case 'I':
+      if (ingest <= 0) {
+        continue;
+      }
+      ingest_item(player_idx, ingest, item_slot);
+      return 0;
+      break;
+    case 'D':
+      if (!can_take_action) continue;
+      if (!in_combat) {
+        inv_remove_or_set_item(player_idx, item_slot, 0xFF);
+      } else {
+        player->cmd_type = 0x0D;
+      }
+      return in_combat;
+      break;
     }
   }
 
@@ -381,14 +481,12 @@ static void sub_C5F4(struct player_rec *player_ptr, bool flag)
 }
 
 // KEH: DSEG: 0xC64A
-static void write_affliction(struct player_rec *player_ptr, uint16_t arg2)
+static void write_affliction(char *buffer, size_t sz, struct player_rec *player_ptr, uint16_t arg2)
 {
-  char buffer[64];
-
   if (player_ptr->affliction != 0) {
     printf("%s: TODO: Player is afflicted (%d) (%d)\n", __func__, arg2, player_ptr->affliction);
   }
-  snprintf(buffer, sizeof(buffer), "Cond: Unafflicted");
+  snprintf(buffer, sz, "Cond: Unafflicted");
 }
 
 // KEH: seg000:C68D
@@ -408,7 +506,7 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
 
   ui_region_print_str(buffer, 0, 1);
 
-  write_affliction(player_ptr, 0);
+  write_affliction(buffer, sizeof(buffer), player_ptr, 0);
   ui_region_print_str(buffer, 0, 2);
 
   if (player_ptr->affliction != 0) {
@@ -736,18 +834,6 @@ static int sub_CBDF(int player_idx)
     return player_idx;
   }
   return -1;
-}
-
-static bool sub_CB58(int player_num)
-{
-  // Player has at least one health point?
-  struct player_rec *current_player = &g_game_state.players[player_num];
-  if (current_player->condition >= 1) {
-    return true;
-  }
-
-  print_incapacitated(player_num, 1);
-  return false;
 }
 
 // KEH: seg000:CAE6

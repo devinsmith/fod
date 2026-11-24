@@ -310,6 +310,35 @@ void ui_set_inverse(bool inverse)
   inverse_flag = inverse;
 }
 
+// KEH: seg000:0xBE7
+// Wait for F1..F5 and return the party index, -1 = cancel.
+int ui_pick_party_member(void)
+{
+  bool valid = false;
+  int sel   = -1;
+
+  if (g_game_state.party_size == 1) {
+    // single-member party: auto-select, no key read
+    return 0;
+  }
+
+  while (!valid) {
+    int8_t key = (int8_t)sys_readkey();
+
+    if (key == -1)
+      return -1;
+
+    if (key >= 0x3B && key <= 0x3F) {        /* F1..F5 scancodes */
+      sel = key - 0x3B;
+    }
+
+    if (sel >= 0 && (uint16_t)sel < g_game_state.party_size) {
+      valid = true;
+    }
+  }
+  return sel;
+}
+
 // FOD: seg000:0x17F2
 // KEH: seg000:0xE308
 void plot_font_chr(uint8_t chr_index, int i, int line_num, int base)

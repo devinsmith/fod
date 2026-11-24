@@ -131,6 +131,7 @@ void draw_borders_0();
 void draw_borders(int offset);
 void draw_day_time();
 void ui_refresh_all(void);
+int ui_pick_party_member(void);
 
 void ui_draw_party_roster(uint16_t selected, bool hightlight, bool full_refresh);
 void ui_party_refresh();

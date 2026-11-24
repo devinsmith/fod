@@ -62,10 +62,10 @@ struct player_rec {
   // 4 - Aptitude - 0x1C
   // 5 - Charisma - 0x1D
   // 6 - Luck - 0x1E
-  // Unknown - 0x1F
-  // Unknown - 0x20
-  // Unknown - 0x21
-  // Unknown - 0x22
+  // 7 - Unknown - 0x1F
+  // 8 - Unknown - 0x20
+  // 9 - Unknown - 0x21
+  // 10 - Unknown - 0x22
   uint8_t attributes[11]; // 0x18
 
   uint8_t attribute_points; // 0x23
