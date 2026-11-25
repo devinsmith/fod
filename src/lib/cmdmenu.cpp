@@ -475,6 +475,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
       return in_combat;
       break;
     case 'E': // Equip/Unequip
+      // 0x2405
       if (!can_equip && !is_equipped) continue;
       if (item_def->flags & ITEM_WEAPON) {
         player->equipped_weapon = can_equip ? item_slot : 0xFF;
@@ -585,7 +586,10 @@ static void sub_C68D(struct player_rec *player_ptr, bool flag)
   if (player_ptr->equipped_weapon == 0xFF) {
     snprintf(buffer, sizeof(buffer), "Weap: Hands");
   } else {
-    snprintf(buffer, sizeof(buffer), "Weap: %s", get_item_def(player_ptr->equipped_weapon)->name);
+    struct item_rec *item = &player_ptr->items[player_ptr->equipped_weapon];
+    const struct item_def *item_def = get_item_def(item->item_id);
+
+    snprintf(buffer, sizeof(buffer), "Weap: %s", item_def->name);
   }
   ui_region_print_str(buffer, 0, 5);
 
