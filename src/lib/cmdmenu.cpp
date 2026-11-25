@@ -183,6 +183,13 @@ struct cmd_menu {
   int result;
 };
 
+// KEH: seg000:0x1D6A
+static int select_ammo(int player_idx, uint16_t item_slot, struct ui_region *region, bool flag)
+{
+  printf("%s: unimplemented\n", __func__);
+  return 0;
+}
+
 // KEH: seg000:0x1FA6
 static bool prompt_fix_jammed_weapon()
 {
@@ -356,15 +363,13 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
   bool can_take_action = in_combat ? player_has_willpower(player)
     : (player->condition > 0);
 
-  printf("%s: unimplemented (item: %d: %s)\n", __func__, item_slot,
-      item_def->name);
-
   for (;;) {
     // Build the menu
     player->selected_item = item->item_id;
 
     int n_targets = 0;
     bool is_equipped = false, can_equip = false, is_ranged = false;
+    int ammo_choice;
 
     ui_region_set_active(&popup_region, true);
     snprintf(buffer, sizeof(buffer), "Do what with your\r%s:\r\r",
@@ -469,6 +474,31 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
       }
       return in_combat;
       break;
+    case 'E': // Equip/Unequip
+      if (!can_equip && !is_equipped) continue;
+      if (item_def->flags & ITEM_WEAPON) {
+        player->equipped_weapon = can_equip ? item_slot : 0xFF;
+      } else {
+        player->equipped_armor[slot_idx] = can_equip ? item_slot : 0xFF;
+      }
+      if (can_equip) {
+        item_apply_effect(player, item_def, true);
+      }
+      return 0;
+      break;
+    case 'L': // Load / Unload
+      if (in_combat) continue;
+      if (!is_ranged) continue;
+      if (item->props[0] & 1) { // Jammed?
+        if (!prompt_fix_jammed_weapon()) continue;
+        unjam_weapon(player_idx, false);
+        return 0;
+      }
+
+      ammo_choice = select_ammo(player_idx, item_slot, active_region, 0);
+
+
+
     }
   }
 
