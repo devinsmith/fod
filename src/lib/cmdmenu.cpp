@@ -38,12 +38,6 @@ static void sub_DAB0();
 // KEH DSEG:0x12D80 - UI flag (set to 8 during header print, then reset to 0)
 static uint16_t word_12D80 = 0;
 
-// KEH: DSEG:0xBF21
-static uint8_t byte_BF21 = 0;
-
-// KEH: DSEG:0xBEF2
-static uint8_t byte_BEF2 = 0;
-
 // KEH: DSEG:0xD201
 static int8_t target_dir;
 // KEH: DSEG:0xD1E3
@@ -276,6 +270,19 @@ static void draw_player_name(uint16_t row_number, uint16_t item_index, void *ud)
   ui_region_print_str(buf, 0, row_number + 2);
 }
 
+// KEH: seg000:13A1
+static void draw_trade_player_name(uint16_t row_number, uint16_t item_index, void *ud)
+{
+  (void)ud;
+
+  char buf[42];
+  uint16_t player_index = item_entry_table[item_index];
+  struct player_rec *player = &g_game_state.players[player_index];
+
+  snprintf(buf, sizeof(buf), "F%1d> %-17.17s", row_number, player->name);
+  ui_region_print_str(buf, 0, row_number + 2);
+}
+
 // KEH: seg000:0xC42B
 static void ingest_item(uint16_t player_idx, bool ingest_flag, uint16_t item_slot)
 {
@@ -321,10 +328,10 @@ static void ingest_item(uint16_t player_idx, bool ingest_flag, uint16_t item_slo
 
     if (target->affliction & 0x80) {
       target->attributes[9] = 0x30;
-      target->unknown_53[2] = (byte_BF21 + 2) % 7; // 0x55
-      target->unknown_53[3] = byte_BEF2;
+      target->mutation_free_until_day = (g_game_state.day_of_week + 2) % 7; // 0x55
+      target->mutation_free_until_hour = g_game_state.hour;
     }
-    target->unknown_53[0] = 0;
+    target->unknown_53 = 0;
 
     done = true;
   }
@@ -337,6 +344,9 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
   char buffer[64];
   int ingest = 0;
   int slot_idx;
+  int choice;
+  uint16_t target;
+  uint16_t scroll_state = 0;
 
   struct player_rec *player /* var_1A */ = &g_game_state.players[player_idx];
   struct item_rec *item = &player->items[item_slot];
@@ -355,7 +365,6 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
 
     int n_targets = 0;
     bool is_equipped = false, can_equip = false, is_ranged = false;
-    int target_list[6];
 
     ui_region_set_active(&popup_region, true);
     snprintf(buffer, sizeof(buffer), "Do what with your\r%s:\r\r",
@@ -379,7 +388,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
 
     for (uint16_t i = 0; i < g_game_state.party_size; i++) {
       if (i != player_idx && g_game_state.players[i].condition > 0) {
-        target_list[n_targets++] = i;
+        item_entry_table[n_targets++] = i;
       }
     }
     if (n_targets > 0) {
@@ -412,7 +421,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
     if ((uint8_t)key == KEY_ESC) return 0;
 
     switch (key) {
-    case 'U':
+    case 'U': // Use
       if (!can_take_action) continue;
       if (item->props[0] & 1) {
         if (!prompt_fix_jammed_weapon()) continue;
@@ -427,19 +436,36 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
       player->cmd_type = 0x0B;
       return 1;
       break;
-    case 'I':
+    case 'I': // Ingest
       if (ingest <= 0) {
         continue;
       }
       ingest_item(player_idx, ingest, item_slot);
       return 0;
       break;
-    case 'D':
+    case 'D': // Drop
       if (!can_take_action) continue;
       if (!in_combat) {
         inv_remove_or_set_item(player_idx, item_slot, 0xFF);
       } else {
         player->cmd_type = 0x0D;
+      }
+      return in_combat;
+      break;
+    case 'T': // Trade
+      if (n_targets <= 0) continue;
+      snprintf(buffer, sizeof(buffer), "Who will take your\r%-1.19s?",
+          item_def->name);
+      choice = ui_scroll_list_menu(player, n_targets, &scroll_state, buffer, draw_trade_player_name, false);
+      if (!handle_fkeys(choice + 'F', &target, 1, 0, 1)) continue;
+      if (target == player_idx) continue; // no trade with yourself.
+      if (!sub_CB58(target)) continue;
+      if (!inv_give_item(player_idx, target, item_slot, true)) continue; // dry run
+      if (in_combat) {
+        player->cmd_type = 0x0C;
+        player->cmd_target = (uint8_t)target;
+      } else {
+        inv_give_item(player_idx, target, item_slot, false); // just do it!
       }
       return in_combat;
       break;

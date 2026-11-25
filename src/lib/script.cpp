@@ -343,15 +343,15 @@ static void sub_CB19(int player_num, uint16_t arg2)
 
 // KEH: DSEG: 0xCB80
 // Handle Function keys, usually F1-F5
-uint8_t handle_fkeys(uint16_t key, uint16_t *arg0, uint16_t arg2,
+bool handle_fkeys(uint16_t key, uint16_t *arg0, uint16_t arg2,
                          uint16_t arg3, uint16_t arg4)
 {
   if (key < 0x3B) {
-    return 0;
+    return false;
   }
 
   if (key >= (uint16_t)(g_game_state.party_size + 0x3B)) {
-    return 0;
+    return false;
   }
 
   int player_num = key - 0x3B;
@@ -359,15 +359,15 @@ uint8_t handle_fkeys(uint16_t key, uint16_t *arg0, uint16_t arg2,
   int condition_status = get_player_condition_status(current_player);
   if (condition_status < arg2) {
     if (arg3 != 0) {
-      return 0;
+      return false;
     }
 
     *arg0 = player_num;
-    return 1;
+    return true;
   }
 
   sub_CB19(player_num, arg4);
-  return 0;
+  return false;
 }
 
 static int service_req_stat(const struct player_rec *p, struct service_type *e)

@@ -36,7 +36,7 @@ struct game_state {
   uint8_t video_mode; // 0x06
 
   // 0-23 (hour of the day)
-  uint8_t hour; // 0x08
+  uint8_t hour; // 0x08 (0xBEF2)
   // 0-59 (minute of the hour)
   uint8_t minute; // 0x09
 
@@ -52,7 +52,7 @@ struct game_state {
   uint8_t party_size; // 0x31 (0xBF1B)
   uint8_t party_order[5]; // 0x32
 
-  uint8_t day_of_week; // 0x37
+  uint8_t day_of_week; // 0x37 (0xBF21)
 
   struct player_rec players[5]; // players
 

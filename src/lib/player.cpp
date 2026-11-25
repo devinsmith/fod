@@ -21,7 +21,9 @@
 #include <string.h>
 
 #include "game.h"
+#include "item.h"
 #include "player.h"
+#include "random.h"
 #include "skill.h"
 #include "ui.h"
 
@@ -154,6 +156,37 @@ void inv_remove_or_set_item(uint16_t player_idx, uint16_t slot, uint16_t value)
   }
 }
 
+// KEH: seg000:1ED8
+// move item 'slot' from one party member to another.
+bool inv_give_item(uint16_t giver_idx, uint16_t recv_idx, uint16_t slot, bool check_only)
+{
+  struct player_rec *giver = &g_game_state.players[giver_idx];
+  struct player_rec *recv  = &g_game_state.players[recv_idx];
+  struct item_rec   *item  = &giver->items[slot];
+  const struct item_def *item_def = get_item_def(item->item_id);
+  char msg_buf[64];
+
+  if (recv->condition > 0) {                  /* signed word at +0x44 */
+    if (recv->inventory_count < 32) {            /* byte at +0x52 */
+      if (!check_only) {
+        item_apply_effect(recv, item_def, false);
+
+        recv->items[recv->inventory_count] = *item;  /* 3x movsw */
+        recv->inventory_count++;
+
+        inv_remove_or_set_item(giver_idx, slot, 0xFF);  /* sub_1060D */
+      }
+      return true;
+    }
+
+    if (check_only) {
+      snprintf(msg_buf, sizeof(msg_buf), "%s\rhas too much to carry already.", recv->name);
+      ui_display_msg(msg_buf);
+    }
+  }
+  return false;
+}
+
 // KEH: seg000:0x6F9D
 void skill_up_message(struct player_rec *p, uint16_t skill, bool flag)
 {
@@ -173,5 +206,31 @@ void skill_up_message(struct player_rec *p, uint16_t skill, bool flag)
     ui_region_newline_or_scroll();
     ui_region_print_str(str_buffer, -1, -1);
     ui_region_refresh_active();
+  }
+}
+
+// KEH: seg000:0x7AAB
+static void player_roll_status(struct player_rec *p, uint8_t chance_pct)
+{
+  if (chance_pct < game_random_range(1, 100)) {
+    return;
+  }
+
+  p->unknown_53 = game_random_range(1, 6);
+  p->mutation_free_until_day = (uint8_t)((g_game_state.day_of_week + 1) % 7);
+  p->mutation_free_until_hour = game_random_range(6, 11);
+}
+
+// KEH: seg000:7B02 - apply an item's "carry effect" to a player.
+void item_apply_effect(struct player_rec *p, const struct item_def *def, bool set_affliction)
+{
+  if (def->effect_param == 0) {
+    return;
+  }
+
+  if (def->effect_type == 7) {
+    player_roll_status(p, def->effect_param);
+  } else if (set_affliction) {
+    p->affliction |= (uint8_t)(1u << def->effect_type);
   }
 }

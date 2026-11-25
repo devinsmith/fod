@@ -196,7 +196,10 @@ static void read_player_rec(struct player_rec *player)
   player->unknown_51 = read_uint8();
   player->inventory_count = read_uint8();
 
-  advance_reader(4); // 0x8D, 0x8E, 0x8F, 0x90
+  player->unknown_53 = read_uint8();
+  player->unknown_54 = read_uint8();
+  player->mutation_free_until_day = read_uint8();
+  player->mutation_free_until_hour = read_uint8();
   player->unknown_57 = read_uint8();
   player->affliction = read_uint8();
 
@@ -212,7 +215,7 @@ static void read_player_rec(struct player_rec *player)
   read_bytes(player->skill_uses, sizeof(player->skill_uses));
   player->cmd_type = read_uint8();
   player->cmd_arg = read_uint8();
-  player->unknown_146 = read_uint8();
+  player->cmd_target = read_uint8();
   player->selected_item = read_uint8();
   player->unknown_148 = read_uint32();
 }

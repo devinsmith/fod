@@ -23,6 +23,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "item.h"
+
 // 6 bytes each?
 struct item_rec {
   uint8_t item_id;
@@ -131,7 +133,13 @@ struct player_rec {
   uint8_t unknown_51; // 0x51
 
   uint8_t inventory_count; // 0x52
-  uint8_t unknown_53[4]; // 0x53
+  // Counters for affliction / effects?
+  uint8_t unknown_53; // 0x53
+  uint8_t unknown_54; // 0x54
+
+  // How long a player can be mutation free.
+  uint8_t mutation_free_until_day; // 0x55
+  uint8_t mutation_free_until_hour; // 0x56
 
   uint8_t unknown_57; // 0x57 (player drunk?)
   uint8_t affliction; // 0x58 - bit encoded
@@ -153,7 +161,7 @@ struct player_rec {
   uint8_t skill_uses[32];  // 0x124-0x143
   uint8_t cmd_type;        // 0x144
   uint8_t cmd_arg;         // 0x145
-  uint8_t unknown_146;     // 0x146
+  uint8_t cmd_target;      // 0x146
   uint8_t selected_item;   // 0x147
 
   // Contains segment:offset of level map cell
@@ -174,7 +182,7 @@ static_assert(offsetof(struct player_rec, unknown_122) == 0x122, "unknown_122");
 static_assert(offsetof(struct player_rec, skill_uses) == 0x124, "skill_uses");
 static_assert(offsetof(struct player_rec, cmd_type) == 0x144, "cmd_type");
 static_assert(offsetof(struct player_rec, cmd_arg) == 0x145, "cmd_arg");
-static_assert(offsetof(struct player_rec, unknown_146) == 0x146, "unknown_146");
+static_assert(offsetof(struct player_rec, cmd_target) == 0x146, "cmd_target");
 static_assert(sizeof(struct player_rec) == 332, "player_rec size");
 
 bool player_has_willpower(const struct player_rec *p);
@@ -184,6 +192,8 @@ int get_player_condition_status(struct player_rec *player);
 bool skill_use_check(uint16_t player_idx, int skill);
 void skill_up_message(struct player_rec *p, uint16_t skill, bool flag);
 void inv_remove_or_set_item(uint16_t player_idx, uint16_t slot, uint16_t value);
+bool inv_give_item(uint16_t giver_idx, uint16_t recv_idx, uint16_t slot, bool check_only);
 
+void item_apply_effect(struct player_rec *p, const struct item_def *def, bool set_affliction);
 
 #endif /* PLAYER_H */

@@ -38,8 +38,8 @@ struct item_def {
   char name[20];         // NUL-terminated
   uint8_t flags;         // 0x14
   uint8_t weapon_type;   // 0x15
-  uint8_t unk_16;        // 0x16
-  uint8_t unk_17;        // 0x17
+  uint8_t effect_param;  // 0x16
+  uint8_t effect_type;   // 0x17
 };
 
 // Weapon type is 60 bytes, but mostly unknown.
