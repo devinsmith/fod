@@ -186,7 +186,11 @@ struct cmd_menu {
 // KEH: seg000:0x1D6A
 static int select_ammo(int player_idx, uint16_t item_slot, struct ui_region *region, bool flag)
 {
-  printf("%s: unimplemented\n", __func__);
+  player_rec *p = &g_game_state.players[player_idx];
+  uint8_t item_id = p->items[item_slot].item_id;
+  const struct item_def *weapon_def = get_item_def(item_id);
+
+  printf("%s: unimplemented Selecting ammo for: %s\n", __func__, weapon_def->name);
   return 0;
 }
 
@@ -401,6 +405,7 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
     }
 
     if (can_take_action) {
+      // 0x214A
       if (item_def->flags & ITEM_WEAPON) {
         if (!in_combat) {
           ui_region_print_str("E)quip-unequip weapon\r", 0, -1);
@@ -417,7 +422,9 @@ static uint8_t inventory_action_menu(uint16_t player_idx, uint16_t item_slot,
         can_equip = !is_equipped;
         if (can_equip) slot_idx = (item_def->flags & 0x0C) >> 2;
       }
-      if (!in_combat && is_ranged) ui_region_print_str("L)oad/unjam", 0, -1);
+      if (!in_combat && is_ranged) {
+        ui_region_print_str("L)oad/unjam", 0, -1);
+      }
     }
 
     // 0x222C

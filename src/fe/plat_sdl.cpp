@@ -245,7 +245,7 @@ static void pump_events(void)
   }
 }
 
-bool sys_kbhit(void)
+bool sdl_kbhit(void)
 {
   pump_events();
   return q_head != q_tail;
@@ -264,7 +264,7 @@ uint8_t sys_getch(void)
 
 static void sdl_pace()
 {
-    static Uint64 next = 0;
+  static Uint64 next = 0;
   const Uint64 freq   = SDL_GetPerformanceFrequency();
   const Uint64 period = (Uint64)((double)freq / VGA_REFRESH_HZ);
 
@@ -469,6 +469,7 @@ struct plat_driver sdl_driver = {
   get_fb_mem,
   pollkey,
   poll_events,
+  sdl_kbhit,
   delay,
   ticks,
 

@@ -31,8 +31,10 @@
 #include "tables.h"
 #include "ui.h"
 
-extern struct ui_unknown2 data_074F;
 extern unsigned char *scratch;
+
+// DSEG:0x074F
+static struct ui_unknown2 data_074F = { 0 };
 
 static uint16_t word_0CCC = 0;
 static struct ui_unknown2 *ptr_0CCE = &data_074F;

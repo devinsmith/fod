@@ -222,6 +222,14 @@ uint16_t sys_poll_scroll_keys()
   return 0;
 }
 
+bool sys_kbhit()
+{
+  if (sys_ctx != nullptr && sys_ctx->kbhit != nullptr) {
+    return sys_ctx->kbhit();
+  }
+  return false;
+}
+
 // KEH: seg000:FBE2: Borland C's toupper(). This is ascii only, we don't deal with locale.
 static uint8_t toupper_ascii(uint8_t ch)
 {

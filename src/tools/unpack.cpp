@@ -87,7 +87,7 @@ void msclose(struct memstream *ms);
 void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
 void hexdump(void *data, int size);
 
-char *output_file = NULL;
+const char *output_file = NULL;
 
 void print_dos_header(struct dos_header *dh)
 {
@@ -210,7 +210,7 @@ unsigned char *create_reloc_table(struct memstream *ms, struct dos_header *dh, s
 
     exepack_offset = (dh->e_cparhdr + dh->e_cs) * 16;
     msseek(ms, exepack_offset);
-    reloc = memmem(ms->buf + exepack_offset, msgetavailable(ms), "Packed file is corrupt", strlen("Packed file is corrupt"));
+    reloc = (unsigned char *)memmem(ms->buf + exepack_offset, msgetavailable(ms), "Packed file is corrupt", strlen("Packed file is corrupt"));
     if (!reloc) {
         XERROR("Cannot find string \"Packed file is corrupt\", is it really EXEPACK ?");
     }
@@ -218,7 +218,7 @@ unsigned char *create_reloc_table(struct memstream *ms, struct dos_header *dh, s
     reloc_length = (unsigned int)(eh->exepack_size - ((reloc - (ms->buf + exepack_offset)) & 0xFFFFFFFF) + strlen("Packed file is corrupt"));
     nb_reloc = (reloc_length - 16 * sizeof (unsigned short)) / 2;
     *reloc_table_size = nb_reloc * 2 * sizeof(unsigned short);
-    buf_reloc = malloc(sizeof (char) * *reloc_table_size);
+    buf_reloc = (unsigned char *)malloc(sizeof (char) * *reloc_table_size);
     if (buf_reloc == NULL) {
         XPERROR("malloc");
     }
@@ -251,7 +251,6 @@ unsigned char *create_reloc_table(struct memstream *ms, struct dos_header *dh, s
 void writeexe(struct dos_header *dh, unsigned char *unpacked_data, unsigned int unpacked_data_size, unsigned char *reloc, size_t reloc_size, size_t padding)
 {
     int fd;
-    int i;
 
     fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0644);
     if (fd == -1) {
@@ -259,7 +258,7 @@ void writeexe(struct dos_header *dh, unsigned char *unpacked_data, unsigned int 
     }
     write(fd, dh, sizeof (struct dos_header));
     write(fd, reloc, reloc_size);
-    for (i = 0; i < padding; i++) {
+    for (size_t i = 0; i < padding; i++) {
         write(fd, "\x00", 1);
     }
     write(fd, unpacked_data, unpacked_data_size);
@@ -324,7 +323,7 @@ void unpack(struct memstream *ms)
     printf("Header exepack = %X\n", exepack_offset);
     print_exepack_header(&eh);
     unpacked_data_size = eh.dest_len * 16;
-    unpacked_data = malloc(sizeof (char) * unpacked_data_size);
+    unpacked_data = (unsigned char *)malloc(sizeof (char) * unpacked_data_size);
     if (unpacked_data == NULL) {
         XPERROR("malloc");
     }

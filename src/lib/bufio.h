@@ -19,17 +19,13 @@
 #ifndef BUFIO_H_INCLUDED
 #define BUFIO_H_INCLUDED
 
-#include <stdint.h>
+#include <cstdint>
+#include <string>
+#include <vector>
 
 struct buf_wri {
   unsigned char *base;
   size_t len;
-};
-
-struct buf_rdr {
-  unsigned char *data;
-  size_t len;
-  int offset;
 };
 
 /* Buffer writing functions */
@@ -37,36 +33,45 @@ struct buf_wri *buf_wri_init(size_t len);
 void buf_wri_free(struct buf_wri *w);
 void buf_add8(struct buf_wri *w, uint8_t val);
 
-/* Buffer reader functions */
 
-/**
- * @brief Creates a new buffered reader
- *
- * The reader does not own the data but operates on it. The caller should
- * handle the lifetime of the data parameter.
- *
- * @param data  The data to create the reader over
- * @param len   The size of the input data.
- */
-struct buf_rdr *buf_rdr_init(unsigned char *data, size_t len);
-void buf_rdr_free(struct buf_rdr *r);
+// A reader over a buffer of bytes
+class buf_rdr {
+  void ensure(std::size_t n) const;
 
-/* read data */
-void buf_reset(struct buf_rdr *r);
+  std::vector<std::uint8_t> data_;
+  std::size_t offset_;
 
-/**
- * @brief Reads 1 byte (8 bits) from the buffer.
- *
- * The index is also advanced by 1 byte.
- *
- * @param r   The reader to read a byte from.
- * @return    The byte that was read.
- */
-uint8_t buf_get8(struct buf_rdr *r);
-uint16_t buf_get16le(struct buf_rdr *r);
-uint16_t buf_get16be(struct buf_rdr *r);
-uint32_t buf_get32le(struct buf_rdr *r);
-uint32_t buf_get32be(struct buf_rdr *r);
+public:
+  buf_rdr(std::vector<std::uint8_t> data)
+    : data_(std::move(data)), offset_(0) {}
 
-#endif /* BUFIO_H_INCLUDED */
+  static buf_rdr from_file(const std::string& filename);
+
+  // move-only
+  buf_rdr(buf_rdr &&)                 = default;
+  buf_rdr &operator=(buf_rdr &&)      = default;
+  buf_rdr(const buf_rdr &)            = delete;
+  buf_rdr &operator=(const buf_rdr &) = delete;
+
+  void reset() { offset_ = 0; }
+  std::size_t offset() const { return offset_; }
+  std::size_t remaining() const { return data_.size() - offset_; }
+  std::size_t size() const { return data_.size(); }
+  bool eof() const { return offset_ >= data_.size(); }
+
+  const std::uint8_t *data() const { return data_.data(); }
+  const std::uint8_t *cursor() const { return data_.data() + offset_; }
+
+  void seek(std::size_t pos);
+  void skip(std::size_t n);
+
+  // Extractors
+  std::uint8_t get8();
+  std::uint16_t get16le();
+  std::uint16_t get16be();
+  std::uint32_t get32le();
+  std::uint32_t get32be();
+};
+
+#endif // BUFIO_H_INCLUDED
 

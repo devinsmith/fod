@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2025 Devin Smith <devin@devinsmith.net>
+ * Copyright (c) 2008-2026 Devin Smith <devin@devinsmith.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,8 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+
+#include <fstream>
+#include <stdexcept>
 
 #include "bufio.h"
 
@@ -52,85 +55,86 @@ buf_add8(struct buf_wri *w, uint8_t val)
   w->base[w->len++] = val;
 }
 
-
-/* Buffer reader implementation */
-struct buf_rdr *buf_rdr_init(unsigned char *data, size_t len)
+buf_rdr buf_rdr::from_file(const std::string& filename)
 {
-  struct buf_rdr *r;
+  std::ifstream in(filename, std::ios::binary | std::ios::ate);
+  if (!in) {
+    throw std::runtime_error("couldn't open " + filename);
+  }
 
-  r = (struct buf_rdr *)malloc(sizeof(struct buf_rdr));
-  if (r == NULL) return NULL;
+  const auto size = static_cast<std::size_t>(in.tellg());
+  in.seekg(0, std::ios::beg);
 
-  r->data = data;
-  r->len = len;
-  r->offset = 0;
+  std::vector<std::uint8_t> data(size);
+  if (size && !in.read(reinterpret_cast<char *>(data.data()),
+                       static_cast<std::streamsize>(size))) {
+    throw std::runtime_error("short read on " + filename);
+  }
 
-  return r;
+  std::printf("Opened %s %zu bytes\n", filename.c_str(), size);
+
+  return buf_rdr(std::move(data));
 }
 
-void
-buf_reset(struct buf_rdr *r)
+void buf_rdr::ensure(std::size_t n) const
 {
-  r->offset = 0;
+  if (n > data_.size() - offset_) {
+    throw std::out_of_range("buf_rdr: read past end of buffer");
+  }
 }
 
-uint8_t
-buf_get8(struct buf_rdr *r)
+uint8_t buf_rdr::get8()
 {
-  return r->data[r->offset++];
+  ensure(1);
+  return data_[offset_++];
 }
 
-uint16_t
-buf_get16le(struct buf_rdr *r)
+std::uint16_t buf_rdr::get16le()
 {
-  uint16_t ret;
-
-  ret = r->data[r->offset++];
-  ret += r->data[r->offset++] << 8;
-
-  return ret;
+  ensure(2);
+  std::uint16_t v = data_[offset_++];
+  v |= static_cast<std::uint16_t>(data_[offset_++]) << 8;
+  return v;
 }
 
-uint16_t
-buf_get16be(struct buf_rdr *r)
+std::uint16_t buf_rdr::get16be()
 {
-  uint16_t ret;
-
-  ret = r->data[r->offset++] << 8;
-  ret += r->data[r->offset++];
-
-  return ret;
+  ensure(2);
+  std::uint16_t v = static_cast<std::uint16_t>(data_[offset_++]) << 8;
+  v |= data_[offset_++];
+  return v;
 }
 
-uint32_t
-buf_get32le(struct buf_rdr *r)
+std::uint32_t buf_rdr::get32le()
 {
-  uint32_t ret;
-
-  ret = r->data[r->offset++];
-  ret += r->data[r->offset++] << 8;
-  ret += r->data[r->offset++] << 16;
-  ret += r->data[r->offset++] << 24;
-
-  return ret;
+  ensure(4);
+  std::uint32_t v = data_[offset_++];
+  v |= static_cast<std::uint32_t>(data_[offset_++]) << 8;
+  v |= static_cast<std::uint32_t>(data_[offset_++]) << 16;
+  v |= static_cast<std::uint32_t>(data_[offset_++]) << 24;
+  return v;
 }
 
-uint32_t
-buf_get32be(struct buf_rdr *r)
+std::uint32_t buf_rdr::get32be()
 {
-  uint32_t ret;
-
-  ret = r->data[r->offset++] << 24;
-  ret += r->data[r->offset++] << 16;
-  ret += r->data[r->offset++] << 8;
-  ret += r->data[r->offset++];
-
-  return ret;
+  ensure(4);
+  std::uint32_t v = static_cast<std::uint32_t>(data_[offset_++]) << 24;
+  v |= static_cast<std::uint32_t>(data_[offset_++]) << 16;
+  v |= static_cast<std::uint32_t>(data_[offset_++]) << 8;
+  v |= data_[offset_++];
+  return v;
 }
 
-void
-buf_rdr_free(struct buf_rdr *r)
+void buf_rdr::seek(std::size_t pos)
 {
-  if (r == NULL) return;
-  free(r);
+  if (pos > data_.size()) {
+    throw std::out_of_range("buf_rdr::seek past end");
+  }
+  offset_ = pos;
+}
+
+void buf_rdr::skip(std::size_t n)
+{
+  ensure(n);
+  offset_ += n;
 }

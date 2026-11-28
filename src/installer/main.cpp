@@ -26,254 +26,192 @@
 #include "bufio.h"
 #include "hexdump.h"
 
-static void extract_disk1(struct buf_rdr *rdr);
+static void extract_disk1(buf_rdr& rdr);
 static void do_install(void);
-static void extract_raw_file(struct buf_rdr *rdr, const char *filename);
-static void extract_file(struct buf_rdr *rdr, const char *filename);
-static struct buf_rdr *open_install_file(const char *filename);
+static void extract_raw_file(buf_rdr& rdr, const char *filename);
+static void extract_file(buf_rdr& rdr, const char *filename);
 
-int
-main(void)
+int main(void)
 {
-	do_install();
-	printf("Install done\n");
+  do_install();
+  printf("Install done\n");
 
-	return 0;
+  return 0;
 }
 
-static struct buf_rdr *
-open_install_file(const char *filename)
+static void do_install(void)
 {
-	FILE *fp;
-	int size;
-	int tb;
-	unsigned char *data;
-	struct buf_rdr *rdr;
+  mkdir("output", 0777);
 
-	fp = fopen(filename, "rb");
-	if (fp == NULL) {
-		errx(1, "couldn't open %s", filename);
-	}
-	fseek(fp, 0, SEEK_END);
-	size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	printf("Opened %s %d bytes\n", filename, size);
+  {
+    /* Open F1.PAK */
+    auto rdr = buf_rdr::from_file("F1.PAK");
+    extract_disk1(rdr);
+    rdr.reset();
 
-	data = (unsigned char *)malloc(size);
-	if (data == NULL) {
-		errx(1, "no memory");
-	}
+    chdir("output");
+    extract_file(rdr, "fod.exe");
+    extract_file(rdr, "keh.exe");
+    extract_file(rdr, "globals");
+    extract_file(rdr, "hdspct");
+    extract_file(rdr, "weapons");
+    extract_file(rdr, "packets");
+    extract_file(rdr, "archtype");
+    extract_file(rdr, "services");
+    extract_file(rdr, "font");
+    extract_file(rdr, "borders");
+    extract_file(rdr, "disk2");
+    extract_file(rdr, "kmap");
+    chdir("..");
+  }
 
-	tb = 0;
-	while (feof(fp) == 0) {
-		tb += fread(data + tb, 1, 1024, fp);
-	}
+  {
+    /* Open F1.RAW */
+    auto rdr = buf_rdr::from_file("F1.RAW");
 
-	fclose(fp);
-	rdr = buf_rdr_init(data, size);
+    chdir("output");
+    extract_raw_file(rdr, "tiles");
+    extract_raw_file(rdr, "gani");
+    extract_raw_file(rdr, "tpict");
+    extract_raw_file(rdr, "kscr");
+    extract_raw_file(rdr, "kani");
+    extract_raw_file(rdr, "kpict");
+    extract_raw_file(rdr, "fpict");
+    extract_raw_file(rdr, "epict");
+    extract_raw_file(rdr, "dpict");
 
-	return rdr;
+    chdir("..");
+  }
+
+  {
+    /* Open F2.PAK */
+    auto rdr = buf_rdr::from_file("F2.PAK");
+
+    chdir("output");
+    extract_file(rdr, "fmap");
+    extract_file(rdr, "dmap");
+
+    chdir("..");
+  }
+
+  {
+    /* Open F2.RAW */
+    auto rdr = buf_rdr::from_file("F2.RAW");
+
+    chdir("output");
+    extract_raw_file(rdr, "fscr");
+    extract_raw_file(rdr, "fani");
+    extract_raw_file(rdr, "dani");
+    extract_raw_file(rdr, "dscr");
+    chdir("..");
+  }
 }
 
-static void
-do_install(void)
+static void extract_raw_file(buf_rdr& rdr, const char *filename)
 {
-	struct buf_rdr *rdr;
+  uint32_t u_bytes;
+  FILE *fp;
 
-	/* Open F1.PAK */
-	rdr = open_install_file("F1.PAK");
-	if (rdr == NULL) {
-		errx(1, "no memory for stream");
-	}
+  /* RAW file format
+   * Uncompressed length (4 bytes): Length of uncompressed data.
+   * Data */
 
-	mkdir("output", 0777);
-	chdir("output");
+  u_bytes = rdr.get32le();
+  printf("Extracting %s (%d bytes)\n", filename, u_bytes);
 
-	extract_disk1(rdr);
-	rdr->offset = 0;
-	extract_file(rdr, "fod.exe");
-	extract_file(rdr, "keh.exe");
-	extract_file(rdr, "globals");
-	extract_file(rdr, "hdspct");
-	extract_file(rdr, "weapons");
-	extract_file(rdr, "packets");
-	extract_file(rdr, "archtype");
-	extract_file(rdr, "services");
-	extract_file(rdr, "font");
-	extract_file(rdr, "borders");
-	extract_file(rdr, "disk2");
-	extract_file(rdr, "kmap");
+  fp = fopen(filename, "wb");
+  fwrite(rdr.cursor(), 1, u_bytes, fp);
+  fclose(fp);
 
-	/* Close data allocated for F1.PAK */
-	free(rdr->data);
-  buf_rdr_free(rdr);
-
-	chdir("..");
-
-	/* Open F1.RAW */
-	rdr = open_install_file("F1.RAW");
-	if (rdr == NULL) {
-		errx(1, "no memory for stream");
-	}
-
-	chdir("output");
-	extract_raw_file(rdr, "tiles");
-	extract_raw_file(rdr, "gani");
-	extract_raw_file(rdr, "tpict");
-	extract_raw_file(rdr, "kscr");
-	extract_raw_file(rdr, "kani");
-	extract_raw_file(rdr, "kpict");
-	extract_raw_file(rdr, "fpict");
-	extract_raw_file(rdr, "epict");
-	extract_raw_file(rdr, "dpict");
-
-	/* Close data allocated for F1.RAW */
-	free(rdr->data);
-  buf_rdr_free(rdr);
-
-	chdir("..");
-
-	/* Open F2.PAK */
-	rdr = open_install_file("F2.PAK");
-	if (rdr == NULL) {
-		errx(1, "no memory for stream");
-	}
-
-	chdir("output");
-	extract_file(rdr, "fmap");
-	extract_file(rdr, "dmap");
-
-	/* Close data allocated for F2.PAK */
-	free(rdr->data);
-  buf_rdr_free(rdr);
-
-	chdir("..");
-
-	/* Open F2.RAW */
-	rdr = open_install_file("F2.RAW");
-	if (rdr == NULL) {
-		errx(1, "no memory for stream");
-	}
-
-	chdir("output");
-	extract_raw_file(rdr, "fscr");
-	extract_raw_file(rdr, "fani");
-	extract_raw_file(rdr, "dani");
-	extract_raw_file(rdr, "dscr");
-
-	/* Close data allocated for F2.RAW */
-	free(rdr->data);
-  buf_rdr_free(rdr);
+  rdr.skip(u_bytes);
 }
 
-static void
-extract_raw_file(struct buf_rdr *rdr, const char *filename)
+static void extract_file(buf_rdr& rdr, const char *filename)
 {
-	uint32_t u_bytes;
-	FILE *fp;
+  uint32_t c_bytes;
+  uint32_t u_bytes;
+  FILE *fp;
 
-	/* RAW file format
-	 * Uncompressed length (4 bytes): Length of uncompressed data.
-	 * Data */
+  /* F1.PAK file format
+   * Header length (4 bytes): Length of compressed data minus the 4 byte header
+   * Uncompressed length (4 bytes): Length of uncompressed data.
+   * Compression codes (variable) */
 
-	u_bytes = buf_get32le(rdr);
-	printf("Extracting %s (%d bytes)\n", filename, u_bytes);
-
-	fp = fopen(filename, "wb");
-	fwrite(rdr->data + rdr->offset, 1, u_bytes, fp);
-	fclose(fp);
-
-	rdr->offset += u_bytes;
-}
-
-static void
-extract_file(struct buf_rdr *rdr, const char *filename)
-{
-	uint32_t c_bytes;
-	uint32_t u_bytes;
-	FILE *fp;
-
-	/* F1.PAK file format
-	 * Header length (4 bytes): Length of compressed data minus the 4 byte header
-	 * Uncompressed length (4 bytes): Length of uncompressed data.
-	 * Compression codes (variable) */
-
-	c_bytes = buf_get32le(rdr);
-	u_bytes = buf_get32le(rdr);
-	printf("Extracting %s (inflating %d to %d bytes)\n", filename, c_bytes, u_bytes);
+  c_bytes = rdr.get32le();
+  u_bytes = rdr.get32le();
+  printf("Extracting %s (inflating %d to %d bytes)\n", filename, c_bytes, u_bytes);
 
   unsigned char *dest = (unsigned char *)malloc(u_bytes);
 
-	decompress(rdr->data + rdr->offset, dest, u_bytes);
+  decompress(rdr.cursor(), dest, u_bytes);
 
-	fp = fopen(filename, "wb");
-	fwrite(dest, 1, u_bytes, fp);
-	fclose(fp);
+  fp = fopen(filename, "wb");
+  fwrite(dest, 1, u_bytes, fp);
+  fclose(fp);
 
   free(dest);
 }
 
-static void
-extract_disk1(struct buf_rdr *rdr)
+static void extract_disk1(buf_rdr &rdr)
 {
-	uint32_t c_bytes;
-	uint32_t u_bytes;
-	int bytes_read;
-	int next_offset;
-	int i;
-	FILE *fp;
-	unsigned char *junk;
+  uint32_t c_bytes;
+  uint32_t u_bytes;
+  int bytes_read;
+  int next_offset;
+  int i;
+  FILE *fp;
+  unsigned char *junk;
 
-	bytes_read = 0;
-	next_offset = 0;
+  bytes_read = 0;
+  next_offset = 0;
 
-	/* The disk1 data is based off of disk2 */
-	for (i = 0; i < 10; i++) {
-		rdr->offset = next_offset;
+  /* The disk1 data is based off of disk2 */
+  for (i = 0; i < 10; i++) {
+    rdr.seek(next_offset);
 
-		/* Read in the next offset (stored in the first 4 bytes) */
-		c_bytes = buf_get32le(rdr);
-		bytes_read += 4; /* 4 bytes read */
-		next_offset += c_bytes + 4;
+    /* Read in the next offset (stored in the first 4 bytes) */
+    c_bytes = rdr.get32le();
+    bytes_read += 4; /* 4 bytes read */
+    next_offset += c_bytes + 4;
 
-		c_bytes += bytes_read;
-		bytes_read = c_bytes;
-		bytes_read = bytes_read & 0x000f;
-	}
+    c_bytes += bytes_read;
+    bytes_read = c_bytes;
+    bytes_read = bytes_read & 0x000f;
+  }
 
-	rdr->offset = next_offset;
-	c_bytes = buf_get32le(rdr);
-	u_bytes = buf_get32le(rdr);
+  rdr.seek(next_offset);
+  c_bytes = rdr.get32le();
+  u_bytes = rdr.get32le();
 
   unsigned char *dest = (unsigned char *)malloc(u_bytes);
 
-  decompress(rdr->data + rdr->offset, dest, u_bytes);
+  decompress(rdr.cursor(), dest, u_bytes);
 
-	/* No idea why the installer does this */
-	junk = (unsigned char *)malloc(0xec0 - (0x729 * 2));
-	memset(junk, 0, 0xec0 - (0x729 * 2));
-	dest[6] = 3;
+  /* No idea why the installer does this */
+  junk = (unsigned char *)malloc(0xec0 - (0x729 * 2));
+  memset(junk, 0, 0xec0 - (0x729 * 2));
+  dest[6] = 3;
 
-	printf("Extracting disk1 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
-	fp = fopen("disk1", "wb");
-	fwrite(dest, 1, 0x729 * 2, fp);
-	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
-	fclose(fp);
+  printf("Extracting disk1 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
+  fp = fopen("disk1", "wb");
+  fwrite(dest, 1, 0x729 * 2, fp);
+  fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
+  fclose(fp);
 
-	printf("Extracting disk3 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
-	fp = fopen("disk3", "wb");
-	fwrite(dest, 1, 0x729 * 2, fp);
-	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
-	fclose(fp);
+  printf("Extracting disk3 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
+  fp = fopen("disk3", "wb");
+  fwrite(dest, 1, 0x729 * 2, fp);
+  fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
+  fclose(fp);
 
-	printf("Extracting disk4 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
-	fp = fopen("disk4", "wb");
-	fwrite(dest, 1, 0x729 * 2, fp);
-	fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
-	fclose(fp);
+  printf("Extracting disk4 (inflating %d to %d bytes)\n", c_bytes, u_bytes);
+  fp = fopen("disk4", "wb");
+  fwrite(dest, 1, 0x729 * 2, fp);
+  fwrite(junk, 1, 0xec0 - (0x729 * 2), fp);
+  fclose(fp);
 
 
-	free(junk);
+  free(junk);
   free(dest);
 }
 

@@ -35,7 +35,7 @@ void hw_pit_ch2_set_divisor(uint16_t divisor)
 
   if (pcm_n + n > pcm_cap) {
       pcm_cap = (pcm_n + n) * 2 + 4096;
-      pcm = realloc(pcm, pcm_cap * sizeof *pcm);
+      pcm = (float *)realloc(pcm, pcm_cap * sizeof *pcm);
       if (!pcm) { perror("realloc"); exit(1); }
   }
   double hz = PIT_HZ / (divisor ? divisor : 65536);
@@ -87,6 +87,7 @@ static int write_wav(const char *path)
 
 struct plat_driver write_wav_driver = {
   "WAV_OUTPUT",
+  NULL,
   NULL,
   NULL,
   NULL,

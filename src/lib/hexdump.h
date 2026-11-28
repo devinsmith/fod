@@ -17,17 +17,6 @@
 #ifndef HEXDUMP_H_INCLUDED
 #define HEXDUMP_H_INCLUDED
 
-#include <stddef.h> /* size_t */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//void dump_hex(const void *vp, size_t len);
-void hexdump(void *ptr, int buflen);
-
-#ifdef __cplusplus
-}
-#endif
+void hexdump(const void *ptr, int buflen);
 
 #endif /* HEXDUMP_H_INCLUDED */

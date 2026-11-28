@@ -4,8 +4,7 @@
 
 #include "hexdump.h"
 
-void
-hexdump(void *vp, int length)
+void hexdump(const void *vp, int length)
 {
 	char linebuf[80];
 	int i;

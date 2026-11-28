@@ -261,9 +261,6 @@ static unsigned char *scratch_01; // DSEG:0x029A
 static unsigned char *scratch_02; // DSEG:0x0292
 static unsigned char *scratch_03; // DSEG:0x0296
 
-// DSEG:0x074F
-struct ui_unknown2 data_074F = { 0 };
-
 // DSEG:0x2310
 static struct ui_region *ptr_2310;
 

@@ -46,7 +46,9 @@ struct item_def {
 struct weapon_type {
   unsigned char unknown_00[0x1A];
   uint8_t flags;      // 0x1A, bit 0 = ranged / takes ammo
-  unsigned char unknown_1B[0x3C-0x1B];
+  unsigned char unknown_1B[0x3A-0x1B];
+  uint16_t ammo_count;
+  uint16_t ammo_list_offset;
 };
 
 const struct item_def *get_item_def(int item_id);

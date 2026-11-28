@@ -35,6 +35,7 @@ struct plat_driver {
   uint8_t* (*memory)();
   bool (*pollkey)(unsigned int ms);
   bool (*poll)();
+  bool (*kbhit)();
   void (*delay)(unsigned int ms);
   uint64_t (*ticks_ms)();
 

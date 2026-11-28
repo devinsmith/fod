@@ -155,7 +155,7 @@ const struct item_def *get_item_def(int item_id)
 // KEH: DSEG 0xCFC8
 // This comes from the weapons file.
 static const struct weapon_type weapon_types[] = {
-  { {0x0}, 0x0, {0x0} }
+  { {0x0}, 0x3, {0x0}, 1, 0x5A2 } // Handgun weapon type?
 };
 
 const size_t weapon_types_count = sizeof(weapon_types) / sizeof(weapon_types[0]);
