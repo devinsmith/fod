@@ -44,11 +44,23 @@ struct item_def {
 
 // Weapon type is 60 bytes, but mostly unknown.
 struct weapon_type {
-  unsigned char unknown_00[0x1A];
-  uint8_t flags;      // 0x1A, bit 0 = ranged / takes ammo
-  unsigned char unknown_1B[0x3A-0x1B];
-  uint16_t ammo_count;
-  uint16_t ammo_list_offset;
+  char     fire_msg[20];          /* 0x00: "pops a shot at", ... NUL-terminated */
+  uint8_t  unknown_14;            /* 0x14: 01, 02, 02 */
+  uint8_t  unknown_15;            /* 0x15: 00 */
+  uint8_t  unknown_16;            /* 0x16: 04, 06, 05 */
+  uint8_t  unknown_17;            /* 0x17: 00 */
+  uint8_t  flags;                 /* 0x18: 03 in all three; bit 0 = ranged */
+  uint8_t  unknown_19;            /* 0x19: 0x32 (50) in all three */
+  uint8_t  unknown_1A;            /* 0x1A: 0x63 (99) in all three */
+  uint8_t  unknown_1B[3];         /* 0x1B */
+  uint8_t  unknown_1E;            /* 0x1E: 05 in all three */
+  uint8_t  unknown_1F[3];
+  uint8_t  unknown_22;            /* 0x22: 03 in all three */
+  uint8_t  unknown_23[11];
+  uint8_t  unknown_2E;            /* 0x2E: 05 in all three */
+  uint8_t  unknown_2F[9];
+  uint16_t ammo_count;            /* 0x38 */
+  uint16_t ammo_list_offset;      /* 0x3A: from start of file, header included */
 };
 
 const struct item_def *get_item_def(int item_id);

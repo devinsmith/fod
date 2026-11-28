@@ -64,6 +64,7 @@ public:
 
   void seek(std::size_t pos);
   void skip(std::size_t n);
+  void read(void *dst, std::size_t n);
 
   // Extractors
   std::uint8_t get8();

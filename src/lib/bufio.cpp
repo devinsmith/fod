@@ -138,3 +138,10 @@ void buf_rdr::skip(std::size_t n)
   ensure(n);
   offset_ += n;
 }
+
+void buf_rdr::read(void *dst, std::size_t n)
+{
+  ensure(n);
+  std::memcpy(dst, data_.data() + offset_, n);
+  offset_ += n;
+}
